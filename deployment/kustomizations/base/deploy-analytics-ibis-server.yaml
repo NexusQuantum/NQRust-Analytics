@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-ibis-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analytics-ibis
+  template:
+    metadata:
+      labels:
+        app: analytics-ibis
+    spec:
+      containers:
+        - name: analytics-ibis
+          image: ghcr.io/canner/analytics-engine-ibis:0.5.0
+          env:
+            - name: ANALYTICS_ENGINE_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-config
+                  key: ANALYTICS_ENGINE_ENDPOINT
+            - name: LOGGING_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-config
+                  key: LOGGING_LEVEL
+          ports:
+            - containerPort: 8000

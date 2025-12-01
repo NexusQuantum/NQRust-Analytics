@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-ui-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analytics-ui
+  template:
+    metadata:
+      labels:
+        app: analytics-ui
+    spec:
+      containers:
+
+        - name: analytics-ui
+          image: ghcr.io/canner/analytics-ui:0.5.6
+          env:
+            - name: DB_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-config
+                  key: ANALYTICS_UI_DB_TYPE
+            - name: ANALYTICS_ENGINE_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-config
+                  key: ANALYTICS_ENGINE_ENDPOINT
+            - name: ANALYTICS_AI_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-config
+                  key: ANALYTICS_AI_ENDPOINT
+            - name: GENERATION_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-config
+                  key: GENERATION_MODEL
+            - name: PG_URL
+              valueFrom:
+                secretKeyRef:
+                  name: analyticsai-secrets
+                  key: PG_URL
+            # telemetry
+            - name: ANALYTICS_ENGINE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-config
+                  key: ANALYTICS_ENGINE_PORT
+            - name: ANALYTICS_AI_SERVICE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-config
+                  key: ANALYTICS_AI_SERVICE_VERSION
+            - name: ANALYTICS_UI_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-config
+                  key: ANALYTICS_UI_VERSION
+            - name: ANALYTICS_ENGINE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-config
+                  key: ANALYTICS_ENGINE_VERSION
+            - name: USER_UUID
+              valueFrom:
+                secretKeyRef:
+                  name: analyticsai-secrets
+                  key: USER_UUID
+            - name: POSTHOG_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: analyticsai-secrets
+                  key: POSTHOG_API_KEY
+            - name: POSTHOG_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: analyticsai-secrets
+                  key: POSTHOG_HOST
+            - name: TELEMETRY_ENABLED
+              valueFrom: 
+                configMapKeyRef:
+                  name: analytics-config
+                  key: TELEMETRY_ENABLED
+            # client side
+            - name: NEXT_PUBLIC_USER_UUID
+              valueFrom:
+                secretKeyRef:
+                  name: analyticsai-secrets
+                  key: USER_UUID
+            - name: NEXT_PUBLIC_POSTHOG_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: analyticsai-secrets
+                  key: POSTHOG_API_KEY
+            - name: NEXT_PUBLIC_POSTHOG_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: analyticsai-secrets
+                  key: POSTHOG_HOST
+            - name: NEXT_PUBLIC_TELEMETRY_ENABLED
+              valueFrom: 
+                configMapKeyRef:
+                  name: analytics-config
+                  key: TELEMETRY_ENABLED
+            # configs
+            - name: ANALYTICS_PRODUCT_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-config
+                  key: ANALYTICS_PRODUCT_VERSION
+            - name: IBIS_SERVER_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-config
+                  key: IBIS_SERVER_ENDPOINT
+          ports:
+            - containerPort: 3000

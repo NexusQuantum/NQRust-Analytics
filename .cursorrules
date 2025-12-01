@@ -1,0 +1,376 @@
+# Analytics AI - Cursor Rules & Project Guidelines
+
+## 🎯 Project Overview
+Analytics AI is an AI-powered text-to-SQL system that helps users query databases using natural language.
+This project uses Python 3.12, FastAPI, and LangChain for RAG (Retrieval-Augmented Generation) pipelines.
+
+## 📁 Project Structure
+
+```
+analytics-ai-service/
+├── src/
+│   ├── __main__.py           # FastAPI entry point
+│   ├── core/                 # Core abstractions (Pipeline, Provider, Engine)
+│   ├── pipelines/            # RAG pipelines (indexing, retrieval, generation)
+│   ├── providers/            # External dependencies (LLM, Embedder, DocumentStore)
+│   ├── web/                  # API layer (routers, services)
+│   └── utils.py              # Utilities
+├── tests/                    # Test files
+├── config.yaml               # Configuration
+└── pyproject.toml            # Dependencies
+```
+
+## 🚀 Current Refactoring Initiative
+
+**Status**: 🔄 In Progress
+**Start Date**: [Date Started]
+**Focus**: Code quality improvement without logic changes
+
+### Active Refactoring Areas:
+
+#### ✅ Priority 1 (In Progress)
+- [ ] Service Layer - Extract God Object (ask.py)
+- [ ] Pipeline Construction - Implement Builder Pattern (globals.py)
+- [ ] Pipeline Base Classes - Strengthen Abstraction (core/pipeline.py)
+
+#### ⏳ Priority 2 (Planned)
+- [ ] Error Handling - Custom Exception Hierarchy
+- [ ] Configuration Management - Centralized Validation
+- [ ] Prompt Templates - Extract to Separate Files
+
+See `REFACTORING_PROPOSAL.md` and `REFACTORING_TODO.md` for details.
+
+## 🎨 Code Style & Standards
+
+### Python Style
+- **Formatter**: Black (line length: 88)
+- **Linter**: Ruff
+- **Type Checker**: MyPy (strict mode)
+- **Docstrings**: Google style
+
+### Naming Conventions
+```python
+# Classes: PascalCase
+class AskService:
+    pass
+
+# Functions/Methods: snake_case
+def create_service_container():
+    pass
+
+# Constants: UPPER_SNAKE_CASE
+MAX_RETRIES = 3
+
+# Private methods: _prefix
+def _internal_helper():
+    pass
+```
+
+### Import Order
+```python
+# 1. Standard library
+import logging
+from typing import Dict, List
+
+# 2. Third-party
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+# 3. Local
+from src.core.pipeline import BasicPipeline
+from src.utils import trace_metadata
+```
+
+## 🏗️ Architecture Patterns
+
+### Pipeline Pattern (Hamilton Framework)
+```python
+# Each pipeline step is a function with clear inputs/outputs
+@observe()
+def step_1(input_data: dict) -> dict:
+    # Process data
+    return {"result": processed_data}
+
+@observe()
+def step_2(step_1: dict) -> dict:
+    # Use output from step_1
+    return {"final": result}
+```
+
+### Service Layer Pattern
+```python
+class MyService:
+    """
+    Services orchestrate multiple pipelines.
+    They handle:
+    - Business logic
+    - State management
+    - Error handling
+    """
+    def __init__(self, pipelines: Dict[str, BasicPipeline]):
+        self._pipelines = pipelines
+    
+    async def execute(self, request: Request) -> Response:
+        # Orchestrate pipeline calls
+        pass
+```
+
+### Provider Pattern
+```python
+# Providers are abstraction for external dependencies
+class LLMProvider(ABC):
+    @abstractmethod
+    def get_generator(self):
+        pass
+```
+
+## ✅ Code Review Checklist
+
+### Before Committing
+- [ ] Code follows style guide (run `ruff check`)
+- [ ] All tests pass (`just test`)
+- [ ] Type hints are present
+- [ ] Docstrings added for public methods
+- [ ] No breaking changes (unless intentional)
+- [ ] Updated relevant documentation
+
+### Refactoring Specific
+- [ ] Logic remains identical (no behavior changes)
+- [ ] Tests updated if signatures changed
+- [ ] Performance not degraded
+- [ ] TODO list updated in `REFACTORING_TODO.md`
+
+## 🧪 Testing Guidelines
+
+### Test Structure
+```python
+# tests/pytest/[module]/test_[feature].py
+
+import pytest
+from src.web.v1.services.ask import AskService
+
+@pytest.fixture
+def ask_service():
+    return AskService(...)
+
+async def test_ask_returns_valid_response(ask_service):
+    result = await ask_service.ask(...)
+    assert result.status == "finished"
+```
+
+### Test Coverage
+- **Target**: 80%+ coverage
+- **Focus**: Critical paths (service layer, pipeline orchestration)
+- **Mock**: External dependencies (LLM, database)
+
+## 🚫 Anti-Patterns to Avoid
+
+### 1. God Objects
+❌ **Don't**: Create classes with 500+ lines and multiple responsibilities
+✅ **Do**: Split into smaller, focused classes
+
+### 2. Procedural Code in OOP
+❌ **Don't**: Write long functions with if/else chains
+✅ **Do**: Use polymorphism, strategy pattern
+
+### 3. Hardcoded Values
+❌ **Don't**: `if error_code == "NO_RELEVANT_DATA":`
+✅ **Do**: Use enums or constants
+
+### 4. Silent Failures
+❌ **Don't**: `except Exception: pass`
+✅ **Do**: Log and re-raise or handle specifically
+
+### 5. Mutable Defaults
+❌ **Don't**: `def func(items=[]):`
+✅ **Do**: `def func(items=None): items = items or []`
+
+## 🔧 Development Workflow
+
+### Starting Work
+```bash
+# 1. Create feature branch
+git checkout -b refactor/service-layer
+
+# 2. Activate environment
+poetry install
+poetry shell
+
+# 3. Start dependencies
+cd analytics-ai-service
+just up
+
+# 4. Run in dev mode
+just start
+```
+
+### During Development
+```bash
+# Run tests continuously
+just test-watch
+
+# Format code
+just format
+
+# Lint
+just lint
+
+# Type check
+just typecheck
+```
+
+### Before Commit
+```bash
+# Run all checks
+just check-all
+
+# Update TODO list
+# Edit REFACTORING_TODO.md
+
+# Commit with conventional commits
+git commit -m "refactor(service): extract method from AskService"
+```
+
+## 📝 Commit Message Convention
+
+Format: `<type>(<scope>): <subject>`
+
+Types:
+- `feat`: New feature
+- `fix`: Bug fix
+- `refactor`: Code change without behavior change
+- `docs`: Documentation
+- `test`: Test changes
+- `chore`: Build/tooling changes
+
+Examples:
+```
+refactor(service): extract _classify_intent from AskService
+feat(pipeline): add SQL validation step
+fix(provider): handle LLM timeout correctly
+docs(readme): update setup instructions
+```
+
+## 🎓 Learning Resources
+
+### Project Specific
+- Architecture diagram: See root README.md
+- Code design: `analytics-ai-service/docs/code_design.md`
+- Configuration: `analytics-ai-service/docs/configuration.md`
+
+### Frameworks Used
+- **FastAPI**: https://fastapi.tiangolo.com/
+- **Hamilton**: https://github.com/DAGWorks-Inc/hamilton
+- **Haystack**: https://haystack.deepset.ai/
+- **LangFuse**: https://langfuse.com/ (observability)
+
+## 💡 AI Assistant Guidelines
+
+When using AI assistants (Cursor, Copilot):
+
+1. **Context**: Always provide relevant files and explain the goal
+2. **Constraints**: Mention "no logic changes" for refactoring
+3. **Testing**: Ask for tests alongside code changes
+4. **Review**: Always review generated code before committing
+
+### Example Prompts
+
+Good ✅:
+```
+Refactor the _classify_intent method in ask.py into a separate 
+method without changing its behavior. Include type hints and 
+docstrings. Also update the tests.
+```
+
+Bad ❌:
+```
+Make the code better
+```
+
+## 🔍 Debugging Tips
+
+### Logging
+```python
+# Use structured logging
+logger.info(
+    "SQL generation completed",
+    extra={
+        "query_id": query_id,
+        "sql_length": len(sql),
+        "duration": duration,
+    }
+)
+```
+
+### Tracing
+- LangFuse is configured for pipeline tracing
+- Access dashboard at configured LANGFUSE_HOST
+- Use `@observe` decorator to add custom traces
+
+### Common Issues
+
+**Issue**: Pipeline timeout
+**Solution**: Check `engine_timeout` in config.yaml
+
+**Issue**: No relevant data
+**Solution**: Check if MDL is properly indexed in Qdrant
+
+**Issue**: LLM rate limit
+**Solution**: Adjust retry logic or switch provider
+
+## 📊 Performance Guidelines
+
+### Async/Await
+- Use `asyncio.gather()` for parallel operations
+- Don't block event loop with sync operations
+- Use `run_in_executor()` for CPU-bound tasks
+
+### Caching
+- TTLCache used for query results
+- Configure `query_cache_ttl` in settings
+- Invalidate on schema updates
+
+### Database Queries
+- Batch operations when possible
+- Use streaming for large datasets
+- Monitor Qdrant query performance
+
+## 🔐 Security Considerations
+
+- **Never log sensitive data**: API keys, SQL with PII
+- **Validate inputs**: Use Pydantic models
+- **Sanitize SQL**: Engine validates before execution
+- **Rate limiting**: Implement at API gateway level
+
+## 📞 Getting Help
+
+- **Documentation**: Check `/docs` directory
+- **Issues**: Search existing issues in GitHub
+- **Team**: Ask in project channel
+
+## 🎯 Project Goals
+
+1. **Maintainability**: Code should be easy to understand and modify
+2. **Reliability**: 99.9% uptime for production
+3. **Performance**: < 5s response time for typical queries
+4. **Extensibility**: Easy to add new LLM providers or pipelines
+
+## 📈 Success Metrics
+
+### Code Quality
+- Test coverage > 80%
+- No critical linter issues
+- Type coverage > 90%
+
+### Performance
+- P95 latency < 10s
+- Cache hit rate > 60%
+- Error rate < 1%
+
+---
+
+**Last Updated**: 2025-10-03
+**Maintained By**: Development Team
+**Version**: 1.0.0
+
+

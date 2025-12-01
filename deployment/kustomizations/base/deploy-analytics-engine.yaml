@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-engine-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analytics-engine
+  template:
+    metadata:
+      labels:
+        app: analytics-engine
+    spec:
+      volumes:
+        - name: analytics-data
+          persistentVolumeClaim:
+            claimName: analytics-data-pvc
+      initContainers:
+        - name: bootstrap
+          image: ghcr.io/canner/analytics-bootstrap:0.1.4
+          env:
+            - name: DATA_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-config
+                  key: ANALYTICS_ENGINE_DATA_PATH
+            - name: PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: analyticsai-postgresql
+                  key: postgres-password
+            - name: PG_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: analyticsai-secrets
+                  key: PG_USERNAME
+          volumeMounts:
+            - name: analytics-data
+              mountPath: /app/data
+          command: ["/bin/sh", "/app/init.sh"]
+      containers:
+        - name: analytics-engine
+          image: ghcr.io/canner/analytics-engine:0.4.4
+          ports:
+            - containerPort: 8080
+            - containerPort: 7432
+          volumeMounts:
+            - name: analytics-data
+              mountPath: /usr/src/app/etc

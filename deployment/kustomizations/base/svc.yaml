@@ -1,0 +1,66 @@
+# Dependancy https://external-dns.io
+# You may want to add a DNS record for analytics-ui.myhost.net host for your k8s Service instead of Ingress. 
+# Note: without authentication, enyone can acess your app, see your data and modify your settings!
+# If this is the case, make sure to comment the ingress-analytics_example.yaml manifest in the `kustomization.yaml` file to exclude it
+# And uncomment external-dns in the Service manifest here below:
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytics-ui-svc
+  #annotations:
+    ### Dependancy external-dns
+    #external-dns.alpha.kubernetes.io/filter: 'include'
+    #external-dns.alpha.kubernetes.io/cloudflare-proxied: 'false'
+    #external-dns.alpha.kubernetes.io/target: analytics-ui.myhost.net
+spec:
+  selector:
+    app: analytics-ui
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+      name: http-ui
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytics-engine-svc
+spec:
+  selector:
+    app: analytics-engine
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      name: analytics-engine
+    - protocol: TCP
+      port: 7432
+      targetPort: 7432
+      name: analytics-engine-sql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytics-ai-service-svc
+spec:
+  selector:
+    app: analytics-ai-service
+  ports:
+    - protocol: TCP
+      port: 5555
+      targetPort: 5555
+      name: analytics-ai-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytics-ibis-server-svc
+spec:
+  selector:
+    app: analytics-ibis
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+      name: analytics-ibis

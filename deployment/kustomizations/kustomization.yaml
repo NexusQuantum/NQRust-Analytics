@@ -1,0 +1,65 @@
+##### Dependancies used in this kustomization:
+# nginx.ingress
+# external-dns
+# cert-manager
+# kubectl kustomize
+
+#test output like this:
+#kubectl kustomize deployment/kustomizations --enable-helm > deployment/kustomizations/analyticsai.kustimized.yaml
+#kubectl create namespace analytics
+#kubectl apply -f deployment/kustomizations/analyticsai.kustimized.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespace for all resources here and in the Helm charts
+namespace: analytics
+helmCharts:
+
+### Uncomment if you are planing to use postgresql
+  - name: postgresql
+    repo: https://repo.vmware.com/bitnami-files
+    version: 15.5.5
+    releaseName: analytics-postgresql
+    valuesFile: helm-values_postgresql_15.yaml
+    includeCRDs: true
+    # the Same Namespace
+    namespace: analytics
+
+  - name: qdrant
+    repo: https://qdrant.github.io/qdrant-helm
+    version: 1.11.0
+    releaseName: analytics-qdrant
+    valuesFile: helm-values-qdrant_1.11.0.yaml
+    includeCRDs: true
+    # The Same Namespace
+    namespace: analytics
+
+
+images:
+  # for the latest versions, please check here: https://github.com/Canner/AnalyticsAI/blob/main/docker/.env.example#L23
+  - name: ghcr.io/canner/analytics-bootstrap
+    newTag: 0.1.5 # ANALYTICS_BOOTSTRAP_VERSION
+  - name: ghcr.io/canner/analytics-engine
+    newTag: 0.14.8 # ANALYTICS_ENGINE_VERSION
+  - name: ghcr.io/canner/analytics-ui
+    newTag: 0.24.1 # ANALYTICS_UI_VERSION
+  - name: ghcr.io/canner/analytics-ai-service
+    newTag: 0.19.7 # ANALYTICS_AI_SERVICE_VERSION
+  - name: ghcr.io/canner/analytics-engine-ibis
+    newTag: 0.14.8 # IBIS_SERVER_VERSION
+
+resources:
+  - base/cm.yaml
+  - base/deploy-analytics-ui.yaml
+  - base/deploy-analytics-engine.yaml
+  - base/deploy-analytics-ibis-server.yaml
+  - base/deploy-analytics-ai-service.yaml
+  - base/pvc.yaml
+  - base/svc.yaml
+### Modify these examples first and uncomment them:
+  # - examples/ingress-analytics_example.yaml
+  # - examples/certificate-analytics_example.yaml
+### Usually you do not need to generate a certificate for Qdrant
+#  - examples/certificate-qdrant_example.yaml
+### Best practice is to create and deploy Secrets manually, not as part of kustomization or GitOps!
+#  - examples/secret-analytics_example.yaml

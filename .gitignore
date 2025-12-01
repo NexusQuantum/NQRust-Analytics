@@ -1,0 +1,110 @@
+# analytics-ai-service
+analytics-ai-service/.env.*
+analytics-ai-service/config.yaml*
+!analytics-ai-service/.env.*.example
+!analytics-ai-service/src/eval/analytics-engine/.env
+analytics-ai-service/src/eval/analytics-engine/**/config.properties
+analytics-ai-service/src/eval/analytics-engine/etc/mdl/*
+analytics-ai-service/src/eval/analytics-engine/etc/duckdb
+analytics-ai-service/src/eval/analytics-engine/etc/archived
+analytics-ai-service/src/eval/data
+analytics-ai-service/**/outputs/
+analytics-ai-service/**/spider/
+analytics-ai-service/tests/data/usecases/
+!analytics-ai-service/**/metrics/spider/
+!analytics-ai-service/tests/data
+!analytics-ai-service/src/eval/data/book_2*.json
+!analytics-ai-service/src/eval/data/baseball_1*.json
+!analytics-ai-service/src/eval/data/college_3*.json
+!analytics-ai-service/src/eval/data/college_3_optimal_ddl.json
+analytics-ai-service/*.csv
+analytics-ai-service/*.json
+analytics-ai-service/assertion.log
+analytics-ai-service/redis.*
+analytics-ai-service/demo/spider
+analytics-ai-service/demo/poetry.lock
+analytics-ai-service/demo/custom_dataset
+analytics-ai-service/demo/.env
+analytics-ai-service/tools/dev/etc/**
+.deepeval-cache.json
+.deepeval_telemtry.txt
+docker/config.yaml
+docker/docker-compose-local.yaml
+docker/data
+
+# python
+.python-version
+
+# cache
+__pycache__
+local_cache
+.ruff_cache
+.pytest_cache
+
+# ide
+.idea
+.vscode/
+
+# os
+.DS_Store
+__MACOSX/
+*.pem
+
+# sqlite
+*.sqlite
+*.sqlite3
+
+# ui
+## dependencies
+node_modules
+.pnp
+.pnp.js
+
+## testing
+analytics-ui/coverage
+analytics-ui/test-results
+analytics-ui/playwright-report
+analytics-ui/e2e/e2e.config.json
+
+## next.js
+analytics-ui/.next
+analytics-ui/out
+
+analytics-ui/.yarn/install-state.gz
+
+## production
+analytics-ui/build
+
+## debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+## local env files
+.env*.local
+.env*
+.env.ai
+
+## vercel
+.vercel
+.next
+
+## typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# analytics-launcher
+analytics-launcher/dist
+analytics-launcher/main
+
+## temporary files
+.tmp
+
+# Refactoring reports & metrics
+reports/
+metrics-*.txt
+htmlcov/
+.coverage
+*.coverage.*
+
+!analytics-ai-service/tools/.env.example

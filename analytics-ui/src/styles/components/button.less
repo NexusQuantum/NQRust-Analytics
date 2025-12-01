@@ -1,0 +1,45 @@
+.ant-btn {
+  border-radius: 8px !important;
+}
+
+.adm-btn-no-style {
+  cursor: pointer;
+  background: transparent;
+  line-height: 1.2;
+  height: auto;
+  border: none;
+  border-radius: 16px;
+  font-family: var(--font-family);
+}
+
+.adm-onboarding-btn {
+  width: 130px;
+  border-radius: 20px;
+  font-family: var(--font-family);
+  font-weight: 500;
+}
+
+.adm-modeling-header-btn {
+  width: 60px;
+  border-radius: 12px;
+  font-family: var(--font-family);
+  font-weight: 500;
+}
+
+.adm-fix-it-btn {
+  border-color: @rust-orange-6;
+  color: @rust-orange-6;
+  background-color: @rust-orange-1;
+  border-radius: 16px;
+  font-family: var(--font-family);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  &:hover,
+  &:focus {
+    background-color: @rust-orange-2;
+    border-color: @rust-orange-5;
+    color: @rust-orange-7;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  }
+}

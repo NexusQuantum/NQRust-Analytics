@@ -1,0 +1,242 @@
+# Justfile for Analytics AI Service Development
+
+# Variables
+python := "python3"
+poetry := "poetry"
+
+# Default recipe
+default:
+    @just --list
+
+# Setup & Installation
+# ====================
+
+# Initialize project (create .env.dev and config.yaml)
+init:
+    @echo "🚀 Initializing project..."
+    @if [ ! -f .env.dev ]; then cp .env.dev.example .env.dev 2>/dev/null || echo "# Add your environment variables here" > .env.dev; fi
+    @if [ ! -f config.yaml ]; then cp tools/config/config.example.yaml config.yaml 2>/dev/null || echo "Created config.yaml"; fi
+    @echo "✅ Project initialized! Please edit .env.dev and config.yaml"
+
+# Install dependencies
+install:
+    {{poetry}} install
+
+# Install with dev dependencies
+install-dev:
+    {{poetry}} install --with dev,eval,test
+
+# Development
+# ===========
+
+# Start development server
+start:
+    {{poetry}} run python -m src
+
+# Start docker containers (Qdrant, etc.)
+up:
+    docker-compose -f tools/dev/docker-compose-dev.yaml up -d
+
+# Stop docker containers
+down:
+    docker-compose -f tools/dev/docker-compose-dev.yaml down
+
+# Restart docker containers
+restart:
+    @just down
+    @just up
+
+# Code Quality
+# ============
+
+# Format code with black and isort
+format:
+    {{poetry}} run black src/ tests/
+    {{poetry}} run isort src/ tests/
+
+# Run linter (ruff)
+lint:
+    {{poetry}} run ruff check src/ tests/
+
+# Fix linting issues automatically
+lint-fix:
+    {{poetry}} run ruff check --fix src/ tests/
+
+# Run type checker (mypy)
+typecheck:
+    {{poetry}} run mypy src/
+
+# Run all checks (format, lint, typecheck)
+check-all:
+    @echo "📋 Running all checks..."
+    @just format
+    @just lint
+    @just typecheck
+    @echo "✅ All checks passed!"
+
+# Testing
+# =======
+
+# Run all tests
+test:
+    {{poetry}} run pytest tests/pytest -v
+
+# Run tests with coverage
+test-cov:
+    {{poetry}} run pytest tests/pytest --cov=src --cov-report=html --cov-report=term
+
+# Run tests in watch mode
+test-watch:
+    {{poetry}} run ptw tests/pytest -- -v
+
+# Run specific test file
+test-file FILE:
+    {{poetry}} run pytest {{FILE}} -v
+
+# Run load test
+load-test:
+    {{poetry}} run locust -f tests/locust/locustfile.py --config tests/locust/locust.conf
+
+# Metrics & Analysis
+# ==================
+
+# Generate complexity metrics
+metrics-complexity:
+    @echo "📊 Calculating code complexity..."
+    {{poetry}} run radon cc src/ -s
+
+# Generate maintainability metrics
+metrics-maintainability:
+    {{poetry}} run radon mi src/ -s
+
+# Generate all metrics
+metrics:
+    @echo "📊 Generating all metrics..."
+    @echo "\n=== Cyclomatic Complexity ==="
+    @just metrics-complexity
+    @echo "\n=== Maintainability Index ==="
+    @just metrics-maintainability
+    @echo "\n=== Test Coverage ==="
+    @just test-cov
+    @echo "\n=== Type Coverage ==="
+    @just typecheck
+
+# Database
+# ========
+
+# Clean Qdrant database
+clean-db:
+    @echo "🗑️  Cleaning Qdrant database..."
+    docker-compose -f tools/dev/docker-compose-dev.yaml down -v
+    @echo "✅ Database cleaned!"
+
+# Utilities
+# =========
+
+# Clean Python cache files
+clean:
+    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    find . -type f -name "*.pyc" -delete 2>/dev/null || true
+    find . -type f -name "*.pyo" -delete 2>/dev/null || true
+    find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+    find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+    find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+    find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
+    rm -rf htmlcov/ .coverage 2>/dev/null || true
+    @echo "✅ Cleaned Python cache files!"
+
+# Show project structure
+tree:
+    tree -I '__pycache__|*.pyc|node_modules|.git|.venv|htmlcov' -L 3 src/
+
+# Refactoring Helpers
+# ===================
+
+# Generate refactoring report
+refactor-report:
+    @echo "📋 Generating refactoring report..."
+    @mkdir -p reports
+    @echo "=== Complexity Report ===" > reports/refactor-report-$(date +%Y%m%d).txt
+    @just metrics-complexity >> reports/refactor-report-$(date +%Y%m%d).txt
+    @echo "\n=== Test Coverage ===" >> reports/refactor-report-$(date +%Y%m%d).txt
+    @{{poetry}} run pytest tests/pytest --cov=src --cov-report=term >> reports/refactor-report-$(date +%Y%m%d).txt
+    @echo "✅ Report saved to reports/refactor-report-$(date +%Y%m%d).txt"
+
+# Check if code follows refactoring guidelines
+refactor-check:
+    @echo "🔍 Checking refactoring guidelines..."
+    @echo "1. Checking function length (should be < 50 lines)..."
+    @{{poetry}} run radon raw src/ -s | grep -E "LOC: [5-9][0-9]|LOC: [0-9]{3,}" || echo "✅ All functions under 50 lines"
+    @echo "2. Checking complexity (should be < 10)..."
+    @{{poetry}} run radon cc src/ -s -n C || echo "✅ All functions have acceptable complexity"
+    @echo "3. Checking test coverage (should be > 80%)..."
+    @{{poetry}} run pytest tests/pytest --cov=src --cov-fail-under=80 -q || echo "⚠️  Test coverage below 80%"
+    @echo "4. Checking type hints..."
+    @{{poetry}} run mypy src/ --strict || echo "⚠️  Some type errors found"
+
+# Documentation
+# =============
+
+# Generate API documentation
+docs:
+    @echo "📚 Generating API documentation..."
+    {{poetry}} run pdoc src/ -o docs/api --html
+
+# Serve documentation locally
+docs-serve:
+    {{poetry}} run pdoc src/ --http localhost:8080
+
+# Deployment
+# ==========
+
+# Build Docker image
+build:
+    docker build -f docker/Dockerfile -t analytics-ai-service:local .
+
+# Run Docker container
+run-docker:
+    docker run -p 5555:5555 --env-file .env.dev -v $(pwd)/config.yaml:/app/config.yaml analytics-ai-service:local
+
+# Pre-commit
+# ==========
+
+# Install pre-commit hooks
+pre-commit-install:
+    {{poetry}} run pre-commit install
+
+# Run pre-commit on all files
+pre-commit-all:
+    {{poetry}} run pre-commit run --all-files
+
+# Help
+# ====
+
+# Show detailed help
+help:
+    @echo "📖 Analytics AI Service - Development Commands"
+    @echo ""
+    @echo "Setup:"
+    @echo "  just init              - Initialize project"
+    @echo "  just install           - Install dependencies"
+    @echo "  just install-dev       - Install with dev dependencies"
+    @echo ""
+    @echo "Development:"
+    @echo "  just start             - Start development server"
+    @echo "  just up                - Start Docker containers"
+    @echo "  just down              - Stop Docker containers"
+    @echo ""
+    @echo "Code Quality:"
+    @echo "  just format            - Format code"
+    @echo "  just lint              - Run linter"
+    @echo "  just typecheck         - Run type checker"
+    @echo "  just check-all         - Run all checks"
+    @echo ""
+    @echo "Testing:"
+    @echo "  just test              - Run tests"
+    @echo "  just test-cov          - Run tests with coverage"
+    @echo "  just test-watch        - Run tests in watch mode"
+    @echo ""
+    @echo "Refactoring:"
+    @echo "  just refactor-report   - Generate refactoring report"
+    @echo "  just refactor-check    - Check refactoring guidelines"
+    @echo "  just metrics           - Show all metrics"

@@ -1,0 +1,7 @@
+node.environment=production
+analytics.directory=/usr/src/app/etc/mdl
+analytics.experimental-enable-dynamic-fields=true
+analytics.datasource.type=duckdb
+duckdb.connector.init-sql-path=/usr/src/app/etc/duckdb/init.sql
+duckdb.storage.access-key=
+duckdb.storage.secret-key=

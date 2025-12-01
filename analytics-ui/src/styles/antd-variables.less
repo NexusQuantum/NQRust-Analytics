@@ -1,0 +1,121 @@
+// Using in appendData, only for variables defination
+@import '~antd/lib/style/themes/default.less';
+
+@prefix: adm;
+
+// -------- Colors
+// >> Pink
+@pink-1: #ff69b4;
+@pink-2: #ffb6c1;
+@pink-3: #ffc0cb;
+@pink-4: #ffd700;
+@pink-5: #ffdab9;
+
+// >> Rust Orange (Primary)
+@rust-orange-base: #ff6b35;
+@rust-orange-1: #fff7f3;
+@rust-orange-2: #ffe8e0;
+@rust-orange-3: #ffd4c4;
+@rust-orange-4: #ffbfa3;
+@rust-orange-5: #ffa882;
+@rust-orange-6: @rust-orange-base;
+@rust-orange-7: #e55a2b;
+@rust-orange-8: #cc4a21;
+@rust-orange-9: #b33a17;
+@rust-orange-10: #992a0d;
+
+// >> Rust Orange (Secondary - for compatibility)
+@citrus-base: @rust-orange-base;
+@citrus-1: @rust-orange-1;
+@citrus-2: @rust-orange-2;
+@citrus-3: @rust-orange-3;
+@citrus-4: @rust-orange-4;
+@citrus-5: @rust-orange-5;
+@citrus-6: @rust-orange-6;
+@citrus-7: @rust-orange-7;
+@citrus-8: @rust-orange-8;
+@citrus-9: @rust-orange-9;
+@citrus-10: @rust-orange-10;
+
+// >> Neutral
+@gray-1: #fff;
+@gray-2: #fafafa;
+@gray-3: #f5f5f5;
+@gray-4: #f0f0f0;
+@gray-5: #d9d9d9;
+@gray-6: #bfbfbf;
+@gray-7: #8c8c8c;
+@gray-8: #65676c;
+@gray-9: #434343;
+@gray-10: #262626;
+@gray-11: #1f1f1f;
+@gray-12: #141414;
+@gray-13: #000;
+
+@preset-colors: pink, magenta, red, volcano, orange, yellow, gold, cyan, lime,
+  green, blue, geekblue, purple, citrus, rust-orange, gray;
+
+// CSS Variables for styled-components compatibility
+:root {
+  --rust-orange-50: @rust-orange-1;
+  --rust-orange-100: @rust-orange-2;
+  --rust-orange-200: @rust-orange-3;
+  --rust-orange-300: @rust-orange-4;
+  --rust-orange-400: @rust-orange-5;
+  --rust-orange-500: @rust-orange-6;
+  --rust-orange-600: @rust-orange-7;
+  --rust-orange-700: @rust-orange-8;
+  --rust-orange-800: @rust-orange-9;
+  --rust-orange-900: @rust-orange-10;
+  --geekblue-6: @rust-orange-6;
+}
+
+@black: @gray-13;
+@white: @gray-1;
+
+@primary-color: @rust-orange-6;
+
+@text-color: @gray-10;
+@heading-color: @gray-9;
+@success-color: @green-6;
+@warning-color: @gold-6;
+@error-color: @red-5;
+@disabled-color: rgba(0, 0, 0, 0.25);
+
+// Functions
+.make-color-variables(@i: length(@preset-colors)) when (@i > 0) {
+  .make-color-variables(@i - 1);
+  @color: extract(@preset-colors, @i);
+  each(range(1, 10, 1), {
+    @colorVar: '@{color}-@{index}';
+    --@{color}-@{index}: @@colorVar;
+  });
+}
+
+// Header
+@layout-header-height: 20px;
+
+// Components
+@layout-body-background: #fff;
+@layout-header-background: #fff;
+
+@card-background: #fff;
+@breadcrumb-last-item-color: @text-color;
+@table-padding-vertical: 12px;
+@table-header-cell-split-color: transparent;
+@border-radius-sm: 12px;
+@border-radius-base: 16px;
+@border-radius-lg: 20px;
+
+// Typography
+@heading-1-size: ceil(@font-size-base * 2.85);
+@heading-2-size: ceil(@font-size-base * 2.14);
+@heading-3-size: ceil(@font-size-base * 1.71);
+@heading-4-size: ceil(@font-size-base * 1.42);
+@heading-5-size: ceil(@font-size-base * 1.14);
+
+// Avatar
+@avatar-size-xs: 16px;
+@avatar-font-size-xs: 12px;
+
+@tooltip-bg: @gray-10;

@@ -1,0 +1,35 @@
+- op: replace
+  path: /data
+  value:
+    # Analytics Engine Service Port
+    ANALYTICS_ENGINE_PORT: "8080"
+    # Analytics AI Service Port
+    ANALYTICS_AI_SERVICE_PORT: "5555"
+
+    #Release version used by analytics ui https://github.com/Canner/AnalyticsAI/blob/main/docker/docker-compose.yaml#L85-L88
+    ANALYTICS_PRODUCT_VERSION: "0.12.0"
+    #fix:
+    ANALYTICS_ENGINE_VERSION: "0.12.3"
+    ANALYTICS_AI_SERVICE_VERSION: "0.12.1"
+    #fix:
+    ANALYTICS_UI_VERSION: "0.17.6"
+
+    # OpenAI
+    GENERATION_MODEL: "gpt-4o-mini"
+
+    # Telemetry
+    POSTHOG_HOST: "https://app.posthog.com"
+    TELEMETRY_ENABLED: "false"
+
+    # service endpoints of AI service & engine service
+    ANALYTICS_ENGINE_ENDPOINT: "http://analytics-engine-svc:8080"
+    #fix:
+    ANALYTICS_AI_ENDPOINT: "http://analytics-ai-service:5555"
+
+    # "pg" for postgres as application database.
+    #fix
+    DB_TYPE: pg
+
+    DATA_PATH: "/app/data"
+
+    ### if DB_TYPE = "postgres" you must provide PG_URL string in the *Secret* manifest file (deployment/kustomizations/examples/secret-analytics_example.yaml) to connect to postgres

@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/analytics-ai-service"
+    schedule:
+      interval: "weekly"
+    groups:
+      all:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore(analytics-ai-service)"
+    labels:
+      - "dependencies"
+      - "python"
+      - "ci/ai-service"
+      - "module/ai-service"
