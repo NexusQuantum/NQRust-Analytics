@@ -8,7 +8,7 @@ on:
         type: string
 
 env:
-  ANALYTICS_UI_IMAGE: ghcr.io/canner/analytics-ui
+  ANALYTICS_UI_IMAGE: ghcr.io/${{ github.repository_owner }}/analytics-ui
 
 defaults:
   run:
