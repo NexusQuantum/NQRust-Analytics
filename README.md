@@ -1,141 +1,216 @@
+# NQRust-Analytics
 
-<p align="center" id="top">
-  <a href="https://getanalytics.ai/?utm_source=github&utm_medium=title&utm_campaign=readme">
-    <picture>
-      <source media="(prefers-color-scheme: light)" srcset="./misc/analyticsai_logo.png">
-      <img src="./misc/analyticsai_logo_white.png" width="300px">
-    </picture>
-    <h1 align="center">Analytics AI - Open-Source GenBI Agent</h1>
-  </a>
-</p>
+**Open-Source Analytics Platform with AI-Powered Natural Language Querying**
 
-<p align="center">
-  <a aria-label="Follow us on X" href="https://x.com/getanalyticsai">
-    <img alt="" src="https://img.shields.io/badge/-@getanalyticsai-blue?style=for-the-badge&logo=x&logoColor=white&labelColor=gray&logoWidth=20">
-  </a>
-  <a aria-label="Releases" href="https://github.com/NexusQuantum/NQRust-Analytics/releases">
-    <img alt="" src="https://img.shields.io/github/v/release/NexusQuantum/NQRust-Analytics?logo=github&label=GitHub%20Release&color=blue&style=for-the-badge">
-  </a>
-  <a aria-label="License" href="https://github.com/NexusQuantum/NQRust-Analytics/blob/main/LICENSE">
-    <img alt="" src="https://img.shields.io/github/license/NexusQuantum/NQRust-Analytics?color=blue&style=for-the-badge">
-  </a>
-  <a href="https://docs.getanalytics.ai">
-    <img src="https://img.shields.io/badge/docs-online-brightgreen?style=for-the-badge" alt="Docs">
-  </a>
-  <a aria-label="Join the community on GitHub" href="https://discord.gg/5DvshJqG8Z">
-    <img alt="" src="https://img.shields.io/badge/-JOIN%20THE%20COMMUNITY-blue?style=for-the-badge&logo=discord&logoColor=white&labelColor=grey&logoWidth=20">
-  </a>
-  <a aria-label="NexusQuantum" href="https://github.com/NexusQuantum">
-    <img src="https://img.shields.io/badge/%F0%9F%9A%80-NexusQuantum-blue?style=for-the-badge">
-  </a>
-</p>
+NQRust-Analytics is a comprehensive analytics platform that enables users to query databases using natural language, generate accurate SQL queries, create visualizations, and gain AI-powered insights.
 
-<p align="center">
-  <a href="https://trendshift.io/repositories/9263" target="_blank"><img src="https://trendshift.io/api/badge/repositories/9263" alt="Canner%2FAnalyticsAI | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</p>
+---
 
-> Analytics AI is your GenBI Agent, that you can query any database with natural language → get accurate SQL(Text-to-SQL), charts(Text-to-Charts) & AI-generated insights in seconds. ⚡️
+## ✨ Features
 
-<p align="center">
-  <img src="./misc/workflow.png">
-</p>
+### Core Capabilities
+- **Natural Language to SQL**: Convert plain English questions into accurate SQL queries
+- **Multi-Database Support**: Connect to various data sources seamlessly
+- **AI-Powered Insights**: Get intelligent analysis and recommendations
+- **Interactive Visualizations**: Auto-generate charts and dashboards
+- **Semantic Layer**: MDL (Modeling Definition Language) for consistent data definitions
+- **Real-time Analytics**: Process and analyze data in real-time
 
-## 😍 Demos
+### Key Benefits
+- **No SQL Knowledge Required**: Business users can query data without technical expertise
+- **Accurate Results**: Semantic layer ensures consistent and governed data access
+- **Flexible LLM Integration**: Support for multiple AI model providers
+- **Self-Hosted**: Full control over your data and infrastructure
 
-https://github.com/user-attachments/assets/f9c1cb34-5a95-4580-8890-ec9644da4160
+---
 
-[Watch GenBI Demo](https://github.com/user-attachments/assets/90ad1d35-bb1e-490b-9676-b29863ff090b)
+## 🔌 Supported Data Sources
 
-## 🤖 Features
+- **Cloud Data Warehouses**: Snowflake, BigQuery, Redshift, Azure Synapse
+- **Relational Databases**: PostgreSQL, MySQL, SQL Server, Oracle
+- **Analytics Engines**: DuckDB, Trino, ClickHouse, Athena
+- **And more**: Extensible architecture for custom connectors
 
-|                    | What you get | Why it matters |
-|--------------------|--------------|----------------|
-| **Talk to Your Data** | Ask in any language → precise SQL & answers | Slash the SQL learning curve﻿ |
-| **GenBI Insights** | AI-written summaries, charts & reports | Decision-ready context in one click﻿ |
-| **Semantic Layer** | MDL models encode schema, metrics, joins | Keeps LLM outputs accurate & governed﻿ |
-| **Embed via API**  | Generate queries & charts inside your apps ([API Docs](https://analyticsai.readme.io/reference/cloud-getting-started)) | Build custom agents, SaaS features, chatbots﻿ ([Streamlit Live Demo](https://huggingface.co/spaces/getAnalyticsAI/analyticsai-cloud-api-demo)) |
+---
 
-🤩 [Learn more about GenBI](https://getanalytics.ai/genbi?utm_source=github&utm_medium=content&utm_campaign=readme)
+## 🤖 Supported LLM Models
 
-## 🚀 Getting Started
+- OpenAI (GPT-4, GPT-3.5)
+- Azure OpenAI
+- Google Gemini (AI Studio & Vertex AI)
+- Anthropic Claude (API & Bedrock)
+- DeepSeek
+- Groq
+- Ollama (Local models)
+- Databricks
 
-Using Analytics AI is super simple, you can set it up within 3 minutes, and start to interact with your data!
+See [configuration examples](./analytics-ai-service/docs/config_examples) for setup details.
 
-- Visit our [Install in your local environment](http://docs.getanalytics.ai/oss/installation?utm_source=github&utm_medium=content&utm_campaign=readme).
-- Visit the [Usage Guides](https://docs.getanalytics.ai/oss/guide/connect/overview?utm_source=github&utm_medium=content&utm_campaign=readme) to learn more about how to use Analytics AI.
-- Or just start with [Analytics AI Cloud](https://getanalytics.ai/?utm_source=github&utm_medium=content&utm_campaign=readme) our Managed Cloud Service. ([OSS vs. Commercial Plans](https://docs.getanalytics.ai/oss/overview/cloud_vs_self_host)).
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Docker & Docker Compose
+- OpenAI API key (or other LLM provider)
+- Minimum 4GB RAM
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/NexusQuantum/NQRust-Analytics.git
+   cd NQRust-Analytics
+   ```
+
+2. **Configure environment**
+   ```bash
+   cd docker
+   cp .env.example .env
+   # Edit .env and add your API keys
+   ```
+
+3. **Start services**
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Access the application**
+   - UI: http://localhost:3000
+   - API: http://localhost:5556
+
+### Development Setup
+
+See individual service README files for detailed development instructions:
+- [Analytics AI Service](./analytics-ai-service/README.md)
+- [Analytics UI](./analytics-ui/README.md)
+- [Analytics Launcher](./analytics-launcher/README.md)
+
+---
+
+## 📁 Project Structure
+
+```
+NQRust-Analytics/
+├── analytics-ai-service/   # AI/LLM service (Python/FastAPI)
+├── analytics-ui/           # Web interface (Next.js/React)
+├── analytics-launcher/     # CLI launcher (Go)
+├── analytics-engine/       # Query engine (submodule)
+├── deployment/             # Kubernetes & deployment configs
+├── docker/                 # Docker compose files
+└── docs/                   # Documentation
+```
+
+---
 
 ## 🏗️ Architecture
 
-<p align="center">
-  <img src="./misc/how_analyticsai_works.png">
-</p>
+### Components
 
-👉 [Learn more about our Design](https://getanalytics.ai/post/how-we-design-our-semantic-engine-for-llms-the-backbone-of-the-semantic-layer-for-llm-architecture?utm_source=github&utm_medium=content&utm_campaign=readme)
+1. **Analytics UI** (Next.js)
+   - User interface for data exploration
+   - Dashboard creation and management
+   - Connection management
 
+2. **Analytics AI Service** (Python/FastAPI)
+   - Natural language processing
+   - SQL generation via LLM
+   - RAG (Retrieval-Augmented Generation) pipelines
 
-## 🔌 Data Sources
+3. **Analytics Engine** (Rust/Java)
+   - Query execution and optimization
+   - MDL (Semantic layer) processing
+   - Multi-database connectivity
 
-If your data source is not listed here, vote for it in our [GitHub discussion thread](https://github.com/NexusQuantum/NQRust-Analytics/discussions). It will be a valuable input for us to decide on the next supported data sources.
-- Athena (Trino)
-- Redshift
-- BigQuery
-- DuckDB
-- PostgreSQL
-- MySQL
-- Microsoft SQL Server
-- ClickHouse
-- Oracle
-- Trino
-- Snowflake
+4. **Supporting Services**
+   - Qdrant: Vector database for embeddings
+   - PostgreSQL: Metadata storage
 
-## 🤖 LLM Models
+### Data Flow
 
-Analytics AI supports integration with various Large Language Models (LLMs), including but not limited to:
-- OpenAI Models
-- Azure OpenAI Models
-- DeepSeek Models
-- Google AI Studio – Gemini Models
-- Vertex AI Models (Gemini + Anthropic)
-- Bedrock Models
-- Anthropic API Models
-- Groq Models
-- Ollama Models
-- Databricks Models
+```
+User Query (Natural Language)
+    ↓
+Analytics UI
+    ↓
+Analytics AI Service (LLM Processing)
+    ↓
+Analytics Engine (SQL Execution)
+    ↓
+Data Source
+    ↓
+Results + Visualizations
+```
 
-Check [configuration examples here](https://github.com/NexusQuantum/NQRust-Analytics/tree/main/analytics-ai-service/docs/config_examples)!
+---
 
-> [!CAUTION]
-> The performance of Analytics AI depends significantly on the capabilities of the LLM you choose. We strongly recommend using the most powerful model available for optimal results. Using less capable models may lead to reduced performance, slower response times, or inaccurate outputs.
+## 🛠️ Configuration
+
+### LLM Configuration
+
+Edit `docker/config.yaml` to configure your LLM provider:
+
+```yaml
+llm_provider:
+  type: openai  # or azure_openai, gemini, anthropic, etc.
+  api_key: ${OPENAI_API_KEY}
+  model: gpt-4
+```
+
+### Database Connection
+
+Configure data sources through the UI or via API. Supported authentication methods:
+- Username/Password
+- API Keys
+- Service Account (for cloud providers)
+- SSH Tunneling
+
+---
 
 ## 📚 Documentation
 
-Visit [Analytics AI documentation](https://docs.getanalytics.ai/oss/overview/introduction?utm_source=github&utm_medium=content&utm_campaign=readme) to view the full documentation.
+- [Installation Guide](./DEPLOYMENT.md)
+- [Configuration Examples](./analytics-ai-service/docs/config_examples/)
+- [Contributing Guidelines](./CONTRIBUTING.md)
+- [Code of Conduct](./CODE_OF_CONDUCT.md)
+- [Security Policy](./SECURITY.md)
 
-## 📪 Keep Posted?
+---
 
-[Subscribe our blog](https://www.getanalytics.ai/blog/?utm_source=github&utm_medium=content&utm_campaign=readme) and [Follow our LinkedIn](https://www.linkedin.com/company/analyticsai)
+## 🤝 Contributing
 
-## 🛠️ Contribution
+We welcome contributions! Here's how to get started:
 
-1.	Star ⭐ the repo to show support (it really helps).
-2.	Open an issue for bugs, ideas, or discussions.
-3.	Read [Contribution Guidelines](https://github.com/NexusQuantum/NQRust-Analytics/blob/main/CONTRIBUTING.md) for setup & PR guidelines.
+1. ⭐ Star the repository
+2. 🐛 Report bugs via [GitHub Issues](https://github.com/NexusQuantum/NQRust-Analytics/issues)
+3. 💡 Suggest features in [Discussions](https://github.com/NexusQuantum/NQRust-Analytics/discussions)
+4. 📖 Read [Contributing Guidelines](./CONTRIBUTING.md)
+5. 🔧 Submit pull requests
 
-## ⭐️ Community
+---
 
-- Join 1.3k+ developers in our [Discord](https://discord.gg/5DvshJqG8Z) for real-time help and roadmap previews.
-- If there are any issues, please visit [GitHub Issues](https://github.com/NexusQuantum/NQRust-Analytics/issues).
-- Explore our [public roadmap](https://analyticsai.notion.site/) to stay updated on upcoming features and improvements!
+## 📄 License
 
-Please note that our [Code of Conduct](./CODE_OF_CONDUCT.md) applies to all Analytics AI community channels. Users are **highly encouraged** to read and adhere to them to avoid repercussions.
+This project is licensed under the AGPL-3.0 License - see the [LICENSE](./LICENSE) file for details.
 
-## 🎉 Our Contributors
-<a href="https://github.com/NexusQuantum/NQRust-Analytics/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=NexusQuantum/NQRust-Analytics" />
-</a>
+---
 
-<p align="right">
-  <a href="#top">⬆️ Back to Top</a>
-</p>
-# analyticsai
+## 🙏 Acknowledgments
+
+Built with:
+- Next.js & React
+- FastAPI & Python
+- Rust & Java
+- PostgreSQL & Qdrant
+- Docker & Kubernetes
+
+---
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/NexusQuantum/NQRust-Analytics/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/NexusQuantum/NQRust-Analytics/discussions)
+
+---
+
+**Made with ❤️ by NexusQuantum**
