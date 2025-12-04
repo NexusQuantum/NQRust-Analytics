@@ -19,8 +19,8 @@ The `deployment/kustomizations` folder contains a `kustomization.yaml` file that
 
 ```shell
 # Clone the repository with the kustomization
-git clone https://github.com/Canner/AnalyticsAI.git
-cd AnalyticsAI
+git clone https://github.com/NexusQuantum/NQRust-Analytics.git
+cd NQRust-Analytics
 
 # Inflate the manifest with kustomization
 kubectl kustomize deployment/kustomizations --enable-helm > deployment/kustomizations/analyticsai.kustomized.yaml

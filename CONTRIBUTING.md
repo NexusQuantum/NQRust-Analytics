@@ -13,7 +13,7 @@
 
 ## :book: Code of Conduct
 
-Please review our [Code of Conduct](https://github.com/Canner/AnalyticsAI/blob/main/CODE_OF_CONDUCT.md). It is in effect at all times. We expect it to be honored by everyone who contributes to this project. Acting like an asshole will not be tolerated.
+Please review our [Code of Conduct](https://github.com/NexusQuantum/NQRust-Analytics/blob/main/CODE_OF_CONDUCT.md). It is in effect at all times. We expect it to be honored by everyone who contributes to this project. Acting like an asshole will not be tolerated.
 
 
 ## :rocket: Get Started
@@ -23,7 +23,7 @@ Please review our [Code of Conduct](https://github.com/Canner/AnalyticsAI/blob/m
     1. If you are dealing with UI-related tasks, such as adding a dark mode, you only need to contribute to the [Analytics UI Service](#analytics-ui-service).
     2. If you are dealing with LLM-related tasks, such as enhancing the prompts used in the LLM pipelines, you only need to contribute to the [Analytics AI Service](#analytics-ai-service).
     3. If you are working on data-source-related tasks, such as fixing a bug in SQL server connector, you will need to contribute to the [Analytics Engine Service](#analytics-engine-service).
-1. If you are not sure which service to contribute to, please reach out to us in [Discord](https://discord.gg/canner) or [GitHub Issues](https://github.com/Canner/AnalyticsAI/issues).
+1. If you are not sure which service to contribute to, please reach out to us in [Discord](https://discord.gg/canner) or [GitHub Issues](https://github.com/NexusQuantum/NQRust-Analytics/issues).
 1. It's possible that you need to contribute to multiple services. For example, if you are adding a new data source, you will need to contribute to the [Analytics UI Service](#analytics-ui-service) and [Analytics Engine Service](#analytics-engine-service). Follow [Guide for Contributing to Multiple Services](#guide-for-contributing-to-multiple-services) to learn how to contribute to multiple services.
 
 ## :love_letter: Contribution Guide of Different Services
@@ -32,19 +32,19 @@ Please review our [Code of Conduct](https://github.com/Canner/AnalyticsAI/blob/m
 
 Analytics AI Service is responsible for LLM-related tasks like converting natural language questions into SQL queries and providing step-by-step SQL breakdowns.
 
-To contribute to Analytics AI Service, please refer to the [Analytics AI Service Contributing Guide](https://github.com/Canner/AnalyticsAI/blob/main/analytics-ai-service/CONTRIBUTING.md)
+To contribute to Analytics AI Service, please refer to the [Analytics AI Service Contributing Guide](https://github.com/NexusQuantum/NQRust-Analytics/blob/main/analytics-ai-service/CONTRIBUTING.md)
 
 
 ### Analytics UI Service
 
 Analytics UI is the client service of AnalyticsAI. It is built with Next.js and TypeScript. 
-To contribute to Analytics UI, you can refer to the [AnalyticsAI/analytics-ui/README.md](https://github.com/Canner/AnalyticsAI/blob/main/analytics-ui/README.md) file for instructions on how to set up the development environment and run the development server.
+To contribute to Analytics UI, you can refer to the [AnalyticsAI/analytics-ui/README.md](https://github.com/NexusQuantum/NQRust-Analytics/blob/main/analytics-ui/README.md) file for instructions on how to set up the development environment and run the development server.
 
 
 ### Analytics Engine Service
 Analytics Engine is the backbone of the Analytics AI project. The semantic engine for LLMs, bringing business context to AI agents.
 
-To contribute, please refer to [Analytics Engine Contributing Guide](https://github.com/Canner/analytics-engine/blob/main/ibis-server/docs/CONTRIBUTING.md)
+To contribute, please refer to [Analytics Engine Contributing Guide](https://github.com/NexusQuantum/analytics-engine/blob/main/ibis-server/docs/CONTRIBUTING.md)
 
 ## Guide for Contributing to Multiple Services
 We rely on docker-compose to start all services. If you are contributing to multiple services, you could just comment out the services you'd like to start from the source code and change the `env` variables to point to the services you started by yourself.
@@ -101,19 +101,19 @@ The UI must be aware of the connection details it needs to retain, as specified 
 
 ### Analytics Engine
 
-- To implement a new data source, please refer to [How to Add a New Data Source](https://github.com/Canner/analytics-engine/blob/main/ibis-server/docs/how-to-add-data-source.md).
+- To implement a new data source, please refer to [How to Add a New Data Source](https://github.com/NexusQuantum/analytics-engine/blob/main/ibis-server/docs/how-to-add-data-source.md).
 - After adding a new data source, you can proceed with implementing the metadata API for the UI.
 
   Here are some previous PRs that introduced new data sources:
-    - [Add MSSQL data source](https://github.com/Canner/analytics-engine/pull/631)
-    - [Add MySQL data source](https://github.com/Canner/analytics-engine/pull/618)
-    - [Add ClickHouse data source](https://github.com/Canner/analytics-engine/pull/648)
+    - [Add MSSQL data source](https://github.com/NexusQuantum/analytics-engine/pull/631)
+    - [Add MySQL data source](https://github.com/NexusQuantum/analytics-engine/pull/618)
+    - [Add ClickHouse data source](https://github.com/NexusQuantum/analytics-engine/pull/648)
 
 ### Analytics UI Guide
 
 We'll describe what should be done in the UI for each new data source. 
 
-If you prefer to learn by example, you can refer to this Trino [issue](https://github.com/Canner/AnalyticsAI/issues/492) and [PR](https://github.com/Canner/AnalyticsAI/pull/535).
+If you prefer to learn by example, you can refer to this Trino [issue](https://github.com/NexusQuantum/NQRust-Analytics/issues/492) and [PR](https://github.com/NexusQuantum/NQRust-Analytics/pull/535).
 
 
 #### Backend
