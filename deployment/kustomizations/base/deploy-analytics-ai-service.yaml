@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: analytics-ai-service
-          image: ghcr.io/NexusQuantum/NQRust-Analytics/analytics-ai-service:latest
+          image: ghcr.io/nexusquantum/analytics-ai-service:latest
           volumeMounts:
             - name: config-volume
               mountPath: /app/data
