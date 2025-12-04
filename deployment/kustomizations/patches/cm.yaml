@@ -6,7 +6,7 @@
     # Analytics AI Service Port
     ANALYTICS_AI_SERVICE_PORT: "5555"
 
-    #Release version used by analytics ui https://github.com/Canner/AnalyticsAI/blob/main/docker/docker-compose.yaml#L85-L88
+    #Release version used by analytics ui https://github.com/NexusQuantum/NQRust-Analytics/blob/main/docker/docker-compose.yaml#L85-L88
     ANALYTICS_PRODUCT_VERSION: "0.12.0"
     #fix:
     ANALYTICS_ENGINE_VERSION: "0.12.3"

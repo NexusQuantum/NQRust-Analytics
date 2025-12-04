@@ -14,11 +14,11 @@ Thank you for investing your time in contributing to our project! This document 
 
 #### Create a new issue
 
-If you spot a problem, search if an issue already exists. If a related issue doesn't exist, you can open a new [issue](https://github.com/Canner/AnalyticsAI/issues/new/choose).
+If you spot a problem, search if an issue already exists. If a related issue doesn't exist, you can open a new [issue](https://github.com/NexusQuantum/NQRust-Analytics/issues/new/choose).
 
 #### Solve an issue
 
-Scan through our [existing issues](https://github.com/Canner/AnalyticsAI/issues?q=is%3Aopen+is%3Aissue+label%3Amodule%2Fai-service) to find one that interests you. As a general rule, we don't assign issues to anyone. If you find an issue to work on, you are welcome to open a PR with a fix.
+Scan through our [existing issues](https://github.com/NexusQuantum/NQRust-Analytics/issues?q=is%3Aopen+is%3Aissue+label%3Amodule%2Fai-service) to find one that interests you. As a general rule, we don't assign issues to anyone. If you find an issue to work on, you are welcome to open a PR with a fix.
 
 ### Pull Request
 
@@ -27,7 +27,7 @@ When you've finished with the changes, create a pull request, also known as a PR
 - Don't forget to [link PR to issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue) if you are solving one.
 - Add the `module/ai-service` label to your PR.
 - Enable the checkbox to [allow maintainer edits](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/allowing-changes-to-a-pull-request-branch-created-from-a-fork) so the branch can be updated for a merge.
-  Once you submit your PR, a Canner team member will review your proposal. We may ask questions or request additional information.
+  Once you submit your PR, a NexusQuantum team member will review your proposal. We may ask questions or request additional information.
 - We may ask for changes to be made before a PR can be merged, either using [suggested changes](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/incorporating-feedback-in-your-pull-request) or pull request comments. You can apply suggested changes directly through the UI. You can make any other changes in your fork, then commit them to your branch.
 - As you update your PR and apply changes, mark each conversation as [resolved](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/commenting-on-a-pull-request#resolving-conversations).
 - Be sure to add one of the prefixes to the PR title, so that our CI could automatically capture the changelog of this PR.
@@ -38,11 +38,11 @@ When you've finished with the changes, create a pull request, also known as a PR
 
 ### Your PR is merged!
 
-Congratulations :tada::tada: The Canner team thanks you :sparkles:.
+Congratulations :tada::tada: The NexusQuantum team thanks you :sparkles:.
 
 Once your PR is merged, your contributions will be worked on the next release.
 
-Now that you are part of the Canner community.
+Now that you are part of the NexusQuantum community.
 
 ## How to add your preferred LLM, Embedder or Document Store
 

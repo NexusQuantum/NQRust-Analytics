@@ -10,7 +10,7 @@ data:
 
   ANALYTICS_UI_ENDPOINT: http://analytics-ui-svc:3000
 
-  #Release version used by analytics ui https://github.com/Canner/AnalyticsAI/blob/main/docker/docker-compose.yaml#L85-L88
+  #Release version used by analytics ui https://github.com/NexusQuantum/NQRust-Analytics/blob/main/docker/docker-compose.yaml#L85-L88
   ANALYTICS_PRODUCT_VERSION: "0.12.0"
   ANALYTICS_ENGINE_VERSION: "0.12.3"
   ANALYTICS_AI_SERVICE_VERSION: "0.12.1"

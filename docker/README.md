@@ -1,7 +1,7 @@
 ## Service
 
 - `analytics-engine`: the engine service. check out example here: [analytics-engine
-  /example](https://github.com/Canner/analytics-engine/tree/main/example)
+  /example](https://github.com/NexusQuantum/analytics-engine/tree/main/example)
 - `analytics-ai-service`: the AI service.
 - `qdrant`: the vector store ai service is using.
 - `analytics-ui`: the UI service.

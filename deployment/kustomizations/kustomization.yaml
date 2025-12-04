@@ -36,7 +36,7 @@ helmCharts:
 
 
 images:
-  # for the latest versions, please check here: https://github.com/Canner/AnalyticsAI/blob/main/docker/.env.example#L23
+  # for the latest versions, please check here: https://github.com/NexusQuantum/NQRust-Analytics/blob/main/docker/.env.example#L23
   - name: ghcr.io/canner/analytics-bootstrap
     newTag: 0.1.5 # ANALYTICS_BOOTSTRAP_VERSION
   - name: ghcr.io/canner/analytics-engine

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Canner/AnalyticsAI/main/analytics-mdl/mdl.schema.json",
+  "$id": "https://raw.githubusercontent.com/NexusQuantum/NQRust-Analytics/main/analytics-mdl/mdl.schema.json",
   "title": "AnalyticsMDL Manifest Schema",
   "description": "A schema for AnalyticsMDL manifest file",
   "$defs": {
@@ -146,7 +146,7 @@
     "$schema": {
       "description": "the schema of AnalyticsMDL",
       "type": "string",
-      "const": "https://raw.githubusercontent.com/Canner/AnalyticsAI/main/analytics-mdl/mdl.schema.json"
+      "const": "https://raw.githubusercontent.com/NexusQuantum/NQRust-Analytics/main/analytics-mdl/mdl.schema.json"
     },
     "catalog": {
       "description": "the catalog name of AnalyticsMDL",
