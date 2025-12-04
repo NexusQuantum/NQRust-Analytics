@@ -1,101 +1,405 @@
-# Deployment of Analytics AI to Kubernetes with Kustomization
-1. Ensure you satisfy the dependencies required to deploy Analytics AI.
-2. Adjust the values and manifests accordingly to fit your Kubernetes environment.
-3. Deploy Secrets separately.
-4. Deploy the inflated kustomized app.
-Note: Without authentication, once you publish this on the internet, anyone can access your app, see your data, and modify your settings!
+# Kubernetes Deployment with Kustomize
 
-## Dependencies used in this kustomization:
-- nginx.ingress
-- external-dns
-- cert-manager
-- kubectl kustomize
-- helm (for minikube)
+## Overview
 
-## Steps to deploy:
+This directory contains Kubernetes manifests for deploying NQRust-Analytics using Kustomize. Kustomize allows you to customize Kubernetes configurations without modifying the original files.
 
-`Suggestion`: Before deploying, check out the manifests in the `deployment/kustomizations ` folder and modify them for your Kubernetes environment.
-The `deployment/kustomizations` folder contains a `kustomization.yaml` file that will inflate the manifests into a `deployment/kustomizations/analyticsai.kustomized.yaml` file used to deploy the app to your Kubernetes cluster.
+## Prerequisites
 
-```shell
-# Clone the repository with the kustomization
+- **Kubernetes Cluster**: 1.24+ (GKE, EKS, AKS, or self-hosted)
+- **kubectl**: Kubernetes command-line tool
+- **Kustomize**: Built into kubectl 1.14+
+- **Helm**: For cert-manager installation (optional)
+
+## Architecture
+
+```
+┌─────────────────┐
+│   Ingress       │  ← External traffic
+└────────┬────────┘
+         │
+    ┌────┴────┐
+    │  nginx  │  ← Load balancer
+    └────┬────┘
+         │
+    ┌────┴────────────────────┐
+    │                         │
+┌───┴────┐            ┌──────┴──────┐
+│   UI   │            │ AI Service  │
+└───┬────┘            └──────┬──────┘
+    │                        │
+    └────────┬───────────────┘
+             │
+    ┌────────┴────────┐
+    │ Analytics Engine│
+    └────────┬────────┘
+             │
+    ┌────────┴────────┐
+    │  Ibis Server    │
+    └─────────────────┘
+```
+
+## Quick Start
+
+### 1. Clone Repository
+
+```bash
 git clone https://github.com/NexusQuantum/NQRust-Analytics.git
-cd NQRust-Analytics
+cd NQRust-Analytics/deployment/kustomizations
+```
 
-# Inflate the manifest with kustomization
-kubectl kustomize deployment/kustomizations --enable-helm > deployment/kustomizations/analyticsai.kustomized.yaml
+### 2. Review Configuration
 
-# Create namespace
-kubectl create namespace analytics
+Check image versions in `kustomization.yaml`:
 
-# !!!!!!!!!!!!
-# MODIFY secret-analytics_example.yaml manifest file FIRST
-# OPENAI_API_KEY is REQUIRED: without a valid key the analytics-ai-service-deployment pod will not start
-# You must update PG_URL, otherwise analytics-ui will not work
-#vi deployment/kustomizations/examples/secret-analytics_example.yaml
-kubectl apply -f deployment/kustomizations/examples/secret-analytics_example.yaml -n analytics
+```yaml
+images:
+  - name: ghcr.io/nexusquantum/analytics-bootstrap
+    newTag: 0.1.5
+  - name: ghcr.io/nexusquantum/analytics-engine
+    newTag: 0.14.8
+  - name: ghcr.io/nexusquantum/analytics-ui
+    newTag: 0.24.1
+  - name: ghcr.io/nexusquantum/analytics-ai-service
+    newTag: 0.19.7
+  - name: ghcr.io/nexusquantum/analytics-engine-ibis
+    newTag: 0.14.8
+```
 
-# Deploy the app:
-kubectl apply -f deployment/kustomizations/analyticsai.kustomized.yaml
+For latest versions, see [.env.example](../../docker/.env.example#L23)
 
+### 3. Deploy with Kustomize
+
+```bash
+# Preview what will be deployed
+kubectl kustomize . --enable-helm
+
+# Apply to cluster
+kubectl apply -k . --enable-helm
+```
+
+### 4. Verify Deployment
+
+```bash
+# Check pods
 kubectl get pods -n analytics
+
+# Check services
+kubectl get svc -n analytics
+
+# Check ingress
+kubectl get ingress -n analytics
 ```
 
-### Notes on kustomization:
-- `deployment/kustomizations/kustomization.yaml` is the main file responsible for versions of other apps such as Qdrant and PostgreSQL, version of your Analytics AI app. It also combines resourses from the manifest such as ConfigMaps, Deployments, and Services. And example Ingress, Certificates and Secrets.
-- `deployment/kustomizations/base` is the base folder that contains the core Analytics AI manifests, its less likely you need to modify them, but check just in case
-- `deployment/kustomizations/examples` is a place with examples of manifests must take a look and adjust to your k8s environment and your needs.
-- `deployment/kustomizations/examples/secret-analytics_example.yaml` is the file you would not normally include in the kustomization file as its not a best practice and especially not a good idea to include in your GitOps repo as it contains cleartext passwords. We recommend to deploy it separately. Thant's why its commented in the `kustomization.yaml` file.
-- `deployment/kustomizations/examples/analyticsai-ingress-example.yaml` is an example of how to deploy Ingress. You can use this as a template for your own Ingress. It contains dependancy of extarnal-dns to add your dns name to your DNS records automatically, otherwise you'll need to add it manually. Also it assumes you are using nginx.ingress, it increases timeouts, disables the owasp and modsecurity that might be enabled globaly and prevent your UI from working properly. Comment the TLS section if you do not wish to use `https` encryption. Note: without authentication, enyone can acess your app, see your data and modify your settings!
-- `deployment/kustomizations/examples/certificate-analytics_example.yaml` is an example of how to deploy certificates for your ingress for the Analytics-UI. You can use this as a template for your own certificate. It contains dependancy of cert-manager to add your certificates automatically, otherwise you'll need to add it manually. The certificate will be used by your Ingress.
-- `deployment/kustomizations/examples/certificate-qdrant_example.yaml` is an example of how to deploy certificates for your ingress for Qdrant. This is included just in case and is not required, usually you would not be publishing your Vector Database publically in internet. That's why it's commented in the `kustomization.yaml` file. You can use this as a template for your own certificate. It contains dependancy of cert-manager to add your certificates automatically, otherwise you'll need to add it manually.
-- `deployment/kustomizations/patches` folder is empty, feel free to add your own patches & overlays there.
+### 5. Access the Application
 
-#### Analytics-UI Database
-Starting with analytics-ui version 0.6.0 by default the postgres database is used for analytics-ui in this kubernetes kustomization and will be installed in the same namespace as analytics-ai.
-- `postgres`: Database that will be installed in the same namespace as analytics-ai. You *must* update `PG_URL` in the Secret manifest `deployment/kustomizations/examples/secret-analytics_example.yaml`.
+Get the ingress URL:
 
-Example: `PG_URL: "postgres://postgres:postgres@analyticsai-postgresql:5432/admin_ui"`
-- `postgres://`        This is the protocol. It tells the system that you’re connecting to a PostgreSQL database.
-- `postgres:postgres`  These are the username(first) and password(second) for the database respectively, separated by a colon. In this case, both the username and password are “postgres”.
-- `@analytics-postgresql`   This is the hostname of the database server. "analytics-postgresql" means the database server is running in a Kubernetes cluster and it is named "analytics-postgresql" in the *same* namespace. If you are using another namespace you must provide the full hostname, example: `analytics-postgresql.analyticsai.svc.cluster.local`, "analyticsai" is the namespace name, "svc.cluster.local" is the default domain name for Kubernetes services no need to change it.
-- `:5432`              This is the port number. PostgreSQL servers listen on port 5432 by default.
-- `/admin_ui`          This is the name of the database you’re connecting to. In this case, the database name is `admin_ui`. It can be found in the helm values file in the auth.database parameter `deployment/kustomizations/helm-values_postgresql_15.yaml`
-
-# Minikube
-Prepare your k8s environment. Then use the `Steps to deploy` section to deploy Analytics AI app into your k8s.
-```shell
-minikube start
-minikube addons enable ingress
-minikube addons enable metallb
-minikube kubectl -- get nodes
-minikube kubectl -- get pods -A
-
-minikube update-context
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo update
-helm install external-dns bitnami/external-dns
-helm install \
-  external-dns bitnami/external-dns \
-  --namespace external-dns \
-  --version 7.5.2 \
-  --create-namespace \
-  --set installCRDs=true
-kubectl get pods -n external-dns
-
-helm repo add jetstack https://charts.jetstack.io
-helm repo update
-helm install \
-  cert-manager jetstack/cert-manager \
-  --namespace cert-manager \
-  --version v1.13.6 \
-  --create-namespace \
-  --set installCRDs=true
-kubectl get pods -n cert-manager
-
-##########
-# Use the `Steps to deploy` section to continue as you would on a production k8s cluster.
+```bash
+kubectl get ingress -n analytics
 ```
 
-# GitOps Patches
-In the [patches](./patches) folder you can find usefull kustomization examples files if you wish to use existing official kustomization directly from this repo as a base kustomization layer and only customize some values. It can be usefull for you GitOps workflow and can be used in conjunction with FlexCD or ArgoCD.
+Access the UI at the provided URL.
+
+## Configuration
+
+### Environment Variables
+
+Edit `base/cm.yaml` to configure:
+
+```yaml
+data:
+  # Service endpoints
+  ANALYTICS_ENGINE_ENDPOINT: http://analytics-engine-svc:8080
+  ANALYTICS_AI_SERVICE_ENDPOINT: http://analytics-ai-service-svc:5555
+  IBIS_SERVER_ENDPOINT: http://analytics-ibis-svc:8000
+  
+  # Versions
+  ANALYTICS_PRODUCT_VERSION: "0.12.0"
+  ANALYTICS_ENGINE_VERSION: "0.12.3"
+  ANALYTICS_AI_SERVICE_VERSION: "0.12.1"
+```
+
+### Secrets
+
+Create secrets for sensitive data:
+
+```bash
+# OpenAI API Key
+kubectl create secret generic openai-secret \
+  --from-literal=api-key=your_api_key_here \
+  -n analytics
+
+# Database credentials (if using external DB)
+kubectl create secret generic db-credentials \
+  --from-literal=username=dbuser \
+  --from-literal=password=dbpass \
+  -n analytics
+```
+
+Reference secrets in deployments:
+
+```yaml
+env:
+  - name: OPENAI_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: openai-secret
+        key: api-key
+```
+
+### Persistent Storage
+
+Configure storage class and size in `base/pvc.yaml`:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: analytics-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard  # Change to your storage class
+  resources:
+    requests:
+      storage: 10Gi  # Adjust size as needed
+```
+
+## Customization with Patches
+
+### Using Patches
+
+The `patches/` directory contains example patches for common customizations:
+
+```bash
+# Use patches as a base
+cd patches
+kubectl apply -k .
+```
+
+### Example: Custom ConfigMap
+
+Create `patches/cm.yaml`:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: analytics-config
+data:
+  ANALYTICS_AI_SERVICE_PORT: "5556"  # Custom port
+  CUSTOM_SETTING: "value"
+```
+
+### Example: Resource Limits
+
+Create `patches/resources.yaml`:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-ai-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: analytics-ai-service
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+```
+
+## GitOps Integration
+
+### ArgoCD
+
+Create an Application manifest:
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nqrust-analytics
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/NexusQuantum/NQRust-Analytics.git
+    targetRevision: main
+    path: deployment/kustomizations
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: analytics
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
+
+### FluxCD
+
+Create a Kustomization resource:
+
+```yaml
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: nqrust-analytics
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./deployment/kustomizations
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: nqrust-analytics
+```
+
+## Monitoring
+
+### Prometheus
+
+Add ServiceMonitor for metrics:
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: analytics-metrics
+spec:
+  selector:
+    matchLabels:
+      app: analytics
+  endpoints:
+    - port: metrics
+      interval: 30s
+```
+
+### Logging
+
+Configure log aggregation with Fluentd/Fluent Bit:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+data:
+  fluent.conf: |
+    <source>
+      @type tail
+      path /var/log/containers/analytics-*.log
+      pos_file /var/log/fluentd-analytics.pos
+      tag kubernetes.*
+      format json
+    </source>
+```
+
+## Scaling
+
+### Horizontal Pod Autoscaler
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: analytics-ai-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: analytics-ai-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+## Troubleshooting
+
+### Pods Not Starting
+
+```bash
+# Check pod status
+kubectl describe pod <pod-name> -n analytics
+
+# Check logs
+kubectl logs <pod-name> -n analytics
+
+# Check events
+kubectl get events -n analytics --sort-by='.lastTimestamp'
+```
+
+### Service Connection Issues
+
+```bash
+# Test service connectivity
+kubectl run -it --rm debug --image=busybox --restart=Never -- sh
+# Inside the pod:
+wget -O- http://analytics-engine-svc:8080/health
+```
+
+### Storage Issues
+
+```bash
+# Check PVC status
+kubectl get pvc -n analytics
+
+# Check PV
+kubectl get pv
+```
+
+## Cleanup
+
+```bash
+# Delete all resources
+kubectl delete -k .
+
+# Delete namespace
+kubectl delete namespace analytics
+```
+
+## Advanced Topics
+
+### Multi-Cluster Deployment
+
+For deploying across multiple clusters, consider:
+- Cluster Federation
+- Service Mesh (Istio, Linkerd)
+- Multi-cluster ingress
+
+### High Availability
+
+- Run multiple replicas of each service
+- Use pod anti-affinity rules
+- Configure readiness and liveness probes
+- Use PodDisruptionBudgets
+
+### Security
+
+- Enable RBAC
+- Use NetworkPolicies
+- Scan images for vulnerabilities
+- Rotate secrets regularly
+- Use Pod Security Standards
+
+## References
+
+- [Kustomize Documentation](https://kustomize.io/)
+- [Kubernetes Documentation](https://kubernetes.io/docs/)
+- [kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
+
+## Contributing
+
+See [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines on improving these manifests.

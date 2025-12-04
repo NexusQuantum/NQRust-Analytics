@@ -1,45 +1,68 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Analytics UI - Web Interface
 
-## Start analytics-ui from source code
+## Overview
 
-Step 1. Make sure your node version is 18
+The Analytics UI is a Next.js-based web application that provides a user-friendly interface for the NQRust-Analytics platform. It enables users to connect to data sources, build semantic models, and query data using natural language.
+
+## Technology Stack
+
+- **Framework**: Next.js 14
+- **Language**: TypeScript
+- **Styling**: Ant Design + Custom CSS
+- **State Management**: Apollo Client (GraphQL)
+- **Database**: SQLite (default) or PostgreSQL
+
+## Prerequisites
+
+- Node.js 18.x or higher
+- Yarn or npm package manager
+- Running Analytics Engine and AI Service (for full functionality)
+
+## Quick Start
+
+### 1. Check Node Version
+
 ```bash
-node -v
+node -v  # Should be 18.x or higher
 ```
 
-Step 2. Install dependencies:
+### 2. Install Dependencies
 
 ```bash
-yarn 
+yarn install
+# or
+npm install
 ```
 
-Step 3(Optional). Switching database
+### 3. Database Configuration (Optional)
 
-Analytics-ui uses SQLite as our default database. To use Postgres as the database of analytics-ui, you need to set the two environment variable below.
+#### Using PostgreSQL
+
+Set environment variables:
 
 ```bash
-# windows
+# Windows
 SET DB_TYPE=pg
-SET PG_URL=postgres://user:password@localhost:5432/dbname 
+SET PG_URL=postgres://user:password@localhost:5432/dbname
 
-# linux or mac
+# Linux/macOS
 export DB_TYPE=pg
 export PG_URL=postgres://user:password@localhost:5432/dbname
 ```
--  `PG_URL` is the connection string of your postgres database.
 
-To switch back to using SQLite, you can reassign the `DB_TYPE` to `sqlite`.
-```
-# windows
+#### Using SQLite (Default)
+
+```bash
+# Windows
 SET DB_TYPE=sqlite
-SET SQLITE_FILE={your_sqlite_file_path} # default is ./db.sqlite3
+SET SQLITE_FILE=./db.sqlite3
 
-# linux or mac
+# Linux/macOS
 export DB_TYPE=sqlite
-export SQLITE_FILE={your_sqlite_file_path}
+export SQLITE_FILE=./db.sqlite3
 ```
 
-Step 4. Run migrations:
+### 4. Run Database Migrations
 
 ```bash
 yarn migrate
@@ -47,152 +70,215 @@ yarn migrate
 npm run migrate
 ```
 
-
-Step 5. Run the development server:
+### 5. Start Development Server
 
 ```bash
-# Execute this if you start analytics-engine and ibis-server via docker
-# Linux or MacOS
-export OTHER_SERVICE_USING_DOCKER=true
-export EXPERIMENTAL_ENGINE_RUST_VERSION=false # set to true if you want to use the experimental Rust version of the Analytics Engine
+# If other services are running in Docker
 # Windows
 SET OTHER_SERVICE_USING_DOCKER=true
-SET EXPERIMENTAL_ENGINE_RUST_VERSION=false # set to true if you want to use the experimental Rust version of the Analytics Engine
+SET EXPERIMENTAL_ENGINE_RUST_VERSION=false
 
-# Run the development server
+# Linux/macOS
+export OTHER_SERVICE_USING_DOCKER=true
+export EXPERIMENTAL_ENGINE_RUST_VERSION=false
+
+# Start the server
 yarn dev
 # or
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Access the application at: http://localhost:3000
 
+## Development Workflow
 
-## Development analytics-ui module on local
-There are many modules in Analytics AI, to develop analytics-ui, you can start other modules(services) via docker-compose.
-In the [Start analytics-ui from source code](#Start-analytics-ui-from-source-code) section, you've know how to start analytics-ui from the source code to develop.
-To start other modules via docker-compose, you can follow the steps below.
+### Local Development with Docker Services
 
-Step 1. Prepare you .env file
-In the AnalyticsAI/docker folder, you can find the .env.example file. You can copy this file to .env.local file.
+When developing the UI locally while other services run in Docker:
+
+1. **Prepare environment file**
+   ```bash
+   cd ../docker
+   cp .env.example .env.local
+   ```
+
+2. **Configure API keys**
+   Edit `.env.local` and add your OpenAI API key (or other LLM provider)
+
+3. **Start Docker services**
+   ```bash
+   docker-compose -f docker-compose-dev.yaml --env-file .env.local up -d
+   ```
+
+4. **Start UI from source**
+   Follow the Quick Start steps above
+
+5. **Stop Docker services**
+   ```bash
+   docker-compose -f docker-compose-dev.yaml --env-file .env.local down
+   ```
+
+### Developing Multiple Services
+
+To develop UI alongside other services (e.g., AI Service):
+
+1. Stop the specific service container
+2. Start that service from source code
+3. Update environment variables to point to local service
+
+Example for AI Service:
 
 ```bash
-# assume current directory is analytics-ui
-cd ../docker
-cp .env.example .env.local
+# Stop AI service container
+docker-compose -f docker-compose-dev.yaml stop analytics-ai-service
+
+# Start AI service from source (in separate terminal)
+cd ../analytics-ai-service
+just start
+
+# UI will connect to local AI service via environment variables
 ```
-Step 2. Modify your .env.local file
-You need to fill the `OPENAI_API_KEY` with your OPENAI api key before starting.
 
-You can also change the `ANALYTICS_ENGINE_VERSION`, `ANALYTICS_AI_SERVICE_VERSION`, `IBIS_SERVER_VERSION` to the version you want to use.
+## Environment Variables
 
+### Core Configuration
 
-Step 3. Start the services via docker-compose
+```env
+# Database
+DB_TYPE=sqlite                    # or 'pg' for PostgreSQL
+SQLITE_FILE=./db.sqlite3         # SQLite file path
+PG_URL=postgres://...            # PostgreSQL connection string
+
+# Service Endpoints
+ANALYTICS_ENGINE_ENDPOINT=http://analytics-engine:8080
+ANALYTICS_AI_ENDPOINT=http://analytics-ai-service:5556
+IBIS_SERVER_ENDPOINT=http://ibis-server:8000
+
+# Features
+EXPERIMENTAL_ENGINE_RUST_VERSION=false
+OTHER_SERVICE_USING_DOCKER=true
+```
+
+### Docker Service Endpoints
+
+When running other services in Docker, use these endpoints:
+
+```env
+ANALYTICS_ENGINE_ENDPOINT=http://analytics-engine:8080
+ANALYTICS_AI_ENDPOINT=http://analytics-ai-service:5556
+IBIS_SERVER_ENDPOINT=http://ibis-server:8000
+```
+
+When running services locally:
+
+```env
+ANALYTICS_ENGINE_ENDPOINT=http://localhost:8080
+ANALYTICS_AI_ENDPOINT=http://localhost:5556
+IBIS_SERVER_ENDPOINT=http://localhost:8000
+```
+
+## Project Structure
+
+```
+analytics-ui/
+├── src/
+│   ├── apollo/          # GraphQL client & server
+│   ├── components/      # React components
+│   ├── pages/          # Next.js pages
+│   ├── utils/          # Utility functions
+│   └── styles/         # CSS styles
+├── public/             # Static assets
+├── e2e/               # End-to-end tests
+└── package.json       # Dependencies
+```
+
+## Available Scripts
+
 ```bash
-# current directory is AnalyticsAI/docker
-docker-compose -f docker-compose-dev.yaml --env-file .env.example up
+# Development
+yarn dev              # Start development server
+yarn build            # Build for production
+yarn start            # Start production server
 
-# you can add a -d flag to run the services in the background
-docker-compose -f docker-compose-dev.yaml --env-file .env.example up -d
-# then stop the services via
-docker-compose -f docker-compose-dev.yaml --env-file .env.example down
+# Database
+yarn migrate          # Run database migrations
+
+# Testing
+yarn test             # Run unit tests
+yarn test:e2e         # Run E2E tests (see e2e/README.md)
+
+# Code Quality
+yarn lint             # Run ESLint
+yarn type-check       # Run TypeScript type checking
 ```
 
-Step 4. Start analytics-ui from source code
-refer to [Start analytics-ui from source code](#Start-analytics-ui-from-source-code) section to start analytics-ui from source code.
+## Multiple Projects Support
 
-Step 5. (Optional) Develop other modules along with analytics-ui
+The UI supports switching between multiple projects by using different databases:
 
-As mentioned above, you can use docker-compose to start other modules. The same applies when developing other modules.
-From the perspective of analytics-ui, if you want to develop other modules at the same time, you can stop the container then spin up the module from the source code.
+### Example Workflow
 
-eg: If you want to develop ai-service module, you can stop the ai-service container then start the ai-service from the source code.
-```yaml
-# docker/docker-compose-dev.yaml
-analytics-engine:
-    image: ghcr.io/nexusquantum/analytics-engine:${ANALYTICS_ENGINE_VERSION}
-    pull_policy: always
-    platform: ${PLATFORM}
-    expose:
-      - ${ANALYTICS_ENGINE_SQL_PORT}
-    ports:
-      - ${ANALYTICS_ENGINE_PORT}:${ANALYTICS_ENGINE_PORT}
-    volumes:
-      - data:/usr/src/app/etc
-    networks:
-      - analytics
-    depends_on:
-      - bootstrap
-    ...
-# comment out the ai-service service
-analytics-ai-service:
-    image: ghcr.io/nexusquantum/analytics-ai-service:${ANALYTICS_AI_SERVICE_VERSION}
-    pull_policy: always
-    platform: ${PLATFORM}
-    ports:
-      - ${AI_SERVICE_FORWARD_PORT}:${ANALYTICS_AI_SERVICE_PORT}
-    environment:
-      ANALYTICS_UI_ENDPOINT: http://host.docker.internal:${ANALYTICS_UI_PORT}
-      # sometimes the console won't show print messages,
-      # using PYTHONUNBUFFERED: 1 can fix this
-      PYTHONUNBUFFERED: 1
-      CONFIG_PATH: /app/data/config.yaml
-    env_file:
-      - ${PROJECT_DIR}/.env
-    volumes:
-      - ${PROJECT_DIR}/config.yaml:/app/data/config.yaml
-    networks:
-      - analytics
-    depends_on:
-      - qdrant
-
-ibis-server:
-    image: ghcr.io/nexusquantum/analytics-engine-ibis:${IBIS_SERVER_VERSION}
-    ...
-```
-Then refer to the README.md or CONTRIBUTION.md file the module for starting the module from the source code. 
-
-eg: refer to the [ai-service README](https://github.com/NexusQuantum/NQRust-Analytics/blob/main/analytics-ai-service/README.md#start-the-service-for-development) to start the ai-service from the source code.
-
-
-
-## FAQ
-### Can I have multiple project at the same time in Analytics AI?
-We currently do not support multiple projects in Analytics AI. You can only have one project at a time.
-But there is a workaround for this. Since Analytics Engine is stateless and we store your semantic model in the database(Sqlite or Postgres), 
-you can switch between projects by switching the database and make sure you deploying after server started.
-
-> Tip: Define the `DB_TYPE` and `SQLITE_FILE` or `PG_URL` variable to specify which database you intend to use.
-
-eg: 
 ```bash
-# start your first project using default database(sqlite by defulat)
+# Project 1 (default database)
 yarn migrate
 yarn dev
 
-# ... after onboarding and lots of hard work, you want to switch to another project 
-# stop the server
-
-# set another sqlite file
-export SQLITE_FILE=./new_project.sqlite
+# Switch to Project 2
+export SQLITE_FILE=./project2.sqlite
 yarn migrate
 yarn dev
 
-# In the Browser, ... after another onboarding process and hard work
-# you can switch back to the first project by setting the first sqlite file
-export SQLITE_FILE=./first_project.sqlite
+# Switch back to Project 1
+export SQLITE_FILE=./db.sqlite3
+yarn dev  # No migration needed
 
-yarn dev  # no need to do migration again
+# Deploy the project in the UI to make it active
+```
 
-# in the modeling page, click the deploy button to deploy the project to the analytics-ai-service.
-# your Analytics AI is ready to answer your question.
+> **Note**: After switching databases, deploy your project in the modeling page to activate it.
+
+## Troubleshooting
+
+### Port 3000 Already in Use
+
+Change the port:
+
+```bash
+# Edit package.json
+"dev": "next dev -p 3001"
+```
+
+### Database Connection Issues
+
+- **SQLite**: Ensure the file path is writable
+- **PostgreSQL**: Verify connection string and database exists
+
+### Service Connection Errors
+
+Check that Analytics Engine and AI Service are running:
+
+```bash
+# Test endpoints
+curl http://localhost:8080/health
+curl http://localhost:5556/health
+```
+
+## Production Build
+
+```bash
+# Build the application
+yarn build
+
+# Start production server
+yarn start
 ```
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+- [Next.js Documentation](https://nextjs.org/docs)
+- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
+- [Ant Design Components](https://ant.design/components/overview/)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Contributing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for development guidelines.

@@ -1,117 +1,257 @@
-# AI Service of Analytics AI
+# Analytics AI Service
 
-## Concepts
+## Overview
 
-Please read the [documentation](https://docs.getanalytics.ai/oss/concept/analytics_ai_service) here to understand the concepts of Analytics AI Service.
+The Analytics AI Service is the core AI component of NQRust-Analytics, responsible for converting natural language questions into SQL queries, generating insights, and providing intelligent data analysis capabilities.
 
-## Setup for Local Development
+## Key Features
 
-### Prerequisites
+- **Natural Language to SQL**: Convert questions to accurate SQL queries
+- **Multi-LLM Support**: Works with OpenAI, Gemini, Claude, and more
+- **RAG Pipeline**: Retrieval-Augmented Generation for context-aware responses
+- **Semantic Understanding**: Leverages MDL (Modeling Definition Language) for accurate query generation
+- **Extensible Architecture**: Plugin-based system for custom components
 
-1. **Python**: Install Python 3.12.\*
+## Prerequisites
 
-   - Recommended: Use [`pyenv`](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation) to manage Python versions
+- **Python**: 3.12.x
+- **Poetry**: 1.8.3 or higher
+- **Just**: Command runner (v1.36+)
+- **Docker**: For running dependent services (Qdrant, Analytics Engine)
 
-2. **Poetry**: Install Poetry 1.8.3
+## Installation
 
-   ```bash
-   curl -sSL https://install.python-poetry.org | python3 - --version 1.8.3
-   ```
+### 1. Install Python
 
-3. **Just**: Install [Just](https://github.com/casey/just?tab=readme-ov-file#packages) command runner (version 1.36 or higher)
+We recommend using [pyenv](https://github.com/pyenv/pyenv) to manage Python versions:
 
-### Step-by-Step Setup
+```bash
+pyenv install 3.12.7
+pyenv local 3.12.7
+```
 
-1. **Install Dependencies**:
+### 2. Install Poetry
 
-   ```bash
-   poetry install
-   ```
+```bash
+curl -sSL https://install.python-poetry.org | python3 - --version 1.8.3
+```
 
-2. **Generate Configuration Files**:
+### 3. Install Just
 
-   ```bash
-   just init
-   ```
+See [Just installation guide](https://github.com/casey/just#packages) for your platform.
 
-   This creates both `.env.dev` and `config.yaml`. Use `just init --non-dev` to generate only `config.yaml`.
+### 4. Install Dependencies
 
-    > For Windows, add the line `set shell:= ["bash", "-cu"]` at the start of the Justfile.
+```bash
+poetry install
+```
 
-4. **Configure Environment**:
+## Configuration
 
-   - Edit `.env.dev` to set environment variables
-   - Modify `config.yaml` to configure components, pipelines, and other settings
-   - Refer to [AI Service Configuration](./docs/configuration.md) for detailed setup instructions
+### 1. Generate Configuration Files
 
-5. **Set Up Development Environment** (optional):
+```bash
+just init
+```
 
-   - Install pre-commit hooks:
+This creates:
+- `.env.dev` - Environment variables
+- `config.yaml` - Service configuration
 
-     ```bash
-     poetry run pre-commit install
-     ```
+> **Windows Users**: Add `set shell:= ["bash", "-cu"]` at the start of the Justfile.
 
-   - Run initial pre-commit checks:
+### 2. Configure Environment Variables
 
-     ```bash
-     poetry run pre-commit run --all-files
-     ```
+Edit `.env.dev` and set your LLM provider credentials:
 
-6. **Run Tests** (optional):
+```env
+# OpenAI
+OPENAI_API_KEY=your_api_key_here
 
-   ```bash
-   just test
-   ```
+# Or Azure OpenAI
+AZURE_OPENAI_API_KEY=your_key
+AZURE_OPENAI_ENDPOINT=your_endpoint
 
-### Starting the Service
+# Or Google Gemini
+GOOGLE_API_KEY=your_key
 
-1. **Start Required Containers**:
+# Or Anthropic Claude
+ANTHROPIC_API_KEY=your_key
+```
 
-   ```bash
-   just up
-   ```
+### 3. Configure Service Settings
 
-2. **Launch the AI Service**:
+Edit `config.yaml` to customize:
+- LLM providers and models
+- Embedding models
+- Pipeline configurations
+- Document stores
+- Retrieval settings
 
-   ```bash
-   just start
-   ```
+See [Configuration Examples](./docs/config_examples/) for different LLM providers.
 
-3. **Access the Service**:
+## Quick Start
 
-   - API Documentation: `http://ANALYTICS_AI_SERVICE_HOST:ANALYTICS_AI_SERVICE_PORT` (default: <http://localhost:5556>)
-   - User Interface: `http://ANALYTICS_UI_HOST:ANALYTICS_UI_PORT` (default: <http://localhost:3000>)
+### 1. Start Development Services
 
-4. **Stop the Service**:
-   When finished, stop the containers:
+```bash
+just up
+```
 
-   ```bash
-   just down
-   ```
+This starts:
+- Qdrant (vector database)
+- Analytics Engine
+- Ibis Server
+- PostgreSQL (if configured)
 
-This setup ensures a consistent development environment and helps maintain code quality through pre-commit hooks and tests. Follow these steps to get started with local development of the Analytics AI Service.
+### 2. Start AI Service
 
-## Others
+```bash
+just start
+```
 
-### Pipeline Evaluation
+### 3. Access Services
 
-For a comprehensive understanding of how to evaluate the pipelines, please refer to the [evaluation framework](./eval/README.md). This document provides detailed guidelines on the evaluation process, including how to set up and run evaluations, interpret results, and utilize the evaluation metrics effectively. It is a valuable resource for ensuring that the evaluation is conducted accurately and that the results are meaningful.
+- **AI Service API**: http://localhost:5556
+- **API Documentation**: http://localhost:5556/docs
+- **Analytics UI**: http://localhost:3000 (if running)
 
-### Estimate the Speed of the Pipeline(may be outdated)
+### 4. Stop Services
 
-- to run the load test
-  - setup `DATASET_NAME` in `.env.dev`
-  - adjust test config if needed
-    - adjust user count in `tests/locust/config_users.json`
-  - in analytics-ai-service folder, run `just up` to start the docker containers
-  - in analytics-ai-service folder, run `just start` to start the ai service
-  - run `just load-test`
-  - check reports in /outputs/locust folder, there are 3 files with filename **locust*report*{test_timestamp}**:
-    - .json: test report in json format, including info like llm provider, version
-    - .html: test report in html format, showing tables and charts
-    - .log: test log
+```bash
+just down
+```
+
+## Development Workflow
+
+### Running Tests
+
+```bash
+just test
+```
+
+### Code Quality
+
+```bash
+# Install pre-commit hooks
+poetry run pre-commit install
+
+# Run all checks
+poetry run pre-commit run --all-files
+```
+
+### Hot Reload
+
+The service automatically reloads when you modify Python files during development.
+
+## Configuration Examples
+
+We provide configuration examples for various LLM providers:
+
+- [OpenAI](./docs/config_examples/config.openai.yaml)
+- [Azure OpenAI](./docs/config_examples/config.azure.yaml)
+- [Google Gemini](./docs/config_examples/config.google_ai_studio.yaml)
+- [Google Vertex AI](./docs/config_examples/config.google_vertexai.yaml)
+- [Anthropic Claude](./docs/config_examples/config.anthropic.yaml)
+- [AWS Bedrock](./docs/config_examples/config.bedrock.yaml)
+- [DeepSeek](./docs/config_examples/config.deepseek.yaml)
+- [Groq](./docs/config_examples/config.grok.yaml)
+- [Ollama](./docs/config_examples/config.ollama.yaml)
+- [And more...](./docs/config_examples/)
+
+## Architecture
+
+### Components
+
+1. **LLM Provider**: Interfaces with various LLM APIs
+2. **Embedder**: Generates vector embeddings for semantic search
+3. **Document Store**: Stores and retrieves context (Qdrant)
+4. **Pipelines**: Orchestrates the query processing flow
+5. **Indexing**: Builds semantic indices from data schemas
+
+### Pipeline Flow
+
+```
+User Question
+    ↓
+Retrieval (RAG)
+    ↓
+LLM Processing
+    ↓
+SQL Generation
+    ↓
+Query Execution
+    ↓
+Results + Insights
+```
+
+## Evaluation Framework
+
+For evaluating and benchmarking the AI service performance, see:
+- [Evaluation Framework Documentation](./eval/README.md)
+
+## Available Commands (Just)
+
+```bash
+just init              # Initialize configuration files
+just up                # Start development services
+just down              # Stop development services
+just start             # Start AI service
+just test              # Run tests
+just load-test         # Run load tests
+just curate_eval_data  # Start evaluation data curation app
+```
+
+## Troubleshooting
+
+### Service Won't Start
+
+Check that all dependencies are running:
+
+```bash
+docker ps  # Verify Qdrant and other services are running
+```
+
+### LLM API Errors
+
+- Verify API keys in `.env.dev`
+- Check API rate limits
+- Ensure correct model names in `config.yaml`
+
+### Vector Store Connection Issues
+
+Ensure Qdrant is running:
+
+```bash
+curl http://localhost:6333/health
+```
+
+## Performance Optimization
+
+### Load Testing
+
+To test service performance under load:
+
+1. Configure test settings in `tests/locust/config_users.json`
+2. Start services: `just up` and `just start`
+3. Run load test: `just load-test`
+4. Check reports in `outputs/locust/`
+
+Reports include:
+- `.json` - Test metrics and configuration
+- `.html` - Visual charts and tables
+- `.log` - Detailed test logs
 
 ## Contributing
 
-Thank you for investing your time in contributing to our project! Please [read this for more information](CONTRIBUTING.md)!
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
+- Development setup
+- Code style guidelines
+- Pull request process
+- Adding new LLM providers
+- Adding new embedders
+- Adding new document stores
+
+## License
+
+See [LICENSE](../LICENSE) for details.
