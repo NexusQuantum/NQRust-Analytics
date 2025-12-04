@@ -59,57 +59,57 @@ export const SETUP_STEPS = {
 export const DATA_SOURCE_OPTIONS = {
   [DATA_SOURCES.POSTGRES]: {
     ...getDataSourceConfig(DATA_SOURCES.POSTGRES),
-    guide: 'https://docs.getwren.ai/oss/guide/connect/postgresql',
+    guide: 'https://docs.getanalytics.ai/oss/guide/connect/postgresql',
     disabled: false,
   },
   [DATA_SOURCES.MYSQL]: {
     ...getDataSourceConfig(DATA_SOURCES.MYSQL),
-    guide: 'https://docs.getwren.ai/oss/guide/connect/mysql',
+    guide: 'https://docs.getanalytics.ai/oss/guide/connect/mysql',
     disabled: false,
   },
   [DATA_SOURCES.BIG_QUERY]: {
     ...getDataSourceConfig(DATA_SOURCES.BIG_QUERY),
-    guide: 'https://docs.getwren.ai/oss/guide/connect/bigquery',
+    guide: 'https://docs.getanalytics.ai/oss/guide/connect/bigquery',
     disabled: false,
   },
   [DATA_SOURCES.REDSHIFT]: {
     ...getDataSourceConfig(DATA_SOURCES.REDSHIFT),
-    guide: 'https://docs.getwren.ai/oss/guide/connect/redshift',
+    guide: 'https://docs.getanalytics.ai/oss/guide/connect/redshift',
     disabled: false,
   },
   [DATA_SOURCES.SNOWFLAKE]: {
     ...getDataSourceConfig(DATA_SOURCES.SNOWFLAKE),
-    guide: 'https://docs.getwren.ai/oss/guide/connect/snowflake',
+    guide: 'https://docs.getanalytics.ai/oss/guide/connect/snowflake',
     disabled: false,
   },
   [DATA_SOURCES.MSSQL]: {
     ...getDataSourceConfig(DATA_SOURCES.MSSQL),
-    guide: 'https://docs.getwren.ai/oss/guide/connect/sqlserver',
+    guide: 'https://docs.getanalytics.ai/oss/guide/connect/sqlserver',
     disabled: false,
   },
   [DATA_SOURCES.ORACLE]: {
     ...getDataSourceConfig(DATA_SOURCES.ORACLE),
-    guide: 'https://docs.getwren.ai/oss/guide/connect/oracle',
+    guide: 'https://docs.getanalytics.ai/oss/guide/connect/oracle',
     disabled: false,
   },
   [DATA_SOURCES.DUCKDB]: {
     ...getDataSourceConfig(DATA_SOURCES.DUCKDB),
-    guide: 'https://docs.getwren.ai/oss/guide/connect/duckdb',
+    guide: 'https://docs.getanalytics.ai/oss/guide/connect/duckdb',
     disabled: false,
   },
   [DATA_SOURCES.CLICK_HOUSE]: {
     ...getDataSourceConfig(DATA_SOURCES.CLICK_HOUSE),
-    guide: 'https://docs.getwren.ai/oss/guide/connect/clickhouse',
+    guide: 'https://docs.getanalytics.ai/oss/guide/connect/clickhouse',
     disabled: false,
   },
   [DATA_SOURCES.ATHENA]: {
     ...getDataSourceConfig(DATA_SOURCES.ATHENA),
-    guide: 'https://docs.getwren.ai/oss/guide/connect/athena',
+    guide: 'https://docs.getanalytics.ai/oss/guide/connect/athena',
     disabled: false,
   },
   [DATA_SOURCES.TRINO]: {
     ...getDataSourceConfig(DATA_SOURCES.TRINO),
-    guide: 'https://docs.getwren.ai/oss/guide/connect/trino',
+    guide: 'https://docs.getanalytics.ai/oss/guide/connect/trino',
     disabled: false,
   },
 } as { [key: string]: ButtonOption };
@@ -118,12 +118,12 @@ export const TEMPLATE_OPTIONS = {
   [SampleDatasetName.ECOMMERCE]: {
     label: 'E-commerce',
     IconComponent: ShoppingCartOutlined,
-    guide: 'https://docs.getwren.ai/oss/getting_started/sample_data/ecommerce',
+    guide: 'https://docs.getanalytics.ai/oss/getting_started/sample_data/ecommerce',
   },
   [SampleDatasetName.HR]: {
     label: 'Human Resource',
     IconComponent: IdCardOutlined,
-    guide: 'https://docs.getwren.ai/oss/getting_started/sample_data/hr',
+    guide: 'https://docs.getanalytics.ai/oss/getting_started/sample_data/hr',
   },
 };
 
@@ -153,7 +153,7 @@ export const getPostgresErrorMessage = (error: Record<string, any>) => {
         If you are having trouble connecting to your PostgreSQL database, please
         refer to our{' '}
         <a
-          href="https://docs.getwren.ai/oss/guide/connect/postgresql#connect"
+          href="https://docs.getanalytics.ai/oss/guide/connect/postgresql#connect"
           target="_blank"
           rel="noopener noreferrer"
         >

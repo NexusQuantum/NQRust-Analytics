@@ -52,7 +52,7 @@ export default function SelectModels(props: Props) {
         interpret your information.
         <br />
         <Link
-          href="https://docs.getwren.ai/oss/guide/modeling/overview"
+          href="https://docs.analytics.ai/oss/guide/modeling/overview"
           target="_blank"
           rel="noopener noreferrer"
         >
