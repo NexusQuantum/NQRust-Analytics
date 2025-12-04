@@ -110,7 +110,7 @@ eg: If you want to develop ai-service module, you can stop the ai-service contai
 ```yaml
 # docker/docker-compose-dev.yaml
 analytics-engine:
-    image: ghcr.io/canner/analytics-engine:${ANALYTICS_ENGINE_VERSION}
+    image: ghcr.io/nexusquantum/analytics-engine:${ANALYTICS_ENGINE_VERSION}
     pull_policy: always
     platform: ${PLATFORM}
     expose:
@@ -126,7 +126,7 @@ analytics-engine:
     ...
 # comment out the ai-service service
 analytics-ai-service:
-    image: ghcr.io/canner/analytics-ai-service:${ANALYTICS_AI_SERVICE_VERSION}
+    image: ghcr.io/nexusquantum/analytics-ai-service:${ANALYTICS_AI_SERVICE_VERSION}
     pull_policy: always
     platform: ${PLATFORM}
     ports:
@@ -147,12 +147,12 @@ analytics-ai-service:
       - qdrant
 
 ibis-server:
-    image: ghcr.io/canner/analytics-engine-ibis:${IBIS_SERVER_VERSION}
+    image: ghcr.io/nexusquantum/analytics-engine-ibis:${IBIS_SERVER_VERSION}
     ...
 ```
 Then refer to the README.md or CONTRIBUTION.md file the module for starting the module from the source code. 
 
-eg: refer to the [ai-service README](https://github.com/Canner/AnalyticsAI/blob/main/analytics-ai-service/README.md#start-the-service-for-development) to start the ai-service from the source code.
+eg: refer to the [ai-service README](https://github.com/NexusQuantum/NQRust-Analytics/blob/main/analytics-ai-service/README.md#start-the-service-for-development) to start the ai-service from the source code.
 
 
 

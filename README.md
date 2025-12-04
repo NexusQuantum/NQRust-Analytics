@@ -13,11 +13,11 @@
   <a aria-label="Follow us on X" href="https://x.com/getanalyticsai">
     <img alt="" src="https://img.shields.io/badge/-@getanalyticsai-blue?style=for-the-badge&logo=x&logoColor=white&labelColor=gray&logoWidth=20">
   </a>
-  <a aria-label="Releases" href="https://github.com/canner/AnalyticsAI/releases">
-    <img alt="" src="https://img.shields.io/github/v/release/canner/AnalyticsAI?logo=github&label=GitHub%20Release&color=blue&style=for-the-badge">
+  <a aria-label="Releases" href="https://github.com/NexusQuantum/NQRust-Analytics/releases">
+    <img alt="" src="https://img.shields.io/github/v/release/NexusQuantum/NQRust-Analytics?logo=github&label=GitHub%20Release&color=blue&style=for-the-badge">
   </a>
-  <a aria-label="License" href="https://github.com/Canner/AnalyticsAI/blob/main/LICENSE">
-    <img alt="" src="https://img.shields.io/github/license/canner/AnalyticsAI?color=blue&style=for-the-badge">
+  <a aria-label="License" href="https://github.com/NexusQuantum/NQRust-Analytics/blob/main/LICENSE">
+    <img alt="" src="https://img.shields.io/github/license/NexusQuantum/NQRust-Analytics?color=blue&style=for-the-badge">
   </a>
   <a href="https://docs.getanalytics.ai">
     <img src="https://img.shields.io/badge/docs-online-brightgreen?style=for-the-badge" alt="Docs">
@@ -25,8 +25,8 @@
   <a aria-label="Join the community on GitHub" href="https://discord.gg/5DvshJqG8Z">
     <img alt="" src="https://img.shields.io/badge/-JOIN%20THE%20COMMUNITY-blue?style=for-the-badge&logo=discord&logoColor=white&labelColor=grey&logoWidth=20">
   </a>
-  <a aria-label="Canner" href="https://cannerdata.com/?utm_source=github&utm_medium=badge&utm_campaign=readme">
-    <img src="https://img.shields.io/badge/%F0%9F%A7%A1-Made%20by%20Canner-blue?style=for-the-badge">
+  <a aria-label="NexusQuantum" href="https://github.com/NexusQuantum">
+    <img src="https://img.shields.io/badge/%F0%9F%9A%80-NexusQuantum-blue?style=for-the-badge">
   </a>
 </p>
 
@@ -76,7 +76,7 @@ Using Analytics AI is super simple, you can set it up within 3 minutes, and star
 
 ## 🔌 Data Sources
 
-If your data source is not listed here, vote for it in our [GitHub discussion thread](https://github.com/Canner/AnalyticsAI/discussions/327). It will be a valuable input for us to decide on the next supported data sources.
+If your data source is not listed here, vote for it in our [GitHub discussion thread](https://github.com/NexusQuantum/NQRust-Analytics/discussions). It will be a valuable input for us to decide on the next supported data sources.
 - Athena (Trino)
 - Redshift
 - BigQuery
@@ -103,7 +103,7 @@ Analytics AI supports integration with various Large Language Models (LLMs), inc
 - Ollama Models
 - Databricks Models
 
-Check [configuration examples here](https://github.com/Canner/AnalyticsAI/tree/main/analytics-ai-service/docs/config_examples)!
+Check [configuration examples here](https://github.com/NexusQuantum/NQRust-Analytics/tree/main/analytics-ai-service/docs/config_examples)!
 
 > [!CAUTION]
 > The performance of Analytics AI depends significantly on the capabilities of the LLM you choose. We strongly recommend using the most powerful model available for optimal results. Using less capable models may lead to reduced performance, slower response times, or inaccurate outputs.
@@ -120,19 +120,19 @@ Visit [Analytics AI documentation](https://docs.getanalytics.ai/oss/overview/int
 
 1.	Star ⭐ the repo to show support (it really helps).
 2.	Open an issue for bugs, ideas, or discussions.
-3.	Read [Contribution Guidelines](https://github.com/Canner/AnalyticsAI/blob/main/CONTRIBUTING.md) for setup & PR guidelines.
+3.	Read [Contribution Guidelines](https://github.com/NexusQuantum/NQRust-Analytics/blob/main/CONTRIBUTING.md) for setup & PR guidelines.
 
 ## ⭐️ Community
 
 - Join 1.3k+ developers in our [Discord](https://discord.gg/5DvshJqG8Z) for real-time help and roadmap previews.
-- If there are any issues, please visit [GitHub Issues](https://github.com/Canner/AnalyticsAI/issues).
+- If there are any issues, please visit [GitHub Issues](https://github.com/NexusQuantum/NQRust-Analytics/issues).
 - Explore our [public roadmap](https://analyticsai.notion.site/) to stay updated on upcoming features and improvements!
 
 Please note that our [Code of Conduct](./CODE_OF_CONDUCT.md) applies to all Analytics AI community channels. Users are **highly encouraged** to read and adhere to them to avoid repercussions.
 
 ## 🎉 Our Contributors
-<a href="https://github.com/canner/analyticsAI/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Canner/AnalyticsAI" />
+<a href="https://github.com/NexusQuantum/NQRust-Analytics/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=NexusQuantum/NQRust-Analytics" />
 </a>
 
 <p align="right">
