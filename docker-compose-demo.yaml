@@ -8,53 +8,14 @@ networks:
     driver: bridge
 
 services:
-  # bootstrap:
-  #   build:
-  #     context: ./docker/bootstrap
-  #     dockerfile: Dockerfile
-  #   image: analytics-bootstrap:local
-  #   restart: on-failure
-  #   platform: linux/amd64
-  #   environment:
-  #     DATA_PATH: /app/data
-  #   volumes:
-  #     - data:/app/data
-  #   command: /bin/sh /app/init.sh
 
-  # analytics-engine:
-  #   image: ghcr.io/canner/analytics-engine:0.18.3
-  #   restart: on-failure
-  #   platform: linux/amd64
-  #   expose:
-  #     - 8080
-  #     - 7432
-  #   volumes:
-  #     - data:/usr/src/app/etc
-  #     - ./data:/usr/src/app/data
-  #   networks:
-  #     - analytics
-  #   depends_on:
-  #     - bootstrap
-
-  # ibis-server:
-  #   image: ghcr.io/canner/analytics-engine-ibis:0.18.3
-  #   restart: on-failure
-  #   platform: linux/amd64
-  #   expose:
-  #     - 8000
-  #   environment:
-  #     ANALYTICS_ENGINE_ENDPOINT: http://analytics-engine:8080
-  #   volumes:
-  #     - .:/usr/src/app/data
-  #   networks:
-  #     - analytics
 
   analytics-service:
     # Build from local source instead of using online image
     build:
       context: ./analytics-ai-service
       dockerfile: docker/Dockerfile
-    # image: ghcr.io/canner/analytics-ai-service:0.27.1  # Commented out - using local build
+
     restart: on-failure
     platform: linux/amd64
     image: analytics-service:local

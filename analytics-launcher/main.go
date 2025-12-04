@@ -4,8 +4,8 @@ import (
 	"flag"
 	"os"
 
-	"github.com/Canner/AnalyticsAI/analytics-launcher/commands"
-	"github.com/Canner/AnalyticsAI/analytics-launcher/config"
+	"github.com/NexusQuantum/NQRust-Analytics/analytics-launcher/commands"
+	"github.com/NexusQuantum/NQRust-Analytics/analytics-launcher/config"
 	"github.com/pterm/pterm"
 )
 

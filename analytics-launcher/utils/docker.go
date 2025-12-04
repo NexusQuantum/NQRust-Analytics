@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Canner/AnalyticsAI/analytics-launcher/config"
+	"github.com/NexusQuantum/NQRust-Analytics/analytics-launcher/config"
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/flags"
 	cmdCompose "github.com/docker/compose/v2/cmd/compose"
@@ -24,9 +24,9 @@ import (
 const (
 	// please change the version when the version is updated
 	ANALYTICS_PRODUCT_VERSION    string = "0.28.0"
-	DOCKER_COMPOSE_YAML_URL string = "https://raw.githubusercontent.com/Canner/AnalyticsAI/" + ANALYTICS_PRODUCT_VERSION + "/docker/docker-compose.yaml"
-	DOCKER_COMPOSE_ENV_URL  string = "https://raw.githubusercontent.com/Canner/AnalyticsAI/" + ANALYTICS_PRODUCT_VERSION + "/docker/.env.example"
-	AI_SERVICE_CONFIG_URL   string = "https://raw.githubusercontent.com/Canner/AnalyticsAI/" + ANALYTICS_PRODUCT_VERSION + "/docker/config.example.yaml"
+	DOCKER_COMPOSE_YAML_URL string = "https://raw.githubusercontent.com/NexusQuantum/NQRust-Analytics/" + ANALYTICS_PRODUCT_VERSION + "/docker/docker-compose.yaml"
+	DOCKER_COMPOSE_ENV_URL  string = "https://raw.githubusercontent.com/NexusQuantum/NQRust-Analytics/" + ANALYTICS_PRODUCT_VERSION + "/docker/.env.example"
+	AI_SERVICE_CONFIG_URL   string = "https://raw.githubusercontent.com/NexusQuantum/NQRust-Analytics/" + ANALYTICS_PRODUCT_VERSION + "/docker/config.example.yaml"
 )
 
 var generationModelToModelName = map[string]string{

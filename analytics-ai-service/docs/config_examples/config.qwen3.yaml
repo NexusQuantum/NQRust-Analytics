@@ -2,7 +2,7 @@
 # please pay attention to the comments starting with # and adjust the config accordingly, 3 steps basically:
 # 1. you need to use your own llm and embedding models
 # 2. fill in embedding model dimension in the document_store section
-# 3. you need to use the correct pipe definitions based on https://raw.githubusercontent.com/canner/AnalyticsAI/<ANALYTICSAI_VERSION_NUMBER>/docker/config.example.yaml
+# 3. you need to use the correct pipe definitions based on https://raw.githubusercontent.com/NexusQuantum/NQRust-Analytics/<ANALYTICSAI_VERSION_NUMBER>/docker/config.example.yaml
 # 4. you need to fill in correct llm and embedding models in the pipe definitions
 
 type: llm
@@ -88,7 +88,7 @@ recreate_index: true
 ---
 # please change the llm and embedder names to the ones you want to use
 # the format of llm and embedder should be <provider>.<model_name> such as litellm_llm.gpt-4o-2024-08-06
-# the pipes may be not the latest version, please refer to the latest version: https://raw.githubusercontent.com/canner/AnalyticsAI/<ANALYTICSAI_VERSION_NUMBER>/docker/config.example.yaml
+# the pipes may be not the latest version, please refer to the latest version: https://raw.githubusercontent.com/NexusQuantum/NQRust-Analytics/<ANALYTICSAI_VERSION_NUMBER>/docker/config.example.yaml
 type: pipeline
 pipes:
   - name: db_schema_indexing

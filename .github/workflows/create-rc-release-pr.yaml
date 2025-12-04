@@ -30,7 +30,7 @@ jobs:
       - name: Setup Git Identity
         run: |
           git config --global user.name "analytics-ai[bot]"
-          git config --global user.email "dev@cannerdata.com"
+          git config --global user.email "dev@nexusquantum.com"
 
       - name: Update docker.go
         run: |

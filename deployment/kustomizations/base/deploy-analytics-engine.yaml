@@ -18,7 +18,7 @@ spec:
             claimName: analytics-data-pvc
       initContainers:
         - name: bootstrap
-          image: ghcr.io/canner/analytics-bootstrap:0.1.4
+          image: ghcr.io/nexusquantum/nqrust-analytics-bootstrap:0.1.4
           env:
             - name: DATA_PATH
               valueFrom:
@@ -41,7 +41,7 @@ spec:
           command: ["/bin/sh", "/app/init.sh"]
       containers:
         - name: analytics-engine
-          image: ghcr.io/canner/analytics-engine:0.4.4
+          image: ghcr.io/nexusquantum/nqrust-analytics-engine:0.4.4
           ports:
             - containerPort: 8080
             - containerPort: 7432

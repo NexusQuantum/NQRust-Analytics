@@ -1,7 +1,8 @@
-version: "3"
-
 volumes:
   data:
+  qdrant_data:
+  northwind_data:
+
 
 networks:
   analytics:
@@ -9,9 +10,11 @@ networks:
 
 services:
   bootstrap:
-    image: ghcr.io/canner/analytics-bootstrap:${ANALYTICS_BOOTSTRAP_VERSION}
+    build:
+      context: ./bootstrap
+      dockerfile: Dockerfile
     restart: on-failure
-    platform: ${PLATFORM}
+    platform: linux/amd64
     environment:
       DATA_PATH: /app/data
     volumes:
@@ -19,12 +22,13 @@ services:
     command: /bin/sh /app/init.sh
 
   analytics-engine:
-    image: ghcr.io/canner/analytics-engine:${ANALYTICS_ENGINE_VERSION}
+    image: ghcr.io/nexusquantum/analytics-engine:latest
     restart: on-failure
     platform: ${PLATFORM}
-    expose:
-      - ${ANALYTICS_ENGINE_PORT}
-      - ${ANALYTICS_ENGINE_SQL_PORT}
+    env_file:
+      - .env
+    ports:
+      - "${ANALYTICS_ENGINE_PORT}:${ANALYTICS_ENGINE_PORT}"
     volumes:
       - data:/usr/src/app/etc
       - ${PROJECT_DIR}/data:/usr/src/app/data
@@ -34,40 +38,31 @@ services:
       - bootstrap
 
   ibis-server:
-    image: ghcr.io/canner/analytics-engine-ibis:${IBIS_SERVER_VERSION}
+    image: ghcr.io/nexusquantum/analytics-engine-ibis:latest
     restart: on-failure
     platform: ${PLATFORM}
-    expose:
-      - ${IBIS_SERVER_PORT}
-    environment:
-      ANALYTICS_ENGINE_ENDPOINT: http://analytics-engine:${ANALYTICS_ENGINE_PORT}
+    env_file:
+      - .env
+    ports:
+      - "${IBIS_SERVER_PORT}:${IBIS_SERVER_PORT}"
     volumes:
       - ${LOCAL_STORAGE:-.}:/usr/src/app/data
     networks:
       - analytics
+    depends_on:
+      - analytics-engine
 
-  analytics-ai-service:
-    # Build from local source instead of using online image
-    build:
-      context: ${PROJECT_DIR}/analytics-ai-service
-      dockerfile: docker/Dockerfile
-    # image: ghcr.io/canner/analytics-ai-service:${ANALYTICS_AI_SERVICE_VERSION}  # Commented out - using local build
+  analytics-service:
+    image: ghcr.io/nexusquantum/analytics-service:latest
     restart: on-failure
-    platform: ${PLATFORM}
-    expose:
-      - ${ANALYTICS_AI_SERVICE_PORT}
-    ports:
-      - ${AI_SERVICE_FORWARD_PORT}:${ANALYTICS_AI_SERVICE_PORT}
-    environment:
-      # sometimes the console won't show print messages,
-      # using PYTHONUNBUFFERED: 1 can fix this
-      PYTHONUNBUFFERED: 1
-      CONFIG_PATH: /app/config.yaml
+    platform: linux/amd64
     env_file:
-      - ${PROJECT_DIR}/.env
+      - .env
+    ports:
+      - "5555:5555"
     volumes:
-      - ${PROJECT_DIR}/config.yaml:/app/config.yaml:ro
-      - ${PROJECT_DIR}/data:/app/data:ro
+      - ./config.yaml:/app/config.yaml:ro
+      - ./data:/app/data:ro
     networks:
       - analytics
     depends_on:
@@ -80,47 +75,37 @@ services:
       - 6333
       - 6334
     volumes:
-      - data:/qdrant/storage
+      - qdrant_data:/qdrant/storage
+    networks:
+      - analytics
+
+  # Northwind PostgreSQL Demo Database
+  northwind-db:
+    image: postgres:15
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./northwind.sql:/docker-entrypoint-initdb.d/northwind.sql:ro
+      - northwind_data:/var/lib/postgresql/data
     networks:
       - analytics
 
   analytics-ui:
-    image: ghcr.io/canner/analytics-ui:${ANALYTICS_UI_VERSION}
+    image: ghcr.io/nexusquantum/analytics-ui:latest
     restart: on-failure
-    platform: ${PLATFORM}
-    environment:
-      DB_TYPE: sqlite
-      # /app is the working directory in the container
-      SQLITE_FILE: /app/data/db.sqlite3
-      ANALYTICS_ENGINE_ENDPOINT: http://analytics-engine:${ANALYTICS_ENGINE_PORT}
-      ANALYTICS_AI_ENDPOINT: http://analytics-ai-service:${ANALYTICS_AI_SERVICE_PORT}
-      IBIS_SERVER_ENDPOINT: http://ibis-server:${IBIS_SERVER_PORT}
-      # this is for telemetry to know the model, i think ai-service might be able to provide a endpoint to get the information
-      GENERATION_MODEL: ${GENERATION_MODEL}
-      # telemetry
-      ANALYTICS_ENGINE_PORT: ${ANALYTICS_ENGINE_PORT}
-      ANALYTICS_AI_SERVICE_VERSION: ${ANALYTICS_AI_SERVICE_VERSION}
-      ANALYTICS_UI_VERSION: ${ANALYTICS_UI_VERSION}
-      ANALYTICS_ENGINE_VERSION: ${ANALYTICS_ENGINE_VERSION}
-      USER_UUID: ${USER_UUID}
-      POSTHOG_API_KEY: ${POSTHOG_API_KEY}
-      POSTHOG_HOST: ${POSTHOG_HOST}
-      TELEMETRY_ENABLED: ${TELEMETRY_ENABLED}
-      # client side
-      NEXT_PUBLIC_USER_UUID: ${USER_UUID}
-      NEXT_PUBLIC_POSTHOG_API_KEY: ${POSTHOG_API_KEY}
-      NEXT_PUBLIC_POSTHOG_HOST: ${POSTHOG_HOST}
-      NEXT_PUBLIC_TELEMETRY_ENABLED: ${TELEMETRY_ENABLED}
-      EXPERIMENTAL_ENGINE_RUST_VERSION: ${EXPERIMENTAL_ENGINE_RUST_VERSION}
-      # configs
-      ANALYTICS_PRODUCT_VERSION: ${ANALYTICS_PRODUCT_VERSION}
+    platform: linux/amd64
+    env_file:
+      - .env
     ports:
-      # HOST_PORT is the port you want to expose to the host machine
-      - ${HOST_PORT}:3000
+      - "3000:3000"
     volumes:
       - data:/app/data
     networks:
       - analytics
     depends_on:
-      - analytics-ai-service
+      - analytics-service
       - analytics-engine
+      - ibis-server

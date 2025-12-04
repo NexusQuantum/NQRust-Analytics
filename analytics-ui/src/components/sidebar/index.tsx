@@ -112,7 +112,7 @@ export default function Sidebar(props: Props) {
         <StyledButton type="text" block>
           <Link
             className="d-flex align-center"
-            href="https://github.com/Canner/AnalyticsAI"
+            href="https://github.com/NexusQuantum/NQRust-Analytics"
             target="_blank"
             rel="noopener noreferrer"
             data-ph-capture="true"

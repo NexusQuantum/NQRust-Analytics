@@ -37,15 +37,15 @@ helmCharts:
 
 images:
   # for the latest versions, please check here: https://github.com/NexusQuantum/NQRust-Analytics/blob/main/docker/.env.example#L23
-  - name: ghcr.io/canner/analytics-bootstrap
+  - name: ghcr.io/nexusquantum/analytics-bootstrap
     newTag: 0.1.5 # ANALYTICS_BOOTSTRAP_VERSION
-  - name: ghcr.io/canner/analytics-engine
+  - name: ghcr.io/nexusquantum/analytics-engine
     newTag: 0.14.8 # ANALYTICS_ENGINE_VERSION
-  - name: ghcr.io/canner/analytics-ui
+  - name: ghcr.io/nexusquantum/analytics-ui
     newTag: 0.24.1 # ANALYTICS_UI_VERSION
-  - name: ghcr.io/canner/analytics-ai-service
+  - name: ghcr.io/nexusquantum/analytics-ai-service
     newTag: 0.19.7 # ANALYTICS_AI_SERVICE_VERSION
-  - name: ghcr.io/canner/analytics-engine-ibis
+  - name: ghcr.io/nexusquantum/analytics-engine-ibis
     newTag: 0.14.8 # IBIS_SERVER_VERSION
 
 resources:

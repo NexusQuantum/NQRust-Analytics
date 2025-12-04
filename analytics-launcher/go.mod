@@ -1,4 +1,4 @@
-module github.com/Canner/AnalyticsAI/analytics-launcher
+module github.com/NexusQuantum/NQRust-Analytics/analytics-launcher
 
 go 1.24
 

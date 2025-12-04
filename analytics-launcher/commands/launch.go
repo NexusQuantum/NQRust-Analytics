@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Canner/AnalyticsAI/analytics-launcher/config"
-	utils "github.com/Canner/AnalyticsAI/analytics-launcher/utils"
+	"github.com/NexusQuantum/NQRust-Analytics/analytics-launcher/config"
+	utils "github.com/NexusQuantum/NQRust-Analytics/analytics-launcher/utils"
 	"github.com/common-nighthawk/go-figure"
 	"github.com/manifoldco/promptui"
 	"github.com/pterm/pterm"

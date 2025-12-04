@@ -110,7 +110,7 @@ jobs:
       - name: Set up Git
         run: |
           git config --global user.name "analytics-ai[bot]"
-          git config --global user.email "dev@cannerdata.com"
+          git config --global user.email "dev@nexusquantum.com"
       - name: Generate and Save Change Log
         id: changelog
         run: |

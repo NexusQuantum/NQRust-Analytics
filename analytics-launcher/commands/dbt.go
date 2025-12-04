@@ -4,7 +4,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/Canner/AnalyticsAI/analytics-launcher/commands/dbt"
+	"github.com/NexusQuantum/NQRust-Analytics/analytics-launcher/commands/dbt"
 	"github.com/pterm/pterm"
 )
 

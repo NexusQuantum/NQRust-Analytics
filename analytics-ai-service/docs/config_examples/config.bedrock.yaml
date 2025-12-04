@@ -2,7 +2,7 @@
 # please pay attention to the comments starting with # and adjust the config accordingly, 3 steps basically:
 # 1. you need to use your own llm and embedding models
 # 2. fill in embedding model dimension in the document_store section
-# 3. you need to use the correct pipe definitions based on https://raw.githubusercontent.com/canner/AnalyticsAI/<ANALYTICSAI_VERSION_NUMBER>/docker/config.example.yaml
+# 3. you need to use the correct pipe definitions based on https://raw.githubusercontent.com/NexusQuantum/NQRust-Analytics/<ANALYTICSAI_VERSION_NUMBER>/docker/config.example.yaml
 # 4. you need to fill in correct llm and embedding models in the pipe definitions
 
 type: llm

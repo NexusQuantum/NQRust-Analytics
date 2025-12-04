@@ -343,7 +343,7 @@ func ConvertDbtCatalogToAnalyticsMDL(catalogPath string, dataSource DataSource, 
 	// --- 2. Initialize Analytics Manifest and Pre-process Metadata ---
 
 	manifest := &AnalyticsMDLManifest{
-		JsonSchema:      "https://raw.githubusercontent.com/Canner/AnalyticsAI/main/analytics-mdl/mdl.schema.json",
+		JsonSchema:      "https://raw.githubusercontent.com/NexusQuantum/NQRust-Analytics/main/analytics-mdl/mdl.schema.json",
 		Catalog:         "analytics",
 		Schema:          "public",
 		EnumDefinitions: []EnumDefinition{},

@@ -5,7 +5,7 @@ If you believe you have found a security vulnerability in any NexusQuantum-owned
 
 **Please do not report security vulnerabilities through public GitHub issues, discussions, or pull requests.**
 
-Instead, please send an email to contact[@]cannerdata.com.
+Instead, please send an email to contact[@]nexusquantum.com.
 
 Please include as much of the information listed below as you can to help us better understand and resolve the issue:
 
