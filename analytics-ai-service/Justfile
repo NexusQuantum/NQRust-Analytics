@@ -12,7 +12,7 @@ default:
 # ====================
 
 # Initialize project (create .env.dev and config.yaml)
-init:
+init *ARGS:
     @echo "🚀 Initializing project..."
     @if [ ! -f .env.dev ]; then cp .env.dev.example .env.dev 2>/dev/null || echo "# Add your environment variables here" > .env.dev; fi
     @if [ ! -f config.yaml ]; then cp tools/config/config.example.yaml config.yaml 2>/dev/null || echo "Created config.yaml"; fi
