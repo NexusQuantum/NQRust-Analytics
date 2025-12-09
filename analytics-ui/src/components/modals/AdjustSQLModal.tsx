@@ -142,8 +142,8 @@ export default function AdjustSQLModal(props: Props) {
               type="secondary"
               className="text-sm gray-7 text-left"
             >
-              The SQL statement used here follows <b>NQRust SQL</b>, which is
-              based on ANSI SQL and optimized for NQRust - Analytics.{` `}
+              The SQL statement used here follows <b>CIMB SQL</b>, which is
+              based on ANSI SQL and optimized for CIMB Analytics.{` `}
               <Typography.Link
                 type="secondary"
                 href="https://docs.getanalytics.ai/oss/guide/home/analytics_sql"

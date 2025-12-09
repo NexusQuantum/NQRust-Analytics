@@ -75,7 +75,7 @@ export default function InstructionModal(props: Props) {
         >
           <Input.TextArea
             autoFocus
-            placeholder="Define guidelines for NQRust - Analytics to follow when creating database queries."
+            placeholder="Define guidelines for CIMB Analytics to follow when creating database queries."
             maxLength={1000}
             rows={3}
             showCount
@@ -115,7 +115,7 @@ export default function InstructionModal(props: Props) {
           <Form.Item
             label="Trigger patterns"
             required
-            extra="NQRust - Analytics will identify similar user queries and apply this rule when appropriate."
+            extra="CIMB Analytics will identify similar user queries and apply this rule when appropriate."
           >
             <Form.List name="questions" initialValue={['']}>
               {(fields, { add, remove }) => (

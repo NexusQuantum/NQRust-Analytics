@@ -397,10 +397,10 @@ const playKnowledgeGuide = (
         ),
         description: renderToString(
           <>
-            Create and manage <b>Question-SQL pairs</b> to refine NQRust
-            -Analytics' SQL generation. You can manually add pairs here or go to
+            Create and manage <b>Question-SQL pairs</b> to refine CIMB
+            Analytics' SQL generation. You can manually add pairs here or go to
             Home, ask a question, and save the correct answer to Knowledge. The
-            more you save, the smarter NQRust - Analytics becomes!
+            more you save, the smarter CIMB Analytics becomes!
           </>,
         ),
         onPopoverRender: (popoverDom: DriverPopoverDOM) => {
@@ -427,7 +427,7 @@ const playKnowledgeGuide = (
           <>
             In addition to Question-SQL pairs, you can create instructions to
             define <b>business rules</b> and <b>query logic</b>. These rules
-            guide NQRust - Analytics in applying consistent filters, constraints,
+            guide CIMB Analytics in applying consistent filters, constraints,
             and best practices to SQL queries.
           </>,
         ),

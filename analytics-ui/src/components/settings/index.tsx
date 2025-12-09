@@ -77,7 +77,7 @@ const MenuTemplate = ({ currentMenu, value, onClick }) => {
   const current = getSettingMenu(value);
   return (
     <StyledButton
-      className={currentMenu === value ? 'rust-orange-6 bg-gray-4' : 'gray-8'}
+      className={currentMenu === value ? 'cimb-red-6 bg-gray-4' : 'gray-8'}
       type="text"
       block
       onClick={() => onClick({ value })}
@@ -138,7 +138,7 @@ export default function Settings(props: Props) {
           {!!productVersion && (
             <div className="gray-7 d-flex align-center p-3 px-5">
               <Info className="mr-2 text-sm" size={16} />
-              NQRust - Analytics version: {productVersion}
+              CIMB Analytics version: {productVersion}
             </div>
           )}
         </StyledSider>

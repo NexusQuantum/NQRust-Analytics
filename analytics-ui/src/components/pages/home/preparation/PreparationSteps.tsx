@@ -43,7 +43,7 @@ const generatingNextStates = ProcessStateMachine.getAllNextStates(
 
 const getProcessDot = (processing: boolean) => {
   return processing ? (
-    <StyledBadge color="rust-orange" status="processing" />
+    <StyledBadge color="cimb-red" status="processing" />
   ) : null;
 };
 

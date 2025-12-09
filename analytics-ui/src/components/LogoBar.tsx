@@ -11,8 +11,8 @@ export default function LogoBar() {
       }}
     >
       <img
-        src="/images/apple-touch-icon.png?v=6"
-        alt="NQRust - Analytics"
+        src="/images/apple-touch-icon.png?v=7"
+        alt="CIMB Analytics"
         style={{
           width: '100%',
           height: '100%',

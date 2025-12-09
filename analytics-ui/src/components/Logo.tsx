@@ -5,11 +5,11 @@ interface Props {
 
 export const Logo = (props: Props) => {
   const { size = 30 } = props;
-  // Use the NQRust - Analytics logo - new logo is square (500x500)
+  // Use the CIMB Analytics logo - logo is square (500x500)
   return (
     <img
-      src="/images/nexus-analytics-logo.png?v=6"
-      alt="NQRust - Analytics"
+      src="/images/nexus-analytics-logo.png?v=7"
+      alt="CIMB Analytics"
       style={{
         width: `${size}px`,
         height: `${size}px`,

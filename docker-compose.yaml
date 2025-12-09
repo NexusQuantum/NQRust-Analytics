@@ -1,5 +1,6 @@
 volumes:
   data:
+  qdrant_data:
   northwind_data:
 
 
@@ -8,14 +9,55 @@ networks:
     driver: bridge
 
 services:
+  bootstrap:
+    build:
+      context: ./bootstrap
+      dockerfile: Dockerfile
+    restart: on-failure
+    platform: linux/amd64
+    environment:
+      DATA_PATH: /app/data
+    volumes:
+      - data:/app/data
+    command: /bin/sh /app/init.sh
+    networks:
+      - analytics
 
+  analytics-engine:
+    image: ghcr.io/nexusquantum/analytics-engine:latest
+    restart: on-failure
+    platform: ${PLATFORM:-linux/amd64}
+    env_file:
+      - .env
+    ports:
+      - "${ANALYTICS_ENGINE_PORT:-8080}:8080"
+    volumes:
+      - data:/usr/src/app/etc
+      - ./data:/usr/src/app/data
+    networks:
+      - analytics
+    depends_on:
+      - bootstrap
+
+  ibis-server:
+    image: ghcr.io/nexusquantum/analytics-engine-ibis:latest
+    restart: on-failure
+    platform: ${PLATFORM:-linux/amd64}
+    env_file:
+      - .env
+    ports:
+      - "${IBIS_SERVER_PORT:-8000}:8000"
+    volumes:
+      - ./data:/usr/src/app/data
+    networks:
+      - analytics
+    depends_on:
+      - analytics-engine
 
   analytics-service:
-    # Build from local source instead of using online image
     build:
       context: ./analytics-ai-service
       dockerfile: docker/Dockerfile
-
     restart: on-failure
     platform: linux/amd64
     image: analytics-service:local
@@ -44,11 +86,10 @@ services:
       - 6333
       - 6334
     volumes:
-      - data:/qdrant/storage
+      - qdrant_data:/qdrant/storage
     networks:
       - analytics
 
-  # Northwind PostgreSQL Demo Database
   northwind-db:
     image: postgres:15
     restart: unless-stopped
@@ -74,9 +115,9 @@ services:
     environment:
       DB_TYPE: sqlite
       SQLITE_FILE: /app/data/db.sqlite3
-      ANALYTICS_ENGINE_ENDPOINT: http://host.docker.internal:8080
+      ANALYTICS_ENGINE_ENDPOINT: http://analytics-engine:8080
       ANALYTICS_AI_ENDPOINT: http://analytics-service:5555
-      IBIS_SERVER_ENDPOINT: http://host.docker.internal:8000
+      IBIS_SERVER_ENDPOINT: http://ibis-server:8000
       GENERATION_MODEL: gpt-4o-mini
       ANALYTICS_ENGINE_PORT: 8080
       ANALYTICS_AI_SERVICE_VERSION: 0.27.1
@@ -95,4 +136,5 @@ services:
       - analytics
     depends_on:
       - analytics-service
-      # - analytics-engine
+      - analytics-engine
+      - ibis-server

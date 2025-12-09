@@ -8,7 +8,7 @@ import { ChartPie, Database, SquarePen } from 'lucide-react';
 
 const { Header } = Layout;
 
-const StyledButton = styled(Button)<{ $isHighlight: boolean }>`
+const StyledButton = styled(Button) <{ $isHighlight: boolean }>`
   background-color: ${(props) =>
     props.$isHighlight ? 'var(--gray-4)' : 'transparent'};
 
@@ -45,19 +45,32 @@ export default function HeaderBar() {
         <Space size={[0, 8]} direction="vertical">
           {showNav && (
             <Space size={[0, 4]} direction="vertical" style={{ width: '100%' }}>
-              <Space size={[2, 0]} style={{ width: '100%' }}>
+              <Space size={[12, 0]} style={{ width: '100%' }}>
                 <LogoBar />
-                <div className="d-flex flex-column">
-                  <h4
-                    style={{ color: 'var(--rust-orange-6)', marginBottom: -6 }}
+                <div className="d-flex flex-column justify-center">
+                  <h3
+                    style={{
+                      color: 'var(--cimb-red-6)',
+                      marginBottom: -4,
+                      marginTop: 0,
+                      fontWeight: 700,
+                      fontSize: '18px',
+                      fontFamily: 'Helvetica Neue, sans-serif',
+                      lineHeight: 1.2,
+                    }}
                   >
-                    NQR Analytics
-                  </h4>
+                    CIMB Analytics
+                  </h3>
                   <p
-                    className="text-sm"
-                    style={{ color: 'var(--gray-6)', margin: 0 }}
+                    style={{
+                      color: 'var(--gray-10)',
+                      margin: 0,
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      lineHeight: 1.2,
+                    }}
                   >
-                    v1.0.0
+                    Text to SQL
                   </p>
                 </div>
               </Space>
