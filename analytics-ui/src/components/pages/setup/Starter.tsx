@@ -1,11 +1,10 @@
-import { ComponentProps, useState } from 'react';
+import { ComponentProps } from 'react';
 import { Typography, Row, Col } from 'antd';
-import { getDataSources, getTemplates } from './utils';
+import { getDataSources } from './utils';
 import { makeIterable } from '@/utils/iteration';
 import ButtonItem from './ButtonItem';
 import {
   DataSourceName,
-  SampleDatasetName,
 } from '@/apollo/client/graphql/__types__';
 
 const { Title, Text } = Typography;
@@ -19,23 +18,14 @@ const ButtonTemplate = (props: ComponentProps<typeof ButtonItem>) => {
 };
 
 const DataSourceIterator = makeIterable(ButtonTemplate);
-const TemplatesIterator = makeIterable(ButtonTemplate);
 
 export default function Starter(props) {
   const { onNext, submitting } = props;
 
-  const [template, setTemplate] = useState<SampleDatasetName>();
-
   const dataSources = getDataSources();
-  const templates = getTemplates();
 
   const onSelectDataSource = (value: DataSourceName) => {
     onNext && onNext({ dataSource: value });
-  };
-
-  const onSelectTemplate = (value: string) => {
-    setTemplate(value as SampleDatasetName);
-    onNext && onNext({ template: value });
   };
 
   return (
@@ -56,7 +46,7 @@ export default function Starter(props) {
         />
       </Row>
 
-      <div className="py-6" />
+      {/* <div className="py-6" />
 
       <Typography.Title level={4} className="mb-0">
         Explore using example datasets
@@ -67,8 +57,8 @@ export default function Starter(props) {
           onSelect={onSelectTemplate}
           submitting={submitting}
           selectedTemplate={template}
-        />
-      </Row>
+        /> 
+      </Row> */}
     </>
   );
 }

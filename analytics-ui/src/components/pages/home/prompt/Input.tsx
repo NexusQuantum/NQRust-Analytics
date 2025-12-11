@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Input, Button } from 'antd';
 import styled from 'styled-components';
 import { attachLoading } from '@/utils/helper';
-import { Database, Paperclip, SendHorizontal } from 'lucide-react';
+import { SendHorizontal } from 'lucide-react';
 
 const StyledTextArea = styled(Input.TextArea)`
   border: none !important;
@@ -84,7 +84,7 @@ export default function PromptInput(props: Props) {
       />
       <div className="d-flex align-center justify-space-between">
         <div className="d-flex gap-2">
-          <Button
+          {/* <Button
             type="text"
             className="d-flex align-center justify-center"
             icon={<Paperclip size={16} />}
@@ -99,7 +99,7 @@ export default function PromptInput(props: Props) {
             disabled={isDisabled}
           >
             Source
-          </Button>
+          </Button> */}
         </div>
         <Button
           type="primary"
