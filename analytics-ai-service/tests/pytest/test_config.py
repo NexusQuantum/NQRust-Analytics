@@ -29,27 +29,32 @@ def test_settings_default_values():
 
 def test_settings_env_var_override():
     env_vars = {
-        "ANALYTICS_AI_SERVICE_HOST": "0.0.0.0",
-        "ANALYTICS_AI_SERVICE_PORT": "8000",
+        "ANALYTICS_SERVICE_HOST": "0.0.0.0",
+        "ANALYTICS_SERVICE_PORT": "8000",
         "LOGGING_LEVEL": "DEBUG",
     }
 
     with patch("src.config.Settings.config_loader", return_value=[]), patch.dict(
-        "os.environ", env_vars
+        "os.environ", env_vars, clear=True
     ):
         settings = Settings()
-        assert settings.host == env_vars["ANALYTICS_AI_SERVICE_HOST"]
-        assert settings.port == int(env_vars["ANALYTICS_AI_SERVICE_PORT"])
+        assert settings.host == env_vars["ANALYTICS_SERVICE_HOST"]
+        assert settings.port == int(env_vars["ANALYTICS_SERVICE_PORT"])
         assert settings.logging_level == env_vars["LOGGING_LEVEL"]
 
 
 def test_settings_env_dev_override():
     # Mock the content of .env.dev file
     mock_env_dev_content = """
-    ANALYTICS_AI_SERVICE_HOST=localhost
-    ANALYTICS_AI_SERVICE_PORT=7000
+    ANALYTICS_SERVICE_HOST=localhost
+    ANALYTICS_SERVICE_PORT=7000
     LOGGING_LEVEL=WARNING
     """
+
+    import os
+    # Clear relevant env vars before test
+    for key in ["ANALYTICS_SERVICE_HOST", "ANALYTICS_SERVICE_PORT", "LOGGING_LEVEL"]:
+        os.environ.pop(key, None)
 
     # Mock the load_dotenv function
     with patch("src.config.Settings.config_loader", return_value=[]), patch(
@@ -57,8 +62,6 @@ def test_settings_env_dev_override():
     ) as mock_load_dotenv:
         # Set up the mock to load our custom environment variables
         def side_effect(path, override):
-            import os
-
             for line in mock_env_dev_content.strip().split("\n"):
                 key, value = line.strip().split("=")
                 os.environ[key] = value

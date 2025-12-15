@@ -40,8 +40,10 @@ def test_builder_build_delegates_to_create_service_container(monkeypatch):
         settings=dummy_settings, pipe_components=dummy_components
     )
 
-    # Bypass validation for this delegation test by monkeypatching _validate
+    # Bypass validation and internal methods for this delegation test
     monkeypatch.setattr(sc, "_validate", lambda: None)
+    monkeypatch.setattr(sc, "_create_shared_pipelines", lambda: {})
+    monkeypatch.setattr(sc, "_create_services", lambda shared: fake_create_service_container(pipe_components=dummy_components, settings=dummy_settings))
 
     sc = sc.build()
 

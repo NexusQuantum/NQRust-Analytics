@@ -68,6 +68,7 @@ class ServiceContainerBuilder:
             "question_recommendation_sql_generation",
             "sql_question_generation",
             "sql_tables_extraction",
+            "chart_adjustment",
         ]
         missing = [k for k in required_keys if k not in (self.pipe_components or {})]
         if missing:
