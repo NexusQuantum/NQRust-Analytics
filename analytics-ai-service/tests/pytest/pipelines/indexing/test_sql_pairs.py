@@ -5,6 +5,9 @@ from src.core.provider import DocumentStoreProvider
 from src.pipelines.indexing import SqlPairs
 from src.providers import generate_components
 
+# Mark all tests in this module as integration tests (require Qdrant)
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.asyncio
 async def test_sql_pairs_indexing_saving_to_document_store():

@@ -18,6 +18,9 @@ from src.web.v1.services.semantics_preparation import (
     SemanticsPreparationService,
 )
 
+# Mark all tests in this module as integration tests (require Qdrant)
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def ask_service():

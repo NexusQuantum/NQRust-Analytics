@@ -81,6 +81,10 @@ check-all:
 test:
     {{poetry}} run pytest tests/pytest -v
 
+# Run unit tests only (for CI without Qdrant)
+test-unit:
+    {{poetry}} run pytest tests/pytest -v -m "not integration"
+
 # Run tests with coverage
 test-cov:
     {{poetry}} run pytest tests/pytest --cov=src --cov-report=html --cov-report=term

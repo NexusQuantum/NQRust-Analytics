@@ -6,6 +6,9 @@ from src.pipelines.indexing import Instructions
 from src.pipelines.indexing.instructions import Instruction
 from src.providers import generate_components
 
+# Mark all tests in this module as integration tests (require Qdrant)
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.asyncio
 async def test_instructions_indexing():

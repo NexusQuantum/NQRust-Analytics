@@ -6,6 +6,9 @@ import orjson
 import pytest
 from fastapi.testclient import TestClient
 
+# Mark all tests in this module as integration tests (require Qdrant)
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture(scope="module", autouse=True)
 def app():

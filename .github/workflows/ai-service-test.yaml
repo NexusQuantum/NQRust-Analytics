@@ -52,6 +52,6 @@ jobs:
           just init --non-dev
       - name: Prepare testing environment and Run tests
         run: |
-          just test
+          just test-unit
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

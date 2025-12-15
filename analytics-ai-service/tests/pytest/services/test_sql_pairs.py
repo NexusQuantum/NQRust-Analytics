@@ -8,6 +8,9 @@ from src.globals import create_service_container
 from src.providers import generate_components
 from src.web.v1.services.sql_pairs import SqlPair, SqlPairsService
 
+# Mark all tests in this module as integration tests (require Qdrant)
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def sql_pairs_service():

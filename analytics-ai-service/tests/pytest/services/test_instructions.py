@@ -8,6 +8,9 @@ from src.globals import create_service_container
 from src.providers import generate_components
 from src.web.v1.services.instructions import InstructionsService
 
+# Mark all tests in this module as integration tests (require Qdrant)
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def instructions_service():

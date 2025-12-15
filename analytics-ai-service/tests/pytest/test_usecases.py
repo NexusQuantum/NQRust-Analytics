@@ -9,12 +9,16 @@ from datetime import datetime
 
 import aiohttp
 import orjson
+import pytest
 import requests
 import sqlparse
 import yaml
 from dotenv import load_dotenv
 
 load_dotenv(".env.dev", override=True)
+
+# Mark all tests in this module as integration tests (require external services)
+pytestmark = pytest.mark.integration
 
 ANALYTICS_AI_SERVICE_BASE_URL = "http://localhost:5556"
 ANALYTICS_ENGINE_API_URL = "http://localhost:8080"
