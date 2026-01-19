@@ -63,6 +63,7 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml:ro
       - ./data:/app/data:ro
+      - ${PROJECT_DIR}/analytics-ai-service/src/pipelines/generation/utils/chart.py:/app/src/pipelines/generation/utils/chart.py:ro
     networks:
       - analytics
     depends_on:

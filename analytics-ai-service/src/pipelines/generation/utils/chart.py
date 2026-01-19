@@ -6,7 +6,7 @@ import pandas as pd
 from haystack import component
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger("analytics-service")
 
@@ -484,10 +484,14 @@ class ChartGenerationPostProcessor:
 
 
 class ChartSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     class ChartType(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         type: Literal["bar", "line", "area", "arc"]
 
     class ChartEncoding(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         field: str
         type: Literal["ordinal", "quantitative", "nominal"]
         title: str
@@ -498,15 +502,20 @@ class ChartSchema(BaseModel):
 
 
 class TemporalChartEncoding(ChartSchema.ChartEncoding):
+    model_config = ConfigDict(extra="forbid")
     type: Literal["temporal"] = Field(default="temporal")
     timeUnit: str = Field(default="yearmonth")
 
 
 class LineChartSchema(ChartSchema):
+    model_config = ConfigDict(extra="forbid")
+
     class LineChartMark(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         type: Literal["line"] = Field(default="line")
 
     class LineChartEncoding(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         x: TemporalChartEncoding | ChartSchema.ChartEncoding
         y: ChartSchema.ChartEncoding
         color: ChartSchema.ChartEncoding
@@ -516,14 +525,19 @@ class LineChartSchema(ChartSchema):
 
 
 class MultiLineChartSchema(ChartSchema):
+    model_config = ConfigDict(extra="forbid")
+
     class MultiLineChartMark(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         type: Literal["line"] = Field(default="line")
 
     class MultiLineChartTransform(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         fold: list[str]
         as_: list[str] = Field(alias="as")
 
     class MultiLineChartEncoding(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         x: TemporalChartEncoding | ChartSchema.ChartEncoding
         y: ChartSchema.ChartEncoding
         color: ChartSchema.ChartEncoding
@@ -534,10 +548,14 @@ class MultiLineChartSchema(ChartSchema):
 
 
 class BarChartSchema(ChartSchema):
+    model_config = ConfigDict(extra="forbid")
+
     class BarChartMark(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         type: Literal["bar"] = Field(default="bar")
 
     class BarChartEncoding(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         x: TemporalChartEncoding | ChartSchema.ChartEncoding
         y: ChartSchema.ChartEncoding
         color: ChartSchema.ChartEncoding
@@ -547,10 +565,14 @@ class BarChartSchema(ChartSchema):
 
 
 class GroupedBarChartSchema(ChartSchema):
+    model_config = ConfigDict(extra="forbid")
+
     class GroupedBarChartMark(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         type: Literal["bar"] = Field(default="bar")
 
     class GroupedBarChartEncoding(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         x: TemporalChartEncoding | ChartSchema.ChartEncoding
         y: ChartSchema.ChartEncoding
         xOffset: ChartSchema.ChartEncoding
@@ -561,14 +583,19 @@ class GroupedBarChartSchema(ChartSchema):
 
 
 class StackedBarChartYEncoding(ChartSchema.ChartEncoding):
+    model_config = ConfigDict(extra="forbid")
     stack: Literal["zero"] = Field(default="zero")
 
 
 class StackedBarChartSchema(ChartSchema):
+    model_config = ConfigDict(extra="forbid")
+
     class StackedBarChartMark(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         type: Literal["bar"] = Field(default="bar")
 
     class StackedBarChartEncoding(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         x: TemporalChartEncoding | ChartSchema.ChartEncoding
         y: StackedBarChartYEncoding
         color: ChartSchema.ChartEncoding
@@ -578,10 +605,14 @@ class StackedBarChartSchema(ChartSchema):
 
 
 class PieChartSchema(ChartSchema):
+    model_config = ConfigDict(extra="forbid")
+
     class PieChartMark(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         type: Literal["arc"] = Field(default="arc")
 
     class PieChartEncoding(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         theta: ChartSchema.ChartEncoding
         color: ChartSchema.ChartEncoding
 
@@ -590,10 +621,14 @@ class PieChartSchema(ChartSchema):
 
 
 class AreaChartSchema(ChartSchema):
+    model_config = ConfigDict(extra="forbid")
+
     class AreaChartMark(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         type: Literal["area"] = Field(default="area")
 
     class AreaChartEncoding(BaseModel):
+        model_config = ConfigDict(extra="forbid")
         x: TemporalChartEncoding | ChartSchema.ChartEncoding
         y: ChartSchema.ChartEncoding
 
@@ -602,6 +637,7 @@ class AreaChartSchema(ChartSchema):
 
 
 class ChartGenerationResults(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     reasoning: str
     chart_type: Literal[
         "line", "multi_line", "bar", "pie", "grouped_bar", "stacked_bar", "area", ""
