@@ -4,7 +4,7 @@ import { UserRepository, User } from '../repositories/userRepository';
 import { RoleRepository } from '../repositories/roleRepository';
 import { OAuthAccountRepository, OAuthProvider, OAuthAccount } from '../repositories/oauthAccountRepository';
 import { AuditLogRepository, AuditActions } from '../repositories/auditLogRepository';
-import { AuthService, AuthPayload } from './authService';
+import { AuthPayload } from './authService';
 import { RefreshTokenRepository } from '../repositories/refreshTokenRepository';
 import { getConfig } from '../config';
 
@@ -318,14 +318,6 @@ export class OAuthService {
 
         // Get user with roles
         const userWithRoles = await userRepository.findByIdWithRoles(user.id);
-
-        // Create auth service and generate tokens
-        const authService = new AuthService(
-            userRepository,
-            roleRepository,
-            auditLogRepository,
-            refreshTokenRepository
-        );
 
         // Log the OAuth login
         await auditLogRepository.log({

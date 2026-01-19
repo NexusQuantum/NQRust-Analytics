@@ -4,7 +4,6 @@ import { UserRepository, User, UserWithRoles } from '../repositories/userReposit
 import { RoleRepository } from '../repositories/roleRepository';
 import { AuditLogRepository, AuditActions } from '../repositories/auditLogRepository';
 import { RefreshTokenRepository } from '../repositories/refreshTokenRepository';
-import { IQueryOptions } from '../repositories/baseRepository';
 
 // JWT configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'development-secret-change-in-production';

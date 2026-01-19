@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Modal, Table, Button, Space, Tag, message, Popconfirm, Form, Input, Select } from 'antd';
 import {
     UserOutlined,

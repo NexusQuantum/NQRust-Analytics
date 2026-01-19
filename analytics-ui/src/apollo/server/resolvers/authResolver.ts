@@ -1,5 +1,5 @@
 import { IContext } from '../types';
-import { UserRepository, UserWithRoles, User, Role, Permission } from '../repositories/userRepository';
+import { UserRepository, UserWithRoles, User, Role } from '../repositories/userRepository';
 import { RoleRepository, RoleWithPermissions } from '../repositories/roleRepository';
 import { ProjectMemberRepository, ProjectMemberWithUser, ProjectMemberRole } from '../repositories/projectMemberRepository';
 import { AuditLogRepository, AuditActions } from '../repositories/auditLogRepository';

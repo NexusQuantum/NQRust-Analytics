@@ -9,7 +9,6 @@ import {
     Typography,
     Divider,
     Avatar,
-    message,
     Alert,
 } from 'antd';
 import {

@@ -12,7 +12,6 @@ import {
   DashboardShareWithUser,
   SharePermission,
   IUserRepository,
-  User,
   IStarredDashboardRepository,
 } from '@server/repositories';
 import { getLogger } from '@server/utils';

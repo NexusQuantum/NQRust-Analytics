@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Modal, Select, Button, Input, Form, message, Divider } from 'antd';
+import { Modal, Select, Button, Input, message, Divider } from 'antd';
 import { useQuery, useMutation } from '@apollo/client';
 import { PlusOutlined } from '@ant-design/icons';
 import {

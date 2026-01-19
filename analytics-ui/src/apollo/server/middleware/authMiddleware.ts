@@ -39,7 +39,7 @@ export class AuthMiddleware {
         try {
             const user = await this.authService.verifyToken(token);
             return { user, ipAddress };
-        } catch (error) {
+        } catch (_error) {
             // Token verification failed - return null user
             return { user: null, ipAddress };
         }

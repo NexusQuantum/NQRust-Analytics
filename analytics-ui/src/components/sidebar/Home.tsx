@@ -63,7 +63,7 @@ export default function Home(props: Props) {
   const [selectedDashboardId, setSelectedDashboardId] = useState<number | null>(null);
 
   // Fetch dashboards
-  const { data: dashboardsData, refetch: refetchDashboards } = useQuery(LIST_DASHBOARDS);
+  const { data: dashboardsData } = useQuery(LIST_DASHBOARDS);
   const dashboards: DashboardData[] = dashboardsData?.dashboards || [];
 
   // Mutations

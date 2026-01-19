@@ -1,5 +1,5 @@
 import { Knex } from 'knex';
-import { BaseRepository, IBasicRepository, IQueryOptions } from './baseRepository';
+import { BaseRepository, IBasicRepository } from './baseRepository';
 import crypto from 'crypto';
 
 export interface RefreshToken {

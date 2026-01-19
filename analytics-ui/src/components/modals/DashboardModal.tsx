@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Button, Alert } from 'antd';
-import { gql, useMutation } from '@apollo/client';
+import { useMutation } from '@apollo/client';
 import { ModalAction } from '@/hooks/useModalAction';
 import { CREATE_DASHBOARD, UPDATE_DASHBOARD, LIST_DASHBOARDS } from '@/apollo/client/graphql/dashboard';
 
