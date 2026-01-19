@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import dynamic from 'next/dynamic';
 import styled from 'styled-components';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Form, Button, Skeleton, message } from 'antd';
+import { Alert, Form, Button, Skeleton, message, Modal } from 'antd';
 import { attachLoading } from '@/utils/helper';
 import { RefreshCw } from 'lucide-react';
 import BasicProperties from '@/components/chart/properties/BasicProperties';

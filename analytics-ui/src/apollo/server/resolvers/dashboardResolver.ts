@@ -121,7 +121,7 @@ export class DashboardResolver {
       // Use specified dashboard - verify user has access
       const userId = this.requireAuth(ctx);
       const access = await ctx.dashboardService.checkAccess(dashboardId, userId);
-      if (!access.hasAccess || access.permission === 'VIEW') {
+      if (!access.hasAccess || access.permission === SharePermission.VIEW) {
         throw new Error('You do not have permission to add items to this dashboard');
       }
       targetDashboard = await ctx.dashboardService.getDashboardById(dashboardId, userId);

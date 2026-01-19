@@ -9,8 +9,8 @@ import { RateLimitService } from '../services/rateLimitService';
 import { Knex } from 'knex';
 
 // Extended context interface for auth - user will be added by auth middleware
-export interface AuthContext extends IContext {
-    user?: UserWithRoles;
+export interface AuthContext extends Omit<IContext, 'user'> {
+    user: UserWithRoles | null;
     ipAddress?: string;
     knex: Knex; // Add knex connection from the context
 }

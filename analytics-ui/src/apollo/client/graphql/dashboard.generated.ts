@@ -81,7 +81,7 @@ export type CreateDashboardMutation = { __typename?: 'Mutation', createDashboard
 
 export type UpdateDashboardMutationVariables = Types.Exact<{
   id: Types.Scalars['ID'];
-  data: Types.UpdateDashboardInput;
+  data: Types.UpdateDashboardDataInput;
 }>;
 
 
@@ -583,7 +583,7 @@ export type CreateDashboardMutationHookResult = ReturnType<typeof useCreateDashb
 export type CreateDashboardMutationResult = Apollo.MutationResult<CreateDashboardMutation>;
 export type CreateDashboardMutationOptions = Apollo.BaseMutationOptions<CreateDashboardMutation, CreateDashboardMutationVariables>;
 export const UpdateDashboardDocument = gql`
-    mutation UpdateDashboard($id: ID!, $data: UpdateDashboardInput!) {
+    mutation UpdateDashboard($id: ID!, $data: UpdateDashboardDataInput!) {
   updateDashboard(id: $id, data: $data) {
     ...CommonDashboard
   }

@@ -256,8 +256,7 @@ function UserManagementContent() {
                     />
                     {record.id !== currentUser?.id && (
                         <Popconfirm
-                            title="Delete this user?"
-                            description="This action cannot be undone."
+                            title="Delete this user? This action cannot be undone."
                             onConfirm={() => handleDelete(record.id)}
                             okText="Delete"
                             cancelText="Cancel"
@@ -303,7 +302,7 @@ function UserManagementContent() {
 
                 <Modal
                     title={editingUser ? 'Edit User' : 'Create User'}
-                    open={isModalOpen}
+                    visible={isModalOpen}
                     onCancel={handleCloseModal}
                     footer={null}
                     width={500}

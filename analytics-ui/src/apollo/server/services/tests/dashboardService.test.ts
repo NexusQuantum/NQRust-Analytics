@@ -36,6 +36,9 @@ describe('DashboardService', () => {
   let mockProjectService;
   let mockDashboardItemRepository;
   let mockDashboardRepository;
+  let mockDashboardShareRepository;
+  let mockUserRepository;
+  let mockStarredDashboardRepository;
 
   const createScheduleData = (
     frequency: ScheduleFrequencyEnum,
@@ -77,11 +80,31 @@ describe('DashboardService', () => {
       createOne: jest.fn(),
       updateOne: jest.fn(),
     };
+    mockDashboardShareRepository = {
+      findByDashboardId: jest.fn(),
+      findByDashboardAndUser: jest.fn(),
+      createOne: jest.fn(),
+      updateOne: jest.fn(),
+      deleteByDashboardAndUser: jest.fn(),
+    };
+    mockUserRepository = {
+      findByEmail: jest.fn(),
+      findById: jest.fn(),
+    };
+    mockStarredDashboardRepository = {
+      star: jest.fn(),
+      unstar: jest.fn(),
+      isStarred: jest.fn(),
+      getStarredDashboardIds: jest.fn(),
+    };
 
     dashboardService = new TestDashboardService({
       projectService: mockProjectService,
       dashboardItemRepository: mockDashboardItemRepository,
       dashboardRepository: mockDashboardRepository,
+      dashboardShareRepository: mockDashboardShareRepository,
+      userRepository: mockUserRepository,
+      starredDashboardRepository: mockStarredDashboardRepository,
     });
   });
 

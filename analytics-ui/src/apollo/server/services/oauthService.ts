@@ -3,6 +3,7 @@ import { Knex } from 'knex';
 import { UserRepository, User } from '../repositories/userRepository';
 import { RoleRepository } from '../repositories/roleRepository';
 import { OAuthAccountRepository, OAuthProvider, OAuthAccount } from '../repositories/oauthAccountRepository';
+export type { OAuthProvider } from '../repositories/oauthAccountRepository';
 import { AuditLogRepository, AuditActions } from '../repositories/auditLogRepository';
 import { AuthPayload } from './authService';
 import { RefreshTokenRepository } from '../repositories/refreshTokenRepository';

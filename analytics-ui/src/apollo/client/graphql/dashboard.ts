@@ -180,7 +180,7 @@ export const CREATE_DASHBOARD = gql`
 `;
 
 export const UPDATE_DASHBOARD = gql`
-  mutation UpdateDashboard($id: ID!, $data: UpdateDashboardInput!) {
+  mutation UpdateDashboard($id: ID!, $data: UpdateDashboardDataInput!) {
     updateDashboard(id: $id, data: $data) {
       ...CommonDashboard
     }
