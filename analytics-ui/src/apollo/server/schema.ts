@@ -4,6 +4,126 @@ export const typeDefs = gql`
   scalar JSON
   scalar DialectSQL
 
+  # ===== User Management Types =====
+  
+  type User {
+    id: Int!
+    email: String!
+    displayName: String!
+    avatarUrl: String
+    isActive: Boolean!
+    isVerified: Boolean!
+    roles: [Role!]!
+    lastLoginAt: String
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  type Role {
+    id: Int!
+    name: String!
+    description: String
+    permissions: [Permission!]!
+    isSystem: Boolean!
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  type Permission {
+    id: Int!
+    name: String!
+    resource: String!
+    action: String!
+  }
+
+  type ProjectMember {
+    id: Int!
+    projectId: Int!
+    userId: Int!
+    user: User!
+    role: ProjectMemberRoleEnum!
+    invitedBy: User
+    createdAt: String!
+  }
+
+  enum ProjectMemberRoleEnum {
+    OWNER
+    EDITOR
+    VIEWER
+  }
+
+  type AuthPayload {
+    user: User!
+    accessToken: String!
+    refreshToken: String!
+  }
+
+  # Auth Inputs
+  input RegisterInput {
+    email: String!
+    password: String!
+    displayName: String!
+  }
+
+  input LoginInput {
+    email: String!
+    password: String!
+  }
+
+  input ChangePasswordInput {
+    oldPassword: String!
+    newPassword: String!
+  }
+
+  # User Management Inputs
+  input CreateUserInput {
+    email: String!
+    password: String!
+    displayName: String!
+    roleIds: [Int!]
+  }
+
+  input UpdateUserInput {
+    displayName: String
+    isActive: Boolean
+    roleIds: [Int!]
+  }
+
+  input UserWhereInput {
+    id: Int!
+  }
+
+  # Role Management Inputs
+  input CreateRoleInput {
+    name: String!
+    description: String
+    permissionIds: [Int!]!
+  }
+
+  input UpdateRoleInput {
+    name: String
+    description: String
+    permissionIds: [Int!]
+  }
+
+  input RoleWhereInput {
+    id: Int!
+  }
+
+  # Project Member Inputs
+  input InviteProjectMemberInput {
+    email: String!
+    role: ProjectMemberRoleEnum!
+  }
+
+  input UpdateProjectMemberInput {
+    role: ProjectMemberRoleEnum!
+  }
+
+  input ProjectMemberWhereInput {
+    id: Int!
+  }
+
   enum ApiType {
     GENERATE_SQL
     RUN_SQL
@@ -817,12 +937,32 @@ export const typeDefs = gql`
   type Thread {
     id: Int!
     summary: String!
+    userId: Int
+    creatorEmail: String
+    creatorDisplayName: String
   }
 
   # Detailed thread consists of thread and thread responses
   type DetailedThread {
     id: Int!
     responses: [ThreadResponse!]!
+  }
+
+  # Thread sharing types
+  type ThreadShare {
+    id: Int!
+    threadId: Int!
+    userId: Int!
+    permission: SharePermission!
+  }
+
+  type ThreadShareWithUser {
+    id: Int!
+    threadId: Int!
+    userId: Int!
+    permission: SharePermission!
+    userEmail: String!
+    userDisplayName: String
   }
 
   type SuggestedQuestion {
@@ -927,6 +1067,7 @@ export const typeDefs = gql`
   input CreateDashboardItemInput {
     itemType: DashboardItemType!
     responseId: Int!
+    dashboardId: Int
   }
 
   input UpdateDashboardItemInput {
@@ -1028,6 +1169,12 @@ export const typeDefs = gql`
     id: Int!
     projectId: Int!
     name: String!
+    description: String
+    isDefault: Boolean!
+    isStarred: Boolean!
+    createdBy: Int
+    creatorEmail: String
+    creatorDisplayName: String
     cacheEnabled: Boolean!
     scheduleFrequency: ScheduleFrequencyEnum
     scheduleTimezone: String
@@ -1039,10 +1186,46 @@ export const typeDefs = gql`
     id: Int!
     name: String!
     description: String
+    isDefault: Boolean!
+    createdBy: Int
+    creatorEmail: String
+    creatorDisplayName: String
     cacheEnabled: Boolean!
     nextScheduledAt: String
     schedule: DashboardSchedule
     items: [DashboardItem!]!
+  }
+
+  # Multi-Dashboard Input Types
+  input CreateDashboardInput {
+    name: String!
+    description: String
+  }
+
+  input UpdateDashboardDataInput {
+    name: String
+    description: String
+  }
+
+  enum SharePermission {
+    VIEW
+    EDIT
+  }
+
+  type DashboardShare {
+    id: Int!
+    dashboardId: Int!
+    userId: Int!
+    permission: SharePermission!
+  }
+
+  type DashboardShareWithUser {
+    id: Int!
+    dashboardId: Int!
+    userId: Int!
+    permission: SharePermission!
+    userEmail: String!
+    userDisplayName: String
   }
 
   type SqlPair {
@@ -1128,6 +1311,9 @@ export const typeDefs = gql`
     threadResponse(responseId: Int!): ThreadResponse!
     nativeSql(responseId: Int!): String!
 
+    # Thread Sharing
+    getThreadSharedUsers(threadId: ID!): [ThreadShareWithUser!]!
+
     # Adjustment
     adjustmentTask(taskId: String!): AdjustmentTask
 
@@ -1147,7 +1333,9 @@ export const typeDefs = gql`
 
     # Dashboard
     dashboardItems: [DashboardItem!]!
-    dashboard: DetailedDashboard!
+    dashboard(id: ID): DetailedDashboard!
+    dashboards: [Dashboard!]!
+    getSharedUsers(dashboardId: ID!): [DashboardShareWithUser!]!
 
     # SQL Pairs
     sqlPairs: [SqlPair]!
@@ -1159,6 +1347,29 @@ export const typeDefs = gql`
       filter: ApiHistoryFilterInput
       pagination: ApiHistoryPaginationInput!
     ): ApiHistoryPaginatedResponse!
+
+    # ===== User Management Queries =====
+    
+    # Current authenticated user
+    me: User
+    
+    # List all users (admin only)
+    users: [User!]!
+    
+    # Get user by ID (admin only)
+    user(where: UserWhereInput!): User
+    
+    # List all roles
+    roles: [Role!]!
+    
+    # Get role by ID with permissions
+    role(where: RoleWhereInput!): Role
+    
+    # List all permissions
+    permissions: [Permission!]!
+    
+    # List project members for current project
+    projectMembers: [ProjectMember!]!
   }
 
   type Mutation {
@@ -1221,6 +1432,10 @@ export const typeDefs = gql`
       data: UpdateThreadInput!
     ): Thread!
     deleteThread(where: ThreadUniqueWhereInput!): Boolean!
+
+    # Thread Sharing
+    shareThread(threadId: ID!, email: String!, permission: SharePermission): ThreadShare!
+    unshareThread(threadId: ID!, userId: ID!): Boolean!
 
     # Thread Response
     createThreadResponse(
@@ -1287,6 +1502,20 @@ export const typeDefs = gql`
     deleteDashboardItem(where: DashboardItemWhereInput!): Boolean!
     previewItemSQL(data: PreviewItemSQLInput!): PreviewItemResponse!
     setDashboardSchedule(data: SetDashboardScheduleInput!): Dashboard!
+    
+    # Multi-Dashboard Management
+    createDashboard(data: CreateDashboardInput!): Dashboard!
+    updateDashboard(id: ID!, data: UpdateDashboardDataInput!): Dashboard!
+    deleteDashboard(id: ID!): Boolean!
+    setDefaultDashboard(id: ID!): Dashboard!
+    
+    # Dashboard Sharing
+    shareDashboard(dashboardId: ID!, email: String!, permission: SharePermission): DashboardShare!
+    unshareDashboard(dashboardId: ID!, userId: ID!): Boolean!
+    
+    # Dashboard Starring
+    starDashboard(dashboardId: ID!): Boolean!
+    unstarDashboard(dashboardId: ID!): Boolean!
 
     # SQL Pairs
     createSqlPair(data: CreateSqlPairInput!): SqlPair!
@@ -1304,5 +1533,64 @@ export const typeDefs = gql`
       data: UpdateInstructionInput!
     ): Instruction!
     deleteInstruction(where: InstructionWhereInput!): Boolean!
+
+    # ===== Authentication Mutations =====
+    
+    # Register a new user
+    register(data: RegisterInput!): AuthPayload!
+    
+    # Login with email and password
+    login(data: LoginInput!): AuthPayload!
+    
+    # Logout current user
+    logout: Boolean!
+    
+    # Change password for current user
+    changePassword(data: ChangePasswordInput!): Boolean!
+    
+    # Request password reset (sends email)
+    requestPasswordReset(email: String!): Boolean!
+    
+    # Refresh access token using refresh token
+    refreshToken(refreshToken: String!): AuthPayload!
+    
+    # Revoke all sessions (force logout everywhere)
+    revokeAllSessions: Boolean!
+
+    # ===== User Management Mutations (Admin only) =====
+    
+    # Create a new user
+    createUser(data: CreateUserInput!): User!
+    
+    # Update user details
+    updateUser(where: UserWhereInput!, data: UpdateUserInput!): User!
+    
+    # Delete a user
+    deleteUser(where: UserWhereInput!): Boolean!
+
+    # ===== Role Management Mutations (Admin only) =====
+    
+    # Create a new role
+    createRole(data: CreateRoleInput!): Role!
+    
+    # Update role details and permissions
+    updateRole(where: RoleWhereInput!, data: UpdateRoleInput!): Role!
+    
+    # Delete a role (cannot delete system roles)
+    deleteRole(where: RoleWhereInput!): Boolean!
+
+    # ===== Project Member Mutations =====
+    
+    # Invite a user to the project
+    inviteProjectMember(data: InviteProjectMemberInput!): ProjectMember!
+    
+    # Update a project member's role
+    updateProjectMember(
+      where: ProjectMemberWhereInput!
+      data: UpdateProjectMemberInput!
+    ): ProjectMember!
+    
+    # Remove a member from the project
+    removeProjectMember(where: ProjectMemberWhereInput!): Boolean!
   }
 `;

@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import dynamic from 'next/dynamic';
 import styled from 'styled-components';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Form, Button, Skeleton, Modal, message } from 'antd';
+import { Alert, Form, Button, Skeleton, message } from 'antd';
 import { attachLoading } from '@/utils/helper';
 import { RefreshCw } from 'lucide-react';
 import BasicProperties from '@/components/chart/properties/BasicProperties';
@@ -20,6 +20,7 @@ import {
 } from '@/components/chart/handler';
 import { useCreateDashboardItemMutation } from '@/apollo/client/graphql/dashboard.generated';
 import { DashboardItemType } from '@/apollo/server/repositories';
+import PinToDashboardModal from '@/components/modals/PinToDashboardModal';
 import usePromptThreadStore from './store';
 
 const Chart = dynamic(() => import('@/components/chart'), {
@@ -83,6 +84,8 @@ export default function ChartAnswer(props: AnswerResultProps) {
   const [regenerating, setRegenerating] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [newValues, setNewValues] = useState(null);
+  const [pinModalVisible, setPinModalVisible] = useState(false);
+  const [pinning, setPinning] = useState(false);
 
   const [form] = Form.useForm();
   const chartType = Form.useWatch('chartType', form);
@@ -97,6 +100,7 @@ export default function ChartAnswer(props: AnswerResultProps) {
     onError: (error) => console.error(error),
     onCompleted: () => {
       message.success('Successfully pinned chart to dashboard.');
+      setPinModalVisible(false);
     },
   });
 
@@ -179,20 +183,25 @@ export default function ChartAnswer(props: AnswerResultProps) {
   };
 
   const onPin = () => {
-    Modal.confirm({
-      title: 'Are you sure you want to pin this chart to the dashboard?',
-      okText: 'Save',
-      onOk: async () =>
-        await createDashboardItem({
-          variables: {
-            data: {
-              // DashboardItemType is compatible with ChartType
-              itemType: chartType as unknown as DashboardItemType,
-              responseId: threadResponse.id,
-            },
+    setPinModalVisible(true);
+  };
+
+  const handlePinToDashboard = async (dashboardId: number | null) => {
+    setPinning(true);
+    try {
+      await createDashboardItem({
+        variables: {
+          data: {
+            // DashboardItemType is compatible with ChartType
+            itemType: chartType as unknown as DashboardItemType,
+            responseId: threadResponse.id,
+            dashboardId: dashboardId || undefined,
           },
-        }),
-    });
+        },
+      });
+    } finally {
+      setPinning(false);
+    }
   };
 
   const onResetAdjustment = () => {
@@ -297,6 +306,12 @@ export default function ChartAnswer(props: AnswerResultProps) {
           chartRegenerateBtn
         )}
       </div>
+      <PinToDashboardModal
+        visible={pinModalVisible}
+        onClose={() => setPinModalVisible(false)}
+        onConfirm={handlePinToDashboard}
+        loading={pinning}
+      />
     </StyledSkeleton>
   );
 }

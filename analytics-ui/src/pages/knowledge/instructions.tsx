@@ -21,6 +21,7 @@ import useModalAction from '@/hooks/useModalAction';
 import GlobalLabel from '@/components/pages/knowledge/GlobalLabel';
 import InstructionModal from '@/components/modals/InstructionModal';
 import InstructionDrawer from '@/components/pages/knowledge/InstructionDrawer';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { Instruction } from '@/apollo/client/graphql/__types__';
 import {
   useInstructionsQuery,
@@ -166,68 +167,70 @@ export default function ManageInstructions() {
   ];
 
   return (
-    <SiderLayout loading={false}>
-      <PageLayout
-        title={
-          <>
-            <StyledInstructionsIcon className="mr-2 gray-8" />
-            Manage instruction
-          </>
-        }
-        titleExtra={
-          <Button type="primary" onClick={() => instructionModal.openModal()}>
-            Add an instruction
-          </Button>
-        }
-        description={
-          <>
-            On this page, you can manage saved instructions that guide NQRust
-            -Analytics in generating SQL queries. These instructions help NQRust
-            -Analytics understand your data model and business rules, improving
-            query accuracy and reducing the need for manual refinements.{' '}
-            <Link
-              className="gray-8 underline"
-              href="https://docs.getanalytics.ai/oss/guide/knowledge/instructions"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              Learn more.
-            </Link>
-          </>
-        }
-      >
-        <Table
-          className="ant-table-has-header"
-          dataSource={instructions}
-          loading={loading}
-          columns={columns}
-          rowKey="id"
-          pagination={{
-            hideOnSinglePage: true,
-            pageSize: 10,
-            size: 'small',
-          }}
-          scroll={{ x: 1080 }}
-        />
-        <InstructionDrawer
-          {...instructionDrawer.state}
-          onClose={instructionDrawer.closeDrawer}
-        />
-        <InstructionModal
-          {...instructionModal.state}
-          onClose={instructionModal.closeModal}
-          loading={createInstructionLoading || updateInstructionLoading}
-          onSubmit={async ({ id, data }) => {
-            if (id) {
-              await updateInstructionMutation({
-                variables: { where: { id }, data },
-              });
-            } else {
-              await createInstructionMutation({ variables: { data } });
-            }
-          }}
-        />
-      </PageLayout>
-    </SiderLayout>
+    <ProtectedRoute requiredPermission={{ resource: 'instruction', action: 'read' }}>
+      <SiderLayout loading={false}>
+        <PageLayout
+          title={
+            <>
+              <StyledInstructionsIcon className="mr-2 gray-8" />
+              Manage instruction
+            </>
+          }
+          titleExtra={
+            <Button type="primary" onClick={() => instructionModal.openModal()}>
+              Add an instruction
+            </Button>
+          }
+          description={
+            <>
+              On this page, you can manage saved instructions that guide NQRust
+              -Analytics in generating SQL queries. These instructions help NQRust
+              -Analytics understand your data model and business rules, improving
+              query accuracy and reducing the need for manual refinements.{' '}
+              <Link
+                className="gray-8 underline"
+                href="https://docs.getanalytics.ai/oss/guide/knowledge/instructions"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Learn more.
+              </Link>
+            </>
+          }
+        >
+          <Table
+            className="ant-table-has-header"
+            dataSource={instructions}
+            loading={loading}
+            columns={columns}
+            rowKey="id"
+            pagination={{
+              hideOnSinglePage: true,
+              pageSize: 10,
+              size: 'small',
+            }}
+            scroll={{ x: 1080 }}
+          />
+          <InstructionDrawer
+            {...instructionDrawer.state}
+            onClose={instructionDrawer.closeDrawer}
+          />
+          <InstructionModal
+            {...instructionModal.state}
+            onClose={instructionModal.closeModal}
+            loading={createInstructionLoading || updateInstructionLoading}
+            onSubmit={async ({ id, data }) => {
+              if (id) {
+                await updateInstructionMutation({
+                  variables: { where: { id }, data },
+                });
+              } else {
+                await createInstructionMutation({ variables: { data } });
+              }
+            }}
+          />
+        </PageLayout>
+      </SiderLayout>
+    </ProtectedRoute>
   );
 }

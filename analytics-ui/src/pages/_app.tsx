@@ -4,6 +4,7 @@ import { Spin } from 'antd';
 import posthog from 'posthog-js';
 import apolloClient from '@/apollo/client';
 import { GlobalConfigProvider } from '@/hooks/useGlobalConfig';
+import { AuthProvider } from '@/hooks/useAuth';
 import { PostHogProvider } from 'posthog-js/react';
 import { ApolloProvider } from '@apollo/client';
 import { defaultIndicator } from '@/components/PageLoading';
@@ -50,11 +51,13 @@ function App({ Component, pageProps }: AppProps) {
       </Head>
       <GlobalConfigProvider>
         <ApolloProvider client={apolloClient}>
-          <PostHogProvider client={posthog}>
-            <main className="app">
-              <Component {...pageProps} />
-            </main>
-          </PostHogProvider>
+          <AuthProvider>
+            <PostHogProvider client={posthog}>
+              <main className="app">
+                <Component {...pageProps} />
+              </main>
+            </PostHogProvider>
+          </AuthProvider>
         </ApolloProvider>
       </GlobalConfigProvider>
     </>

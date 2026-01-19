@@ -46,6 +46,10 @@ export interface IConfig {
   projectRecommendationQuestionsMaxQuestions?: number;
   threadRecommendationQuestionMaxCategories?: number;
   threadRecommendationQuestionsMaxQuestions?: number;
+
+  // OAuth providers
+  googleOAuthEnabled?: boolean;
+  githubOAuthEnabled?: boolean;
 }
 
 const defaultConfig = {
@@ -148,6 +152,13 @@ const config = {
     .THREAD_RECOMMENDATION_QUESTIONS_MAX_QUESTIONS
     ? parseInt(process.env.THREAD_RECOMMENDATION_QUESTIONS_MAX_QUESTIONS)
     : 1,
+
+  // OAuth providers - enabled by default if credentials are provided
+  // Set to 'false' to explicitly disable even if credentials exist
+  googleOAuthEnabled: process.env.GOOGLE_OAUTH_ENABLED !== 'false' &&
+    !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+  githubOAuthEnabled: process.env.GITHUB_OAUTH_ENABLED !== 'false' &&
+    !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
 };
 
 export function getConfig(): IConfig {

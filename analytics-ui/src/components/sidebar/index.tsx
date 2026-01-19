@@ -10,6 +10,7 @@ import Modeling, { Props as ModelingSidebarProps } from './Modeling';
 import Knowledge from './Knowledge';
 import APIManagement from './APIManagement';
 import HeaderBar from '@/components/HeaderBar';
+import UserMenu from '@/components/UserMenu';
 // import LearningSection from '@/components/learning';
 
 const Layout = styled.div`
@@ -93,6 +94,7 @@ export default function Sidebar(props: Props) {
       <DynamicSidebar {...props} pathname={router.pathname} />
       {/* <LearningSection /> */}
       <div className="border-t border-gray-4 p-2">
+        <UserMenu />
         <StyledButton type="text" block onClick={onSettingsClick}>
           <Settings className="mr-1" size={16} />
           Settings

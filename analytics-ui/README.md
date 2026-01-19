@@ -4,6 +4,25 @@
 
 The Analytics UI is a Next.js-based web application that provides a user-friendly interface for the NQRust-Analytics platform. It enables users to connect to data sources, build semantic models, and query data using natural language.
 
+## Key Features
+
+### User Management
+- **User Registration & Login**: Built-in email/password authentication
+- **OAuth Integration**: Optional Google and GitHub OAuth login
+- **Role-Based Access Control**: Admin, Editor, and Viewer roles
+- **User Profile Management**: Update display name and password
+
+### Multi-Dashboard Support
+- **Create Multiple Dashboards**: Organize visualizations into separate dashboards
+- **Set Default Dashboard**: Choose which dashboard loads on login
+- **Star Dashboards**: Bookmark frequently accessed dashboards
+- **Dashboard Sharing**: Share dashboards with team members (view or edit permissions)
+
+### Chat History Management
+- **User-Specific History**: Each user has their own private chat history
+- **Thread Sharing**: Share conversation threads with other users
+- **Rename & Delete**: Manage your conversation history
+
 ## Technology Stack
 
 - **Framework**: Next.js 14
@@ -69,6 +88,15 @@ yarn migrate
 # or
 npm run migrate
 ```
+
+**Important**: The migrations will create all necessary tables for:
+- User management (users, roles, permissions)
+- Project membership and access control
+- Multi-dashboard support
+- Dashboard and thread sharing
+- Audit logging
+
+For a fresh installation, the first registered user will automatically become an admin.
 
 ### 5. Start Development Server
 
@@ -157,6 +185,23 @@ IBIS_SERVER_ENDPOINT=http://ibis-server:8000
 # Features
 EXPERIMENTAL_ENGINE_RUST_VERSION=false
 OTHER_SERVICE_USING_DOCKER=true
+```
+
+### Authentication Configuration (Required)
+
+```env
+# JWT Secret - MUST be set for authentication to work
+# Generate a secure random string: openssl rand -base64 32
+JWT_SECRET=your-secure-secret-key
+
+# OAuth Providers (Optional)
+GOOGLE_OAUTH_ENABLED=false
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+GITHUB_OAUTH_ENABLED=false
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
 ```
 
 ### Docker Service Endpoints

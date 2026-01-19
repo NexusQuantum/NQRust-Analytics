@@ -55,20 +55,20 @@
 @preset-colors: pink, magenta, red, volcano, orange, yellow, gold, cyan, lime,
   green, blue, geekblue, purple, citrus, rust-orange, gray;
 
-// CSS Variables for styled-components compatibility
-:root {
-  --rust-orange-50: @rust-orange-1;
-  --rust-orange-100: @rust-orange-2;
-  --rust-orange-200: @rust-orange-3;
-  --rust-orange-300: @rust-orange-4;
-  --rust-orange-400: @rust-orange-5;
-  --rust-orange-500: @rust-orange-6;
-  --rust-orange-600: @rust-orange-7;
-  --rust-orange-700: @rust-orange-8;
-  --rust-orange-800: @rust-orange-9;
-  --rust-orange-900: @rust-orange-10;
-  --geekblue-6: @rust-orange-6;
-}
+// CSS Variables moved to global.less to avoid CSS Module pure selector errors
+// :root {
+//   --rust-orange-50: @rust-orange-1;
+//   --rust-orange-100: @rust-orange-2;
+//   --rust-orange-200: @rust-orange-3;
+//   --rust-orange-300: @rust-orange-4;
+//   --rust-orange-400: @rust-orange-5;
+//   --rust-orange-500: @rust-orange-6;
+//   --rust-orange-600: @rust-orange-7;
+//   --rust-orange-700: @rust-orange-8;
+//   --rust-orange-800: @rust-orange-9;
+//   --rust-orange-900: @rust-orange-10;
+//   --geekblue-6: @rust-orange-6;
+// }
 
 @black: @gray-13;
 @white: @gray-1;
@@ -86,6 +86,7 @@
 .make-color-variables(@i: length(@preset-colors)) when (@i > 0) {
   .make-color-variables(@i - 1);
   @color: extract(@preset-colors, @i);
+
   each(range(1, 10, 1), {
     @colorVar: '@{color}-@{index}';
     --@{color}-@{index}: @@colorVar;

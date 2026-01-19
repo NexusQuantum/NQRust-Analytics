@@ -132,6 +132,13 @@ export enum AskingTaskType {
   TEXT_TO_SQL = 'TEXT_TO_SQL'
 }
 
+export type AuthPayload = {
+  __typename?: 'AuthPayload';
+  accessToken: Scalars['String'];
+  refreshToken: Scalars['String'];
+  user: User;
+};
+
 export enum CacheScheduleDayEnum {
   FRI = 'FRI',
   MON = 'MON',
@@ -153,6 +160,11 @@ export type CalculatedFieldValidationResponse = {
   __typename?: 'CalculatedFieldValidationResponse';
   message?: Maybe<Scalars['String']>;
   valid: Scalars['Boolean'];
+};
+
+export type ChangePasswordInput = {
+  newPassword: Scalars['String'];
+  oldPassword: Scalars['String'];
 };
 
 export enum ChartTaskStatus {
@@ -194,7 +206,13 @@ export type CreateCalculatedFieldInput = {
   name: Scalars['String'];
 };
 
+export type CreateDashboardInput = {
+  description?: InputMaybe<Scalars['String']>;
+  name: Scalars['String'];
+};
+
 export type CreateDashboardItemInput = {
+  dashboardId?: InputMaybe<Scalars['Int']>;
   itemType: DashboardItemType;
   responseId: Scalars['Int'];
 };
@@ -209,6 +227,12 @@ export type CreateModelInput = {
   fields: Array<Scalars['String']>;
   primaryKey?: InputMaybe<Scalars['String']>;
   sourceTableName: Scalars['String'];
+};
+
+export type CreateRoleInput = {
+  description?: InputMaybe<Scalars['String']>;
+  name: Scalars['String'];
+  permissionIds: Array<Scalars['Int']>;
 };
 
 export type CreateSimpleMetricInput = {
@@ -241,6 +265,13 @@ export type CreateThreadResponseInput = {
   taskId?: InputMaybe<Scalars['String']>;
 };
 
+export type CreateUserInput = {
+  displayName: Scalars['String'];
+  email: Scalars['String'];
+  password: Scalars['String'];
+  roleIds?: InputMaybe<Array<Scalars['Int']>>;
+};
+
 export type CreateViewInput = {
   name: Scalars['String'];
   responseId: Scalars['Int'];
@@ -254,7 +285,13 @@ export type CustomFieldInput = {
 export type Dashboard = {
   __typename?: 'Dashboard';
   cacheEnabled: Scalars['Boolean'];
+  createdBy?: Maybe<Scalars['Int']>;
+  creatorDisplayName?: Maybe<Scalars['String']>;
+  creatorEmail?: Maybe<Scalars['String']>;
+  description?: Maybe<Scalars['String']>;
   id: Scalars['Int'];
+  isDefault: Scalars['Boolean'];
+  isStarred: Scalars['Boolean'];
   name: Scalars['String'];
   nextScheduledAt?: Maybe<Scalars['String']>;
   projectId: Scalars['Int'];
@@ -311,6 +348,24 @@ export type DashboardSchedule = {
   hour?: Maybe<Scalars['Int']>;
   minute?: Maybe<Scalars['Int']>;
   timezone?: Maybe<Scalars['String']>;
+};
+
+export type DashboardShare = {
+  __typename?: 'DashboardShare';
+  dashboardId: Scalars['Int'];
+  id: Scalars['Int'];
+  permission: SharePermission;
+  userId: Scalars['Int'];
+};
+
+export type DashboardShareWithUser = {
+  __typename?: 'DashboardShareWithUser';
+  dashboardId: Scalars['Int'];
+  id: Scalars['Int'];
+  permission: SharePermission;
+  userDisplayName?: Maybe<Scalars['String']>;
+  userEmail: Scalars['String'];
+  userId: Scalars['Int'];
 };
 
 export type DataSource = {
@@ -394,8 +449,12 @@ export type DetailedColumn = {
 export type DetailedDashboard = {
   __typename?: 'DetailedDashboard';
   cacheEnabled: Scalars['Boolean'];
+  createdBy?: Maybe<Scalars['Int']>;
+  creatorDisplayName?: Maybe<Scalars['String']>;
+  creatorEmail?: Maybe<Scalars['String']>;
   description?: Maybe<Scalars['String']>;
   id: Scalars['Int'];
+  isDefault: Scalars['Boolean'];
   items: Array<DashboardItem>;
   name: Scalars['String'];
   nextScheduledAt?: Maybe<Scalars['String']>;
@@ -621,6 +680,11 @@ export type InstructionWhereInput = {
   id: Scalars['Int'];
 };
 
+export type InviteProjectMemberInput = {
+  email: Scalars['String'];
+  role: ProjectMemberRoleEnum;
+};
+
 export type ItemLayoutInput = {
   h: Scalars['Int'];
   itemId: Scalars['Int'];
@@ -632,6 +696,11 @@ export type ItemLayoutInput = {
 export type LearningRecord = {
   __typename?: 'LearningRecord';
   paths: Array<Scalars['String']>;
+};
+
+export type LoginInput = {
+  email: Scalars['String'];
+  password: Scalars['String'];
 };
 
 export type MdlModelSubmitInput = {
@@ -674,24 +743,31 @@ export type Mutation = {
   adjustThreadResponseChart: ThreadResponse;
   cancelAdjustmentTask: Scalars['Boolean'];
   cancelAskingTask: Scalars['Boolean'];
+  changePassword: Scalars['Boolean'];
   createAskingTask: Task;
   createCalculatedField: Scalars['JSON'];
+  createDashboard: Dashboard;
   createDashboardItem: DashboardItem;
   createInstantRecommendedQuestions: Task;
   createInstruction: Instruction;
   createModel: Scalars['JSON'];
   createRelation: Scalars['JSON'];
+  createRole: Role;
   createSqlPair: SqlPair;
   createThread: Thread;
   createThreadResponse: ThreadResponse;
+  createUser: User;
   createView: ViewInfo;
   deleteCalculatedField: Scalars['Boolean'];
+  deleteDashboard: Scalars['Boolean'];
   deleteDashboardItem: Scalars['Boolean'];
   deleteInstruction: Scalars['Boolean'];
   deleteModel: Scalars['Boolean'];
   deleteRelation: Scalars['Boolean'];
+  deleteRole: Scalars['Boolean'];
   deleteSqlPair: Scalars['Boolean'];
   deleteThread: Scalars['Boolean'];
+  deleteUser: Scalars['Boolean'];
   deleteView: Scalars['Boolean'];
   deploy: Scalars['JSON'];
   generateProjectRecommendationQuestions: Scalars['Boolean'];
@@ -700,6 +776,9 @@ export type Mutation = {
   generateThreadResponseAnswer: ThreadResponse;
   generateThreadResponseBreakdown: ThreadResponse;
   generateThreadResponseChart: ThreadResponse;
+  inviteProjectMember: ProjectMember;
+  login: AuthPayload;
+  logout: Scalars['Boolean'];
   modelSubstitute: Scalars['String'];
   previewBreakdownData: Scalars['JSON'];
   previewData: Scalars['JSON'];
@@ -707,29 +786,43 @@ export type Mutation = {
   previewModelData: Scalars['JSON'];
   previewSql: Scalars['JSON'];
   previewViewData: Scalars['JSON'];
+  refreshToken: AuthPayload;
+  register: AuthPayload;
+  removeProjectMember: Scalars['Boolean'];
+  requestPasswordReset: Scalars['Boolean'];
   rerunAdjustmentTask: Scalars['Boolean'];
   rerunAskingTask: Task;
   resetCurrentProject: Scalars['Boolean'];
   resolveSchemaChange: Scalars['Boolean'];
+  revokeAllSessions: Scalars['Boolean'];
   saveDataSource: DataSource;
   saveLearningRecord: LearningRecord;
   saveRelations: Scalars['JSON'];
   saveTables: Scalars['JSON'];
   setDashboardSchedule: Dashboard;
+  setDefaultDashboard: Dashboard;
+  shareDashboard: DashboardShare;
+  starDashboard: Scalars['Boolean'];
   startSampleDataset: Scalars['JSON'];
   triggerDataSourceDetection: Scalars['Boolean'];
+  unshareDashboard: Scalars['Boolean'];
+  unstarDashboard: Scalars['Boolean'];
   updateCalculatedField: Scalars['JSON'];
   updateCurrentProject: Scalars['Boolean'];
+  updateDashboard: Dashboard;
   updateDashboardItem: DashboardItem;
   updateDashboardItemLayouts: Array<DashboardItem>;
   updateDataSource: DataSource;
   updateInstruction: Instruction;
   updateModel: Scalars['JSON'];
   updateModelMetadata: Scalars['Boolean'];
+  updateProjectMember: ProjectMember;
   updateRelation: Scalars['JSON'];
+  updateRole: Role;
   updateSqlPair: SqlPair;
   updateThread: Thread;
   updateThreadResponse: ThreadResponse;
+  updateUser: User;
   updateViewMetadata: Scalars['Boolean'];
   validateCalculatedField: CalculatedFieldValidationResponse;
   validateView: ViewValidationResponse;
@@ -758,6 +851,11 @@ export type MutationCancelAskingTaskArgs = {
 };
 
 
+export type MutationChangePasswordArgs = {
+  data: ChangePasswordInput;
+};
+
+
 export type MutationCreateAskingTaskArgs = {
   data: AskingTaskInput;
 };
@@ -765,6 +863,11 @@ export type MutationCreateAskingTaskArgs = {
 
 export type MutationCreateCalculatedFieldArgs = {
   data: CreateCalculatedFieldInput;
+};
+
+
+export type MutationCreateDashboardArgs = {
+  data: CreateDashboardInput;
 };
 
 
@@ -793,6 +896,11 @@ export type MutationCreateRelationArgs = {
 };
 
 
+export type MutationCreateRoleArgs = {
+  data: CreateRoleInput;
+};
+
+
 export type MutationCreateSqlPairArgs = {
   data: CreateSqlPairInput;
 };
@@ -809,6 +917,11 @@ export type MutationCreateThreadResponseArgs = {
 };
 
 
+export type MutationCreateUserArgs = {
+  data: CreateUserInput;
+};
+
+
 export type MutationCreateViewArgs = {
   data: CreateViewInput;
 };
@@ -816,6 +929,11 @@ export type MutationCreateViewArgs = {
 
 export type MutationDeleteCalculatedFieldArgs = {
   where?: InputMaybe<UpdateCalculatedFieldWhere>;
+};
+
+
+export type MutationDeleteDashboardArgs = {
+  id: Scalars['ID'];
 };
 
 
@@ -839,6 +957,11 @@ export type MutationDeleteRelationArgs = {
 };
 
 
+export type MutationDeleteRoleArgs = {
+  where: RoleWhereInput;
+};
+
+
 export type MutationDeleteSqlPairArgs = {
   where: SqlPairWhereUniqueInput;
 };
@@ -846,6 +969,11 @@ export type MutationDeleteSqlPairArgs = {
 
 export type MutationDeleteThreadArgs = {
   where: ThreadUniqueWhereInput;
+};
+
+
+export type MutationDeleteUserArgs = {
+  where: UserWhereInput;
 };
 
 
@@ -884,6 +1012,16 @@ export type MutationGenerateThreadResponseChartArgs = {
 };
 
 
+export type MutationInviteProjectMemberArgs = {
+  data: InviteProjectMemberInput;
+};
+
+
+export type MutationLoginArgs = {
+  data: LoginInput;
+};
+
+
 export type MutationModelSubstituteArgs = {
   data: ModelSubstituteInput;
 };
@@ -916,6 +1054,26 @@ export type MutationPreviewSqlArgs = {
 
 export type MutationPreviewViewDataArgs = {
   where: PreviewViewDataInput;
+};
+
+
+export type MutationRefreshTokenArgs = {
+  refreshToken: Scalars['String'];
+};
+
+
+export type MutationRegisterArgs = {
+  data: RegisterInput;
+};
+
+
+export type MutationRemoveProjectMemberArgs = {
+  where: ProjectMemberWhereInput;
+};
+
+
+export type MutationRequestPasswordResetArgs = {
+  email: Scalars['String'];
 };
 
 
@@ -959,8 +1117,36 @@ export type MutationSetDashboardScheduleArgs = {
 };
 
 
+export type MutationSetDefaultDashboardArgs = {
+  id: Scalars['ID'];
+};
+
+
+export type MutationShareDashboardArgs = {
+  dashboardId: Scalars['ID'];
+  email: Scalars['String'];
+  permission?: InputMaybe<SharePermission>;
+};
+
+
+export type MutationStarDashboardArgs = {
+  dashboardId: Scalars['ID'];
+};
+
+
 export type MutationStartSampleDatasetArgs = {
   data: SampleDatasetInput;
+};
+
+
+export type MutationUnshareDashboardArgs = {
+  dashboardId: Scalars['ID'];
+  userId: Scalars['ID'];
+};
+
+
+export type MutationUnstarDashboardArgs = {
+  dashboardId: Scalars['ID'];
 };
 
 
@@ -972,6 +1158,12 @@ export type MutationUpdateCalculatedFieldArgs = {
 
 export type MutationUpdateCurrentProjectArgs = {
   data: UpdateCurrentProjectInput;
+};
+
+
+export type MutationUpdateDashboardArgs = {
+  data: UpdateDashboardDataInput;
+  id: Scalars['ID'];
 };
 
 
@@ -1009,9 +1201,21 @@ export type MutationUpdateModelMetadataArgs = {
 };
 
 
+export type MutationUpdateProjectMemberArgs = {
+  data: UpdateProjectMemberInput;
+  where: ProjectMemberWhereInput;
+};
+
+
 export type MutationUpdateRelationArgs = {
   data: UpdateRelationInput;
   where: WhereIdInput;
+};
+
+
+export type MutationUpdateRoleArgs = {
+  data: UpdateRoleInput;
+  where: RoleWhereInput;
 };
 
 
@@ -1030,6 +1234,12 @@ export type MutationUpdateThreadArgs = {
 export type MutationUpdateThreadResponseArgs = {
   data: UpdateThreadResponseInput;
   where: ThreadResponseUniqueWhereInput;
+};
+
+
+export type MutationUpdateUserArgs = {
+  data: UpdateUserInput;
+  where: UserWhereInput;
 };
 
 
@@ -1078,6 +1288,14 @@ export enum OnboardingStatus {
 export type OnboardingStatusResponse = {
   __typename?: 'OnboardingStatusResponse';
   status?: Maybe<OnboardingStatus>;
+};
+
+export type Permission = {
+  __typename?: 'Permission';
+  action: Scalars['String'];
+  id: Scalars['Int'];
+  name: Scalars['String'];
+  resource: Scalars['String'];
 };
 
 export type PreviewDataInput = {
@@ -1131,6 +1349,27 @@ export enum ProjectLanguage {
   ZH_TW = 'ZH_TW'
 }
 
+export type ProjectMember = {
+  __typename?: 'ProjectMember';
+  createdAt: Scalars['String'];
+  id: Scalars['Int'];
+  invitedBy?: Maybe<User>;
+  projectId: Scalars['Int'];
+  role: ProjectMemberRoleEnum;
+  user: User;
+  userId: Scalars['Int'];
+};
+
+export enum ProjectMemberRoleEnum {
+  EDITOR = 'EDITOR',
+  OWNER = 'OWNER',
+  VIEWER = 'VIEWER'
+}
+
+export type ProjectMemberWhereInput = {
+  id: Scalars['Int'];
+};
+
 export type Query = {
   __typename?: 'Query';
   adjustmentTask?: Maybe<AdjustmentTask>;
@@ -1139,9 +1378,11 @@ export type Query = {
   autoGenerateRelation: Array<RecommendRelations>;
   dashboard: DetailedDashboard;
   dashboardItems: Array<DashboardItem>;
+  dashboards: Array<Dashboard>;
   diagram: Diagram;
   getMDL: GetMdlResult;
   getProjectRecommendationQuestions: RecommendedQuestionsTask;
+  getSharedUsers: Array<DashboardShareWithUser>;
   getThreadRecommendationQuestions: RecommendedQuestionsTask;
   instantRecommendedQuestions: RecommendedQuestionsTask;
   instructions: Array<Maybe<Instruction>>;
@@ -1149,10 +1390,15 @@ export type Query = {
   listDataSourceTables: Array<CompactTable>;
   listModels: Array<ModelInfo>;
   listViews: Array<ViewInfo>;
+  me?: Maybe<User>;
   model: DetailedModel;
   modelSync: ModelSyncResponse;
   nativeSql: Scalars['String'];
   onboardingStatus: OnboardingStatusResponse;
+  permissions: Array<Permission>;
+  projectMembers: Array<ProjectMember>;
+  role?: Maybe<Role>;
+  roles: Array<Role>;
   schemaChange: SchemaChange;
   settings: Settings;
   sqlPairs: Array<Maybe<SqlPair>>;
@@ -1160,6 +1406,8 @@ export type Query = {
   thread: DetailedThread;
   threadResponse: ThreadResponse;
   threads: Array<Thread>;
+  user?: Maybe<User>;
+  users: Array<User>;
   view: ViewInfo;
 };
 
@@ -1180,8 +1428,18 @@ export type QueryAskingTaskArgs = {
 };
 
 
+export type QueryDashboardArgs = {
+  id?: InputMaybe<Scalars['ID']>;
+};
+
+
 export type QueryGetMdlArgs = {
   hash: Scalars['String'];
+};
+
+
+export type QueryGetSharedUsersArgs = {
+  dashboardId: Scalars['ID'];
 };
 
 
@@ -1205,6 +1463,11 @@ export type QueryNativeSqlArgs = {
 };
 
 
+export type QueryRoleArgs = {
+  where: RoleWhereInput;
+};
+
+
 export type QueryThreadArgs = {
   threadId: Scalars['Int'];
 };
@@ -1212,6 +1475,11 @@ export type QueryThreadArgs = {
 
 export type QueryThreadResponseArgs = {
   responseId: Scalars['Int'];
+};
+
+
+export type QueryUserArgs = {
+  where: UserWhereInput;
 };
 
 
@@ -1245,6 +1513,12 @@ export enum RedshiftConnectionType {
   redshift = 'redshift',
   redshift_iam = 'redshift_iam'
 }
+
+export type RegisterInput = {
+  displayName: Scalars['String'];
+  email: Scalars['String'];
+  password: Scalars['String'];
+};
 
 export type Relation = {
   __typename?: 'Relation';
@@ -1297,6 +1571,21 @@ export type ResultQuestion = {
   category: Scalars['String'];
   question: Scalars['String'];
   sql: Scalars['String'];
+};
+
+export type Role = {
+  __typename?: 'Role';
+  createdAt: Scalars['String'];
+  description?: Maybe<Scalars['String']>;
+  id: Scalars['Int'];
+  isSystem: Scalars['Boolean'];
+  name: Scalars['String'];
+  permissions: Array<Permission>;
+  updatedAt: Scalars['String'];
+};
+
+export type RoleWhereInput = {
+  id: Scalars['Int'];
 };
 
 export type SampleDatasetInput = {
@@ -1363,6 +1652,11 @@ export type Settings = {
   language: ProjectLanguage;
   productVersion: Scalars['String'];
 };
+
+export enum SharePermission {
+  EDIT = 'EDIT',
+  VIEW = 'VIEW'
+}
 
 export type SimpleMeasureInput = {
   isCalculated: Scalars['Boolean'];
@@ -1518,6 +1812,11 @@ export type UpdateCurrentProjectInput = {
   language: ProjectLanguage;
 };
 
+export type UpdateDashboardDataInput = {
+  description?: InputMaybe<Scalars['String']>;
+  name?: InputMaybe<Scalars['String']>;
+};
+
 export type UpdateDashboardItemInput = {
   displayName: Scalars['String'];
 };
@@ -1556,6 +1855,10 @@ export type UpdateNestedColumnMetadataInput = {
   id: Scalars['Int'];
 };
 
+export type UpdateProjectMemberInput = {
+  role: ProjectMemberRoleEnum;
+};
+
 export type UpdateRelationInput = {
   type: RelationType;
 };
@@ -1563,6 +1866,12 @@ export type UpdateRelationInput = {
 export type UpdateRelationshipMetadataInput = {
   description?: InputMaybe<Scalars['String']>;
   id: Scalars['Int'];
+};
+
+export type UpdateRoleInput = {
+  description?: InputMaybe<Scalars['String']>;
+  name?: InputMaybe<Scalars['String']>;
+  permissionIds?: InputMaybe<Array<Scalars['Int']>>;
 };
 
 export type UpdateSqlPairInput = {
@@ -1578,6 +1887,12 @@ export type UpdateThreadResponseInput = {
   sql?: InputMaybe<Scalars['String']>;
 };
 
+export type UpdateUserInput = {
+  displayName?: InputMaybe<Scalars['String']>;
+  isActive?: InputMaybe<Scalars['Boolean']>;
+  roleIds?: InputMaybe<Array<Scalars['Int']>>;
+};
+
 export type UpdateViewColumnMetadataInput = {
   description?: InputMaybe<Scalars['String']>;
   referenceName: Scalars['String'];
@@ -1587,6 +1902,24 @@ export type UpdateViewMetadataInput = {
   columns?: InputMaybe<Array<UpdateViewColumnMetadataInput>>;
   description?: InputMaybe<Scalars['String']>;
   displayName?: InputMaybe<Scalars['String']>;
+};
+
+export type User = {
+  __typename?: 'User';
+  avatarUrl?: Maybe<Scalars['String']>;
+  createdAt: Scalars['String'];
+  displayName: Scalars['String'];
+  email: Scalars['String'];
+  id: Scalars['Int'];
+  isActive: Scalars['Boolean'];
+  isVerified: Scalars['Boolean'];
+  lastLoginAt?: Maybe<Scalars['String']>;
+  roles: Array<Role>;
+  updatedAt: Scalars['String'];
+};
+
+export type UserWhereInput = {
+  id: Scalars['Int'];
 };
 
 export type ValidateCalculatedFieldInput = {

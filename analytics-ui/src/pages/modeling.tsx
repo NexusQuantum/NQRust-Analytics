@@ -14,6 +14,7 @@ import ModelDrawer from '@/components/pages/modeling/ModelDrawer';
 import RelationModal, {
   RelationFormValues,
 } from '@/components/modals/RelationModal';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import useDrawerAction from '@/hooks/useDrawerAction';
 import useModalAction from '@/hooks/useModalAction';
 import useRelationshipModal from '@/hooks/useRelationshipModal';
@@ -378,113 +379,115 @@ export default function Modeling() {
   const relationshipLoading = relationshipUpdating || relationshipCreating;
 
   return (
-    <DeployStatusContext.Provider value={{ ...deployStatusQueryResult }}>
-      <SiderLayout
-        loading={diagramData === null}
-        sidebar={{
-          data: diagramData,
-          onOpenModelDrawer: modelDrawer.openDrawer,
-          onSelect,
-        }}
-      >
-        <DiagramWrapper>
-          <ForwardDiagram
-            ref={diagramRef}
-            data={diagramData}
-            onMoreClick={onMoreClick}
-            onNodeClick={onNodeClick}
-            onAddClick={onAddClick}
+    <ProtectedRoute requiredPermission={{ resource: 'model', action: 'read' }}>
+      <DeployStatusContext.Provider value={{ ...deployStatusQueryResult }}>
+        <SiderLayout
+          loading={diagramData === null}
+          sidebar={{
+            data: diagramData,
+            onOpenModelDrawer: modelDrawer.openDrawer,
+            onSelect,
+          }}
+        >
+          <DiagramWrapper>
+            <ForwardDiagram
+              ref={diagramRef}
+              data={diagramData}
+              onMoreClick={onMoreClick}
+              onNodeClick={onNodeClick}
+              onAddClick={onAddClick}
+            />
+          </DiagramWrapper>
+          <MetadataDrawer
+            {...metadataDrawer.state}
+            onClose={metadataDrawer.closeDrawer}
+            onEditClick={editMetadataModal.openModal}
           />
-        </DiagramWrapper>
-        <MetadataDrawer
-          {...metadataDrawer.state}
-          onClose={metadataDrawer.closeDrawer}
-          onEditClick={editMetadataModal.openModal}
-        />
-        <EditMetadataModal
-          {...editMetadataModal.state}
-          onClose={editMetadataModal.closeModal}
-          loading={editMetadataLoading}
-          onSubmit={async ({ nodeType, data }) => {
-            const { modelId, viewId, ...metadata } = data;
-            switch (nodeType) {
-              case NODE_TYPE.MODEL: {
-                await updateModelMetadata({
-                  variables: { where: { id: modelId }, data: metadata },
-                });
-                break;
-              }
+          <EditMetadataModal
+            {...editMetadataModal.state}
+            onClose={editMetadataModal.closeModal}
+            loading={editMetadataLoading}
+            onSubmit={async ({ nodeType, data }) => {
+              const { modelId, viewId, ...metadata } = data;
+              switch (nodeType) {
+                case NODE_TYPE.MODEL: {
+                  await updateModelMetadata({
+                    variables: { where: { id: modelId }, data: metadata },
+                  });
+                  break;
+                }
 
-              case NODE_TYPE.VIEW: {
-                await updateViewMetadata({
-                  variables: { where: { id: viewId }, data: metadata },
-                });
-                break;
-              }
+                case NODE_TYPE.VIEW: {
+                  await updateViewMetadata({
+                    variables: { where: { id: viewId }, data: metadata },
+                  });
+                  break;
+                }
 
-              default:
-                console.log('onSubmit', nodeType, data);
-                break;
-            }
-          }}
-        />
-        <ModelDrawer
-          {...modelDrawer.state}
-          onClose={modelDrawer.closeDrawer}
-          submitting={modelLoading}
-          onSubmit={async ({ id, data }) => {
-            if (id) {
-              await updateModelMutation({ variables: { where: { id }, data } });
-            } else {
-              await createModelMutation({ variables: { data } });
-            }
-          }}
-        />
-        <CalculatedFieldModal
-          {...calculatedFieldModal.state}
-          onClose={calculatedFieldModal.closeModal}
-          loading={calculatedFieldLoading}
-          onSubmit={async ({ id, data }) => {
-            if (id) {
-              await updateCalculatedField({
-                variables: { where: { id }, data },
-              });
-            } else {
-              await createCalculatedField({ variables: { data } });
-            }
-          }}
-        />
-        <RelationModal
-          {...relationshipModal.state}
-          onClose={relationshipModal.onClose}
-          loading={relationshipLoading}
-          onSubmit={async (
-            values: RelationFormValues & { relationId?: number },
-          ) => {
-            const relation = convertFormValuesToIdentifier(values);
-            if (values.relationId) {
-              await updateRelationshipMutation({
-                variables: {
-                  where: { id: values.relationId },
-                  data: { type: relation.type },
-                },
-              });
-            } else {
-              await createRelationshipMutation({
-                variables: {
-                  data: {
-                    fromModelId: Number(relation.fromField.modelId),
-                    fromColumnId: Number(relation.fromField.fieldId),
-                    toModelId: Number(relation.toField.modelId),
-                    toColumnId: Number(relation.toField.fieldId),
-                    type: relation.type,
+                default:
+                  console.log('onSubmit', nodeType, data);
+                  break;
+              }
+            }}
+          />
+          <ModelDrawer
+            {...modelDrawer.state}
+            onClose={modelDrawer.closeDrawer}
+            submitting={modelLoading}
+            onSubmit={async ({ id, data }) => {
+              if (id) {
+                await updateModelMutation({ variables: { where: { id }, data } });
+              } else {
+                await createModelMutation({ variables: { data } });
+              }
+            }}
+          />
+          <CalculatedFieldModal
+            {...calculatedFieldModal.state}
+            onClose={calculatedFieldModal.closeModal}
+            loading={calculatedFieldLoading}
+            onSubmit={async ({ id, data }) => {
+              if (id) {
+                await updateCalculatedField({
+                  variables: { where: { id }, data },
+                });
+              } else {
+                await createCalculatedField({ variables: { data } });
+              }
+            }}
+          />
+          <RelationModal
+            {...relationshipModal.state}
+            onClose={relationshipModal.onClose}
+            loading={relationshipLoading}
+            onSubmit={async (
+              values: RelationFormValues & { relationId?: number },
+            ) => {
+              const relation = convertFormValuesToIdentifier(values);
+              if (values.relationId) {
+                await updateRelationshipMutation({
+                  variables: {
+                    where: { id: values.relationId },
+                    data: { type: relation.type },
                   },
-                },
-              });
-            }
-          }}
-        />
-      </SiderLayout>
-    </DeployStatusContext.Provider>
+                });
+              } else {
+                await createRelationshipMutation({
+                  variables: {
+                    data: {
+                      fromModelId: Number(relation.fromField.modelId),
+                      fromColumnId: Number(relation.fromField.fieldId),
+                      toModelId: Number(relation.toField.modelId),
+                      toColumnId: Number(relation.toField.fieldId),
+                      type: relation.type,
+                    },
+                  },
+                });
+              }
+            }}
+          />
+        </SiderLayout>
+      </DeployStatusContext.Provider>
+    </ProtectedRoute>
   );
 }

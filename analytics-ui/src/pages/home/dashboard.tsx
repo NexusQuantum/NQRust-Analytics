@@ -5,6 +5,8 @@ import { useRouter } from 'next/router';
 import SiderLayout from '@/components/layouts/SiderLayout';
 import useHomeSidebar from '@/hooks/useHomeSidebar';
 import useDrawerAction from '@/hooks/useDrawerAction';
+import useModalAction from '@/hooks/useModalAction';
+import { useAuth } from '@/hooks/useAuth';
 import { LoadingWrapper } from '@/components/PageLoading';
 import DashboardGrid from '@/components/pages/home/dashboardGrid';
 import EmptyDashboard from '@/components/pages/home/dashboardGrid/EmptyDashboard';
@@ -12,6 +14,7 @@ import DashboardHeader from '@/components/pages/home/dashboardGrid/DashboardHead
 import CacheSettingsDrawer, {
   Schedule,
 } from '@/components/pages/home/dashboardGrid/CacheSettingsDrawer';
+import ShareDashboardModal from '@/components/modals/ShareDashboardModal';
 import {
   useDashboardQuery,
   useDeleteDashboardItemMutation,
@@ -34,9 +37,11 @@ const isSupportCachedSettings = (dataSource: DataSource) => {
 
 export default function Dashboard() {
   const router = useRouter();
+  const { user } = useAuth();
   const dashboardGridRef = useRef<{ onRefreshAll: () => void }>(null);
   const homeSidebar = useHomeSidebar();
   const cacheSettingsDrawer = useDrawerAction();
+  const shareModal = useModalAction();
   const { data: settingsResult } = useGetSettingsQuery();
   const settings = settingsResult?.settings;
   const isSupportCached = useMemo(
@@ -55,10 +60,18 @@ export default function Dashboard() {
       router.push(Path.Home);
     },
   });
+
+  const dashboard = data?.dashboard;
   const dashboardItems = useMemo(
-    () => data?.dashboard?.items || [],
-    [data?.dashboard?.items],
+    () => dashboard?.items || [],
+    [dashboard?.items],
   );
+
+  // Check if current user is the owner
+  const isOwner = useMemo(() => {
+    if (!user || !dashboard) return false;
+    return (dashboard as any).createdBy === user.id;
+  }, [user, dashboard]);
 
   const [setDashboardSchedule] = useSetDashboardScheduleMutation({
     refetchQueries: ['Dashboard'],
@@ -109,17 +122,28 @@ export default function Dashboard() {
         <>
           <EmptyDashboard show={dashboardItems.length === 0}>
             <DashboardHeader
+              dashboardName={dashboard?.name}
+              dashboardDescription={dashboard?.description}
+              isOwner={isOwner}
               isSupportCached={isSupportCached}
-              schedule={data?.dashboard?.schedule as Schedule}
-              nextScheduleTime={data?.dashboard?.nextScheduledAt}
+              schedule={dashboard?.schedule as Schedule}
+              nextScheduleTime={dashboard?.nextScheduledAt}
               onCacheSettings={() => {
                 cacheSettingsDrawer.openDrawer({
-                  cacheEnabled: data?.dashboard?.cacheEnabled,
-                  schedule: data?.dashboard?.schedule,
+                  cacheEnabled: dashboard?.cacheEnabled,
+                  schedule: dashboard?.schedule,
                 });
               }}
               onRefreshAll={() => {
                 dashboardGridRef?.current?.onRefreshAll();
+              }}
+              onShare={() => {
+                if (dashboard) {
+                  shareModal.openModal({
+                    id: dashboard.id,
+                    name: dashboard.name,
+                  });
+                }
               }}
             />
             <DashboardGrid
@@ -139,6 +163,11 @@ export default function Dashboard() {
               }}
             />
           )}
+          <ShareDashboardModal
+            visible={shareModal.state.visible}
+            onClose={shareModal.closeModal}
+            defaultValue={shareModal.state.defaultValue}
+          />
         </>
       </LoadingWrapper>
     </SiderLayout>

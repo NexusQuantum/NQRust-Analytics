@@ -20,6 +20,12 @@ import {
   IInstructionRepository,
   IApiHistoryRepository,
   IDashboardItemRefreshJobRepository,
+  IDashboardShareRepository,
+  IUserRepository,
+  IStarredDashboardRepository,
+  IThreadRepository,
+  IThreadShareRepository,
+  UserWithRoles,
 } from '@server/repositories';
 import {
   IQueryService,
@@ -43,6 +49,9 @@ export interface IContext {
   config: IConfig;
   // telemetry
   telemetry: ITelemetry;
+
+  // Current authenticated user
+  user: UserWithRoles | null;
 
   // adaptor
   analyticsEngineAdaptor: IAnalyticsEngineAdaptor;
@@ -72,10 +81,15 @@ export interface IContext {
   learningRepository: ILearningRepository;
   dashboardRepository: IDashboardRepository;
   dashboardItemRepository: IDashboardItemRepository;
+  dashboardShareRepository: IDashboardShareRepository;
+  starredDashboardRepository: IStarredDashboardRepository;
+  threadRepository: IThreadRepository;
+  threadShareRepository: IThreadShareRepository;
   sqlPairRepository: ISqlPairRepository;
   instructionRepository: IInstructionRepository;
   apiHistoryRepository: IApiHistoryRepository;
   dashboardItemRefreshJobRepository: IDashboardItemRefreshJobRepository;
+  userRepository: IUserRepository;
 
   // background trackers
   projectRecommendQuestionBackgroundTracker: ProjectRecommendQuestionBackgroundTracker;

@@ -139,13 +139,13 @@ export interface IAskingService {
   /**
    * Asking detail task.
    */
-  createThread(input: AskingDetailTaskInput): Promise<Thread>;
+  createThread(input: AskingDetailTaskInput, userId?: number): Promise<Thread>;
   updateThread(
     threadId: number,
     input: Partial<AskingDetailTaskUpdateInput>,
   ): Promise<Thread>;
   deleteThread(threadId: number): Promise<void>;
-  listThreads(): Promise<Thread[]>;
+  listThreads(userId?: number): Promise<Thread[]>;
   createThreadResponse(
     input: AskingDetailTaskInput,
     threadId: number,
@@ -677,11 +677,15 @@ export class AskingService implements IAskingService {
    * 2. create a task on AI service to generate the detail
    * 3. update the thread response with the task id
    */
-  public async createThread(input: AskingDetailTaskInput): Promise<Thread> {
+  public async createThread(
+    input: AskingDetailTaskInput,
+    userId?: number,
+  ): Promise<Thread> {
     // 1. create a thread and the first thread response
     const { id } = await this.projectService.getCurrentProject();
     const thread = await this.threadRepository.createOne({
       projectId: id,
+      userId, // Associate thread with the user
       summary: input.question,
     });
 
@@ -706,8 +710,13 @@ export class AskingService implements IAskingService {
     return thread;
   }
 
-  public async listThreads(): Promise<Thread[]> {
+  public async listThreads(userId?: number): Promise<Thread[]> {
     const { id } = await this.projectService.getCurrentProject();
+    // If userId is provided, filter threads to only those accessible by the user
+    if (userId) {
+      return await this.threadRepository.findAccessibleByUser(id, userId);
+    }
+    // Fallback for backwards compatibility (no user context)
     return await this.threadRepository.listAllTimeDescOrder(id);
   }
 

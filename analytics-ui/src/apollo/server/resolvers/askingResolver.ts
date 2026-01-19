@@ -8,6 +8,7 @@ import {
   AskFeedbackStatus,
 } from '@server/models/adaptor';
 import { Thread } from '../repositories/threadRepository';
+import { ThreadSharePermission } from '../repositories/threadShareRepository';
 import {
   DetailStep,
   ThreadResponse,
@@ -125,6 +126,26 @@ export class AskingResolver {
     this.rerunAdjustThreadResponseAnswer =
       this.rerunAdjustThreadResponseAnswer.bind(this);
     this.getAdjustmentTask = this.getAdjustmentTask.bind(this);
+    this.shareThread = this.shareThread.bind(this);
+    this.unshareThread = this.unshareThread.bind(this);
+    this.getThreadSharedUsers = this.getThreadSharedUsers.bind(this);
+  }
+
+  /**
+   * Get authenticated user ID or throw error
+   */
+  private requireAuth(ctx: IContext): number {
+    if (!ctx.user) {
+      throw new Error('Authentication required');
+    }
+    return ctx.user.id;
+  }
+
+  /**
+   * Get user ID if authenticated, or null if not
+   */
+  private getOptionalUserId(ctx: IContext): number | null {
+    return ctx.user?.id || null;
   }
 
   public async generateProjectRecommendationQuestions(
@@ -254,6 +275,8 @@ export class AskingResolver {
     ctx: IContext,
   ): Promise<Thread> {
     const { data } = args;
+    // Get user ID - threads are user-specific
+    const userId = this.getOptionalUserId(ctx);
 
     const askingService = ctx.askingService;
 
@@ -277,7 +300,7 @@ export class AskingResolver {
 
     const eventName = TelemetryEvent.HOME_CREATE_THREAD;
     try {
-      const thread = await askingService.createThread(threadInput);
+      const thread = await askingService.createThread(threadInput, userId);
       ctx.telemetry.sendEvent(eventName, {});
       return thread;
     } catch (err: any) {
@@ -379,7 +402,9 @@ export class AskingResolver {
     _args: any,
     ctx: IContext,
   ): Promise<Thread[]> {
-    const threads = await ctx.askingService.listThreads();
+    // Get user ID - filter threads to only those accessible by the user
+    const userId = this.getOptionalUserId(ctx);
+    const threads = await ctx.askingService.listThreads(userId);
     return threads;
   }
 
@@ -821,5 +846,109 @@ export class AskingResolver {
         : null,
       traceId: askingTask.traceId,
     };
+  }
+
+  /**
+   * Share a thread with another user
+   */
+  public async shareThread(
+    _root: any,
+    args: { threadId: string; email: string; permission?: string },
+    ctx: IContext,
+  ): Promise<any> {
+    const userId = this.requireAuth(ctx);
+    const threadId = parseInt(args.threadId, 10);
+    const permission = (args.permission || 'view') as ThreadSharePermission;
+
+    // Check if user owns the thread
+    const thread = await ctx.threadRepository.findOneBy({ id: threadId });
+    if (!thread) {
+      throw new Error('Thread not found');
+    }
+    if (thread.userId !== userId) {
+      throw new Error('You can only share threads you own');
+    }
+
+    // Find the user to share with
+    const targetUser = await ctx.userRepository.findByEmail(args.email);
+    if (!targetUser) {
+      throw new Error(`User with email ${args.email} not found`);
+    }
+    if (targetUser.id === userId) {
+      throw new Error('Cannot share thread with yourself');
+    }
+
+    // Check if already shared
+    const existingShare = await ctx.threadShareRepository.findByThreadAndUser(
+      threadId,
+      targetUser.id,
+    );
+    if (existingShare) {
+      // Update permission if different
+      if (existingShare.permission !== permission) {
+        await ctx.threadShareRepository.updateOne(existingShare.id, {
+          permission,
+        });
+      }
+      return {
+        id: existingShare.id,
+        threadId,
+        userId: targetUser.id,
+        permission,
+      };
+    }
+
+    // Create the share
+    const share = await ctx.threadShareRepository.createOne({
+      threadId,
+      userId: targetUser.id,
+      permission,
+    });
+
+    return share;
+  }
+
+  /**
+   * Remove a thread share
+   */
+  public async unshareThread(
+    _root: any,
+    args: { threadId: string; userId: string },
+    ctx: IContext,
+  ): Promise<boolean> {
+    const currentUserId = this.requireAuth(ctx);
+    const threadId = parseInt(args.threadId, 10);
+    const targetUserId = parseInt(args.userId, 10);
+
+    // Check if user owns the thread
+    const thread = await ctx.threadRepository.findOneBy({ id: threadId });
+    if (!thread) {
+      throw new Error('Thread not found');
+    }
+    if (thread.userId !== currentUserId) {
+      throw new Error('You can only manage shares for threads you own');
+    }
+
+    return ctx.threadShareRepository.deleteByThreadAndUser(threadId, targetUserId);
+  }
+
+  /**
+   * Get users a thread is shared with
+   */
+  public async getThreadSharedUsers(
+    _root: any,
+    args: { threadId: string },
+    ctx: IContext,
+  ): Promise<any[]> {
+    const userId = this.requireAuth(ctx);
+    const threadId = parseInt(args.threadId, 10);
+
+    // Check if user has access to the thread
+    const hasAccess = await ctx.threadRepository.hasAccess(threadId, userId);
+    if (!hasAccess) {
+      throw new Error('You do not have access to this thread');
+    }
+
+    return ctx.threadShareRepository.findByThreadId(threadId);
   }
 }

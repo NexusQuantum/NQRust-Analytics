@@ -19,6 +19,10 @@ import {
   InstructionRepository,
   ApiHistoryRepository,
   DashboardItemRefreshJobRepository,
+  DashboardShareRepository,
+  UserRepository,
+  StarredDashboardRepository,
+  ThreadShareRepository,
 } from '@server/repositories';
 import {
   AnalyticsEngineAdaptor,
@@ -69,6 +73,10 @@ export const initComponents = () => {
   const learningRepository = new LearningRepository(knex);
   const dashboardRepository = new DashboardRepository(knex);
   const dashboardItemRepository = new DashboardItemRepository(knex);
+  const dashboardShareRepository = new DashboardShareRepository(knex);
+  const starredDashboardRepository = new StarredDashboardRepository(knex);
+  const threadShareRepository = new ThreadShareRepository(knex);
+  const userRepository = new UserRepository(knex);
   const sqlPairRepository = new SqlPairRepository(knex);
   const askingTaskRepository = new AskingTaskRepository(knex);
   const instructionRepository = new InstructionRepository(knex);
@@ -140,6 +148,9 @@ export const initComponents = () => {
     projectService,
     dashboardItemRepository,
     dashboardRepository,
+    dashboardShareRepository,
+    userRepository,
+    starredDashboardRepository,
   });
   const sqlPairService = new SqlPairService({
     sqlPairRepository,
@@ -191,6 +202,10 @@ export const initComponents = () => {
     modelNestedColumnRepository,
     dashboardRepository,
     dashboardItemRepository,
+    dashboardShareRepository,
+    starredDashboardRepository,
+    threadShareRepository,
+    userRepository,
     sqlPairRepository,
     askingTaskRepository,
     apiHistoryRepository,

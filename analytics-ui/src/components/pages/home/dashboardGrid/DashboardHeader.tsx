@@ -1,4 +1,4 @@
-import { Button, Tooltip } from 'antd';
+import { Button, Tooltip, Typography } from 'antd';
 import styled from 'styled-components';
 import { MoreIcon } from '@/utils/icons';
 import { MORE_ACTION } from '@/utils/enum';
@@ -8,13 +8,20 @@ import {
   Schedule,
   getScheduleText,
 } from '@/components/pages/home/dashboardGrid/CacheSettingsDrawer';
+import ShareAltOutlined from '@ant-design/icons/ShareAltOutlined';
+
+const { Title, Text } = Typography;
 
 interface Props {
+  dashboardName?: string;
+  dashboardDescription?: string;
+  isOwner?: boolean;
   isSupportCached: boolean;
   nextScheduleTime?: string;
   schedule?: Schedule;
   onCacheSettings?: () => void;
   onRefreshAll?: () => void;
+  onShare?: () => void;
 }
 
 const StyledHeader = styled.div`
@@ -27,13 +34,41 @@ const StyledHeader = styled.div`
   border-bottom: 1px solid var(--gray-4);
 `;
 
+const DashboardInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  
+  .dashboard-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #262626;
+  }
+  
+  .dashboard-description {
+    font-size: 12px;
+    color: #8c8c8c;
+    margin-top: 2px;
+  }
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
 export default function DashboardHeader(props: Props) {
   const {
+    dashboardName,
+    dashboardDescription,
+    isOwner,
     isSupportCached,
     nextScheduleTime,
     schedule,
     onCacheSettings,
     onRefreshAll,
+    onShare,
   } = props;
 
   const scheduleTime = getScheduleText(schedule);
@@ -48,8 +83,28 @@ export default function DashboardHeader(props: Props) {
 
   return (
     <StyledHeader>
-      <div />
-      <div>
+      <DashboardInfo>
+        {dashboardName ? (
+          <>
+            <Title level={5} className="dashboard-title">{dashboardName}</Title>
+            {dashboardDescription && (
+              <Text className="dashboard-description">{dashboardDescription}</Text>
+            )}
+          </>
+        ) : (
+          <Title level={5} className="dashboard-title">Dashboard</Title>
+        )}
+      </DashboardInfo>
+      <HeaderActions>
+        {isOwner && onShare && (
+          <Tooltip title="Share Dashboard">
+            <Button
+              type="text"
+              icon={<ShareAltOutlined />}
+              onClick={onShare}
+            />
+          </Tooltip>
+        )}
         {schedule && (
           <div className="d-flex align-center gray-6 gx-2">
             {isSupportCached && (
@@ -87,7 +142,7 @@ export default function DashboardHeader(props: Props) {
             </DashboardDropdown>
           </div>
         )}
-      </div>
+      </HeaderActions>
     </StyledHeader>
   );
 }

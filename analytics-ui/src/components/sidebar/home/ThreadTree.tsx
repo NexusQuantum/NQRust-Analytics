@@ -42,6 +42,7 @@ interface Props {
   onSelect: (selectKeys: React.Key[], info: any) => void;
   onRename: (id: string, newName: string) => Promise<void>;
   onDeleteThread: (id: string) => Promise<void>;
+  onShareThread?: (id: string, name: string) => void;
 }
 
 export default function ThreadTree(props: Props) {
@@ -53,6 +54,7 @@ export default function ThreadTree(props: Props) {
     onSelect,
     onRename,
     onDeleteThread,
+    onShareThread,
   } = props;
 
   const getThreadGroupNode = createTreeGroupNode({
@@ -94,6 +96,7 @@ export default function ThreadTree(props: Props) {
                 title={thread.name}
                 onRename={onRename}
                 onDelete={onDeleteThread}
+                onShare={onShareThread}
               />
             ),
           };

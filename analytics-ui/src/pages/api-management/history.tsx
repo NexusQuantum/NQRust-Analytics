@@ -12,6 +12,7 @@ import CheckCircleOutlined from '@ant-design/icons/CheckCircleOutlined';
 import CloseCircleOutlined from '@ant-design/icons/CloseCircleOutlined';
 import SQLCodeBlock from '@/components/code/SQLCodeBlock';
 import DetailsDrawer from '@/components/pages/apiManagement/DetailsDrawer';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useApiHistoryQuery } from '@/apollo/client/graphql/apiManagement.generated';
 import { ApiType, ApiHistoryResponse } from '@/apollo/client/graphql/__types__';
 
@@ -161,54 +162,56 @@ export default function APIHistory() {
   ];
 
   return (
-    <SiderLayout loading={false} sidebar={null}>
-      <PageLayout
-        title={
-          <>
-            <ApiOutlined className="mr-2 gray-8" />
-            API history
-          </>
-        }
-        description={
-          <>
-            <div>
-              Here you can view the full history of API calls, including request
-              inputs, responses, and execution details.{' '}
-              <Link
-                className="gray-8 underline mr-2"
-                href="https://docs.getanalytics.ai/oss/guide/api-access/history"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Learn more.
-              </Link>
-            </div>
-          </>
-        }
-      >
-        <Table
-          className="ant-table-has-header"
-          dataSource={data?.apiHistory.items || []}
-          loading={loading}
-          columns={columns}
-          rowKey="id"
-          pagination={{
-            hideOnSinglePage: true,
-            pageSize: PAGE_SIZE,
-            size: 'small',
-            total: data?.apiHistory.total,
-          }}
-          scroll={{ x: 1200 }}
-          onChange={(pagination, filters, _sorter) => {
-            setCurrentPage(pagination.current);
-            setFilters(filters);
-          }}
-        />
-        <DetailsDrawer
-          {...detailsDrawer.state}
-          onClose={detailsDrawer.closeDrawer}
-        />
-      </PageLayout>
-    </SiderLayout>
+    <ProtectedRoute>
+      <SiderLayout loading={false} sidebar={null}>
+        <PageLayout
+          title={
+            <>
+              <ApiOutlined className="mr-2 gray-8" />
+              API history
+            </>
+          }
+          description={
+            <>
+              <div>
+                Here you can view the full history of API calls, including request
+                inputs, responses, and execution details.{' '}
+                <Link
+                  className="gray-8 underline mr-2"
+                  href="https://docs.getanalytics.ai/oss/guide/api-access/history"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Learn more.
+                </Link>
+              </div>
+            </>
+          }
+        >
+          <Table
+            className="ant-table-has-header"
+            dataSource={data?.apiHistory.items || []}
+            loading={loading}
+            columns={columns}
+            rowKey="id"
+            pagination={{
+              hideOnSinglePage: true,
+              pageSize: PAGE_SIZE,
+              size: 'small',
+              total: data?.apiHistory.total,
+            }}
+            scroll={{ x: 1200 }}
+            onChange={(pagination, filters, _sorter) => {
+              setCurrentPage(pagination.current);
+              setFilters(filters);
+            }}
+          />
+          <DetailsDrawer
+            {...detailsDrawer.state}
+            onClose={detailsDrawer.closeDrawer}
+          />
+        </PageLayout>
+      </SiderLayout>
+    </ProtectedRoute>
   );
 }

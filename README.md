@@ -16,11 +16,21 @@ NQRust-Analytics is a comprehensive analytics platform that enables users to que
 - **Semantic Layer**: MDL (Modeling Definition Language) for consistent data definitions
 - **Real-time Analytics**: Process and analyze data in real-time
 
+### User Management & Collaboration
+- **User Authentication**: Built-in user registration and login with email/password
+- **OAuth Support**: Optional Google and GitHub OAuth integration
+- **Role-Based Access Control (RBAC)**: Admin, Editor, and Viewer roles
+- **Multi-Dashboard Support**: Create and manage multiple dashboards per user
+- **Dashboard Sharing**: Share dashboards with other users (view or edit permissions)
+- **Chat History Sharing**: Share conversation threads with team members
+- **Starred Dashboards**: Bookmark frequently used dashboards
+
 ### Key Benefits
 - **No SQL Knowledge Required**: Business users can query data without technical expertise
 - **Accurate Results**: Semantic layer ensures consistent and governed data access
 - **Flexible LLM Integration**: Support for multiple AI model providers
 - **Self-Hosted**: Full control over your data and infrastructure
+- **Team Collaboration**: Share insights and dashboards across your organization
 
 ---
 
@@ -67,17 +77,36 @@ See [configuration examples](./analytics-ai-service/docs/config_examples) for se
    ```bash
    cd docker
    cp .env.example .env
-   # Edit .env and add your API keys
    ```
+
+   Edit `.env` and configure the following:
+   - `PROJECT_DIR`: Set to your local project path
+   - `OPENAI_API_KEY`: Your OpenAI API key (or configure alternative LLM)
+   - `JWT_SECRET`: **Required** - Set a secure random string for authentication
+   - `PG_URL`: PostgreSQL connection string for the application database
+   - OAuth settings (optional): Configure Google/GitHub OAuth if needed
 
 3. **Start services**
    ```bash
    docker-compose up -d
    ```
 
-4. **Access the application**
+4. **Run database migrations**
+   ```bash
+   # The migrations set up user management, dashboards, and sharing features
+   cd ../analytics-ui
+   npm install  # or yarn install
+   DB_TYPE=pg PG_URL="postgres://analytics:analytics123@localhost:5432/analytics" npx knex migrate:latest
+   ```
+
+5. **Access the application**
    - UI: http://localhost:3000
    - API: http://localhost:5556
+
+6. **First-time setup**
+   - Register a new account (first user becomes admin)
+   - Or login with OAuth if configured
+   - Create your first dashboard and start querying
 
 ### Development Setup
 

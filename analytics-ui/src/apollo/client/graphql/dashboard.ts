@@ -114,3 +114,141 @@ export const DASHBOARD = gql`
   }
   ${COMMON_DASHBOARD_ITEM}
 `;
+
+// ========================================
+// Multi-Dashboard Queries & Mutations
+// ========================================
+
+export const COMMON_DASHBOARD = gql`
+  fragment CommonDashboard on Dashboard {
+    id
+    name
+    description
+    isDefault
+    isStarred
+    createdBy
+    creatorEmail
+    creatorDisplayName
+    cacheEnabled
+  }
+`;
+
+export const LIST_DASHBOARDS = gql`
+  query ListDashboards {
+    dashboards {
+      ...CommonDashboard
+    }
+  }
+  ${COMMON_DASHBOARD}
+`;
+
+export const GET_DASHBOARD_BY_ID = gql`
+  query GetDashboardById($id: ID!) {
+    dashboard(id: $id) {
+      id
+      name
+      description
+      isDefault
+      createdBy
+      creatorEmail
+      creatorDisplayName
+      cacheEnabled
+      nextScheduledAt
+      schedule {
+        frequency
+        hour
+        minute
+        day
+        timezone
+        cron
+      }
+      items {
+        ...CommonDashboardItem
+      }
+    }
+  }
+  ${COMMON_DASHBOARD_ITEM}
+`;
+
+export const CREATE_DASHBOARD = gql`
+  mutation CreateDashboard($data: CreateDashboardInput!) {
+    createDashboard(data: $data) {
+      ...CommonDashboard
+    }
+  }
+  ${COMMON_DASHBOARD}
+`;
+
+export const UPDATE_DASHBOARD = gql`
+  mutation UpdateDashboard($id: ID!, $data: UpdateDashboardInput!) {
+    updateDashboard(id: $id, data: $data) {
+      ...CommonDashboard
+    }
+  }
+  ${COMMON_DASHBOARD}
+`;
+
+export const DELETE_DASHBOARD = gql`
+  mutation DeleteDashboard($id: ID!) {
+    deleteDashboard(id: $id)
+  }
+`;
+
+export const SET_DEFAULT_DASHBOARD = gql`
+  mutation SetDefaultDashboard($id: ID!) {
+    setDefaultDashboard(id: $id) {
+      ...CommonDashboard
+    }
+  }
+  ${COMMON_DASHBOARD}
+`;
+
+// ========================================
+// Dashboard Sharing Queries & Mutations
+// ========================================
+
+export const SHARE_DASHBOARD = gql`
+  mutation ShareDashboard($dashboardId: ID!, $email: String!, $permission: SharePermission) {
+    shareDashboard(dashboardId: $dashboardId, email: $email, permission: $permission) {
+      id
+      dashboardId
+      userId
+      permission
+    }
+  }
+`;
+
+export const UNSHARE_DASHBOARD = gql`
+  mutation UnshareDashboard($dashboardId: ID!, $userId: ID!) {
+    unshareDashboard(dashboardId: $dashboardId, userId: $userId)
+  }
+`;
+
+export const GET_SHARED_USERS = gql`
+  query GetSharedUsers($dashboardId: ID!) {
+    getSharedUsers(dashboardId: $dashboardId) {
+      id
+      dashboardId
+      userId
+      permission
+      userEmail
+      userDisplayName
+    }
+  }
+`;
+
+// ========================================
+// Dashboard Starring Mutations
+// ========================================
+
+export const STAR_DASHBOARD = gql`
+  mutation StarDashboard($dashboardId: ID!) {
+    starDashboard(dashboardId: $dashboardId)
+  }
+`;
+
+export const UNSTAR_DASHBOARD = gql`
+  mutation UnstarDashboard($dashboardId: ID!) {
+    unstarDashboard(dashboardId: $dashboardId)
+  }
+`;

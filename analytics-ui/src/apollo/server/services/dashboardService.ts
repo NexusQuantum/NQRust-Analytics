@@ -6,6 +6,14 @@ import {
   DashboardItemType,
   DashboardItemDetail,
   DashboardItemLayout,
+  DashboardWithCreator,
+  IDashboardShareRepository,
+  DashboardShare,
+  DashboardShareWithUser,
+  SharePermission,
+  IUserRepository,
+  User,
+  IStarredDashboardRepository,
 } from '@server/repositories';
 import { getLogger } from '@server/utils';
 import { getUTCOffsetMinutes } from '@server/utils/timezone';
@@ -36,7 +44,18 @@ export type UpdateDashboardItemLayouts = (DashboardItemLayout & {
   itemId: number;
 })[];
 
+export interface CreateDashboardInput {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateDashboardInput {
+  name?: string;
+  description?: string;
+}
+
 export interface IDashboardService {
+  // Existing dashboard item methods
   initDashboard(): Promise<Dashboard>;
   getCurrentDashboard(): Promise<Dashboard>;
   getDashboardItem(dashboardItemId: number): Promise<DashboardItem>;
@@ -55,25 +74,57 @@ export interface IDashboardService {
     data: SetDashboardCacheData,
   ): Promise<Dashboard>;
   parseCronExpression(dashboard: Dashboard): DashboardSchedule;
+
+  // Multi-dashboard management methods
+  listDashboards(userId: number): Promise<DashboardWithCreator[]>;
+  getDashboardById(dashboardId: number, userId: number): Promise<Dashboard>;
+  createDashboard(input: CreateDashboardInput, userId: number): Promise<Dashboard & { isStarred: boolean }>;
+  updateDashboard(dashboardId: number, input: UpdateDashboardInput, userId: number): Promise<Dashboard & { isStarred: boolean }>;
+  deleteDashboard(dashboardId: number, userId: number): Promise<boolean>;
+  setDefaultDashboard(dashboardId: number, userId: number): Promise<Dashboard & { isStarred: boolean }>;
+
+  // Sharing methods
+  shareDashboard(dashboardId: number, email: string, permission: SharePermission, ownerUserId: number): Promise<DashboardShare>;
+  unshareDashboard(dashboardId: number, targetUserId: number, ownerUserId: number): Promise<boolean>;
+  getSharedUsers(dashboardId: number, ownerUserId: number): Promise<DashboardShareWithUser[]>;
+  checkAccess(dashboardId: number, userId: number): Promise<{ hasAccess: boolean; permission: SharePermission | 'owner' | null }>;
+
+  // Starring methods
+  starDashboard(dashboardId: number, userId: number): Promise<boolean>;
+  unstarDashboard(dashboardId: number, userId: number): Promise<boolean>;
+  isStarred(dashboardId: number, userId: number): Promise<boolean>;
+  getStarredDashboardIds(userId: number): Promise<number[]>;
 }
 
 export class DashboardService implements IDashboardService {
   private projectService: IProjectService;
   private dashboardItemRepository: IDashboardItemRepository;
   private dashboardRepository: IDashboardRepository;
+  private dashboardShareRepository: IDashboardShareRepository;
+  private userRepository: IUserRepository;
+  private starredDashboardRepository: IStarredDashboardRepository;
 
   constructor({
     projectService,
     dashboardItemRepository,
     dashboardRepository,
+    dashboardShareRepository,
+    userRepository,
+    starredDashboardRepository,
   }: {
     projectService: IProjectService;
     dashboardItemRepository: IDashboardItemRepository;
     dashboardRepository: IDashboardRepository;
+    dashboardShareRepository: IDashboardShareRepository;
+    userRepository: IUserRepository;
+    starredDashboardRepository: IStarredDashboardRepository;
   }) {
     this.projectService = projectService;
     this.dashboardItemRepository = dashboardItemRepository;
     this.dashboardRepository = dashboardRepository;
+    this.dashboardShareRepository = dashboardShareRepository;
+    this.userRepository = userRepository;
+    this.starredDashboardRepository = starredDashboardRepository;
   }
 
   public async setDashboardSchedule(
@@ -519,5 +570,312 @@ export class DashboardService implements IDashboardService {
         throw new Error('Invalid schedule frequency');
       }
     }
+  }
+
+  // ========================================
+  // Multi-Dashboard Management Methods
+  // ========================================
+
+  /**
+   * List all dashboards accessible by the user (owned + shared with them)
+   */
+  public async listDashboards(userId: number): Promise<DashboardWithCreator[]> {
+    const project = await this.projectService.getCurrentProject();
+    return this.dashboardRepository.findAccessibleByUser(project.id, userId);
+  }
+
+  /**
+   * Get a specific dashboard by ID, checking access permissions
+   */
+  public async getDashboardById(
+    dashboardId: number,
+    userId: number,
+  ): Promise<Dashboard> {
+    const access = await this.checkAccess(dashboardId, userId);
+    if (!access.hasAccess) {
+      throw new Error('Access denied to this dashboard');
+    }
+
+    const dashboard = await this.dashboardRepository.findOneBy({
+      id: dashboardId,
+    });
+    if (!dashboard) {
+      throw new Error('Dashboard not found');
+    }
+    return dashboard;
+  }
+
+  /**
+   * Create a new dashboard for the user
+   */
+  public async createDashboard(
+    input: CreateDashboardInput,
+    userId: number,
+  ): Promise<Dashboard & { isStarred: boolean }> {
+    const project = await this.projectService.getCurrentProject();
+
+    // Check if this is the user's first dashboard
+    const existingDashboards =
+      await this.dashboardRepository.findAccessibleByUser(project.id, userId);
+    const isFirst = existingDashboards.filter((d) => d.createdBy === userId).length === 0;
+
+    const dashboard = await this.dashboardRepository.createOne({
+      name: input.name,
+      description: input.description,
+      projectId: project.id,
+      createdBy: userId,
+      isDefault: isFirst, // First dashboard is default
+      cacheEnabled: false,
+    });
+
+    logger.info(`Dashboard created: ${dashboard.id} by user ${userId}`);
+    // Return with isStarred: false since a new dashboard cannot be starred yet
+    return { ...dashboard, isStarred: false };
+  }
+
+  /**
+   * Update a dashboard (only owner can update)
+   */
+  public async updateDashboard(
+    dashboardId: number,
+    input: UpdateDashboardInput,
+    userId: number,
+  ): Promise<Dashboard & { isStarred: boolean }> {
+    const access = await this.checkAccess(dashboardId, userId);
+    if (access.permission !== 'owner' && access.permission !== SharePermission.EDIT) {
+      throw new Error('Only the owner or editors can update this dashboard');
+    }
+
+    const updateData: Partial<Dashboard> = {};
+    if (input.name !== undefined) updateData.name = input.name;
+    if (input.description !== undefined) updateData.description = input.description;
+
+    const dashboard = await this.dashboardRepository.updateOne(dashboardId, updateData);
+    const isStarred = await this.isStarred(dashboardId, userId);
+    return { ...dashboard, isStarred };
+  }
+
+  /**
+   * Delete a dashboard (only owner can delete)
+   */
+  public async deleteDashboard(
+    dashboardId: number,
+    userId: number,
+  ): Promise<boolean> {
+    const access = await this.checkAccess(dashboardId, userId);
+    if (access.permission !== 'owner') {
+      throw new Error('Only the owner can delete this dashboard');
+    }
+
+    const dashboard = await this.dashboardRepository.findOneBy({
+      id: dashboardId,
+    });
+    if (!dashboard) {
+      throw new Error('Dashboard not found');
+    }
+
+    // If deleting the default dashboard, set another one as default
+    if (dashboard.isDefault) {
+      const project = await this.projectService.getCurrentProject();
+      const otherDashboards =
+        await this.dashboardRepository.findAccessibleByUser(project.id, userId);
+      const nextDefault = otherDashboards.find(
+        (d) => d.id !== dashboardId && d.createdBy === userId,
+      );
+      if (nextDefault) {
+        await this.dashboardRepository.updateOne(nextDefault.id, {
+          isDefault: true,
+        });
+      }
+    }
+
+    await this.dashboardRepository.deleteOne(dashboardId.toString());
+    logger.info(`Dashboard deleted: ${dashboardId} by user ${userId}`);
+    return true;
+  }
+
+  /**
+   * Set a dashboard as the default for the user
+   */
+  public async setDefaultDashboard(
+    dashboardId: number,
+    userId: number,
+  ): Promise<Dashboard & { isStarred: boolean }> {
+    const access = await this.checkAccess(dashboardId, userId);
+    if (access.permission !== 'owner') {
+      throw new Error('Only the owner can set a dashboard as default');
+    }
+
+    await this.dashboardRepository.setDefault(dashboardId, userId);
+    const dashboard = await this.dashboardRepository.findOneBy({ id: dashboardId });
+    const isStarred = await this.isStarred(dashboardId, userId);
+    return { ...dashboard, isStarred };
+  }
+
+  // ========================================
+  // Dashboard Sharing Methods
+  // ========================================
+
+  /**
+   * Share a dashboard with another user via email
+   */
+  public async shareDashboard(
+    dashboardId: number,
+    email: string,
+    permission: SharePermission,
+    ownerUserId: number,
+  ): Promise<DashboardShare> {
+    const access = await this.checkAccess(dashboardId, ownerUserId);
+    if (access.permission !== 'owner') {
+      throw new Error('Only the owner can share this dashboard');
+    }
+
+    // Find the target user by email
+    const targetUser = await this.userRepository.findByEmail(email);
+    if (!targetUser) {
+      throw new Error(`User with email ${email} not found`);
+    }
+
+    if (targetUser.id === ownerUserId) {
+      throw new Error('Cannot share dashboard with yourself');
+    }
+
+    // Check if already shared
+    const existingShare =
+      await this.dashboardShareRepository.findByDashboardAndUser(
+        dashboardId,
+        targetUser.id,
+      );
+    if (existingShare) {
+      // Update permission if already shared
+      return this.dashboardShareRepository.updateOne(existingShare.id, {
+        permission,
+      });
+    }
+
+    // Create new share
+    const share = await this.dashboardShareRepository.createOne({
+      dashboardId,
+      userId: targetUser.id,
+      permission,
+    });
+
+    logger.info(
+      `Dashboard ${dashboardId} shared with user ${targetUser.id} (${permission})`,
+    );
+    return share;
+  }
+
+  /**
+   * Remove sharing for a user
+   */
+  public async unshareDashboard(
+    dashboardId: number,
+    targetUserId: number,
+    ownerUserId: number,
+  ): Promise<boolean> {
+    const access = await this.checkAccess(dashboardId, ownerUserId);
+    if (access.permission !== 'owner') {
+      throw new Error('Only the owner can remove shares from this dashboard');
+    }
+
+    const result = await this.dashboardShareRepository.deleteByDashboardAndUser(
+      dashboardId,
+      targetUserId,
+    );
+
+    if (result) {
+      logger.info(
+        `Dashboard ${dashboardId} unshared with user ${targetUserId}`,
+      );
+    }
+    return result;
+  }
+
+  /**
+   * Get all users the dashboard is shared with
+   */
+  public async getSharedUsers(
+    dashboardId: number,
+    ownerUserId: number,
+  ): Promise<DashboardShareWithUser[]> {
+    const access = await this.checkAccess(dashboardId, ownerUserId);
+    if (access.permission !== 'owner') {
+      throw new Error('Only the owner can view shares for this dashboard');
+    }
+
+    return this.dashboardShareRepository.findByDashboardId(dashboardId);
+  }
+
+  /**
+   * Check if a user has access to a dashboard and what permission level
+   */
+  public async checkAccess(
+    dashboardId: number,
+    userId: number,
+  ): Promise<{ hasAccess: boolean; permission: SharePermission | 'owner' | null }> {
+    const dashboard = await this.dashboardRepository.findOneBy({
+      id: dashboardId,
+    });
+
+    if (!dashboard) {
+      return { hasAccess: false, permission: null };
+    }
+
+    // Owner has full access
+    if (dashboard.createdBy === userId) {
+      return { hasAccess: true, permission: 'owner' };
+    }
+
+    // Check if shared with user
+    const share = await this.dashboardShareRepository.findByDashboardAndUser(
+      dashboardId,
+      userId,
+    );
+
+    if (share) {
+      return { hasAccess: true, permission: share.permission };
+    }
+
+    return { hasAccess: false, permission: null };
+  }
+
+  // ========================================
+  // Starring Methods
+  // ========================================
+
+  /**
+   * Star a dashboard for a user
+   */
+  public async starDashboard(dashboardId: number, userId: number): Promise<boolean> {
+    // Check if user has access to this dashboard
+    const access = await this.checkAccess(dashboardId, userId);
+    if (!access.hasAccess) {
+      throw new Error('You do not have access to this dashboard');
+    }
+
+    await this.starredDashboardRepository.star(dashboardId, userId);
+    return true;
+  }
+
+  /**
+   * Unstar a dashboard for a user
+   */
+  public async unstarDashboard(dashboardId: number, userId: number): Promise<boolean> {
+    return this.starredDashboardRepository.unstar(dashboardId, userId);
+  }
+
+  /**
+   * Check if a dashboard is starred by a user
+   */
+  public async isStarred(dashboardId: number, userId: number): Promise<boolean> {
+    return this.starredDashboardRepository.isStarred(dashboardId, userId);
+  }
+
+  /**
+   * Get all starred dashboard IDs for a user
+   */
+  public async getStarredDashboardIds(userId: number): Promise<number[]> {
+    return this.starredDashboardRepository.getStarredDashboardIds(userId);
   }
 }

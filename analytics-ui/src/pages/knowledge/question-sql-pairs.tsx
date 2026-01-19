@@ -13,6 +13,7 @@ import { MoreButton } from '@/components/ActionButton';
 import { SQLPairDropdown } from '@/components/diagram/CustomDropdown';
 import QuestionSQLPairModal from '@/components/modals/QuestionSQLPairModal';
 import SQLPairDrawer from '@/components/pages/knowledge/SQLPairDrawer';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { SqlPair } from '@/apollo/client/graphql/__types__';
 import {
   useSqlPairsQuery,
@@ -125,71 +126,73 @@ export default function ManageQuestionSQLPairs() {
   ];
 
   return (
-    <SiderLayout loading={false}>
-      <PageLayout
-        title={
-          <>
-            <FunctionOutlined className="mr-2 gray-8" />
-            Manage question-SQL pairs
-          </>
-        }
-        titleExtra={
-          <Button
-            type="primary"
-            className=""
-            onClick={() => questionSqlPairModal.openModal()}
-          >
-            Add question-SQL pair
-          </Button>
-        }
-        description={
-          <>
-            On this page, you can manage your saved question-SQL pairs. These
-            pairs help NQRust - Analytics learn how your organization writes SQL, allowing
-            it to generate queries that better align with your expectations.{' '}
-            <Link
-              className="gray-8 underline"
-              href="https://docs.getanalytics.ai/oss/guide/knowledge/question-sql-pairs"
-              rel="noopener noreferrer"
-              target="_blank"
+    <ProtectedRoute requiredPermission={{ resource: 'sql_pair', action: 'read' }}>
+      <SiderLayout loading={false}>
+        <PageLayout
+          title={
+            <>
+              <FunctionOutlined className="mr-2 gray-8" />
+              Manage question-SQL pairs
+            </>
+          }
+          titleExtra={
+            <Button
+              type="primary"
+              className=""
+              onClick={() => questionSqlPairModal.openModal()}
             >
-              Learn more.
-            </Link>
-          </>
-        }
-      >
-        <Table
-          className="ant-table-has-header"
-          dataSource={sqlPairs}
-          loading={loading}
-          columns={columns}
-          rowKey="id"
-          pagination={{
-            hideOnSinglePage: true,
-            pageSize: 10,
-            size: 'small',
-          }}
-          scroll={{ x: 1080 }}
-        />
-        <SQLPairDrawer
-          {...sqlPairDrawer.state}
-          onClose={sqlPairDrawer.closeDrawer}
-        />
-        <QuestionSQLPairModal
-          {...questionSqlPairModal.state}
-          onClose={questionSqlPairModal.closeModal}
-          loading={createSqlPairLoading || editSqlPairLoading}
-          onSubmit={async ({ id, data }) => {
-            if (id) {
-              await editSqlPairMutation({
-                variables: { where: { id }, data },
-              });
-            } else {
-              await createSqlPairMutation({ variables: { data } });
-            }
-          }}
-        />
-      </PageLayout>
-    </SiderLayout>
+              Add question-SQL pair
+            </Button>
+          }
+          description={
+            <>
+              On this page, you can manage your saved question-SQL pairs. These
+              pairs help NQRust - Analytics learn how your organization writes SQL, allowing
+              it to generate queries that better align with your expectations.{' '}
+              <Link
+                className="gray-8 underline"
+                href="https://docs.getanalytics.ai/oss/guide/knowledge/question-sql-pairs"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Learn more.
+              </Link>
+            </>
+          }
+        >
+          <Table
+            className="ant-table-has-header"
+            dataSource={sqlPairs}
+            loading={loading}
+            columns={columns}
+            rowKey="id"
+            pagination={{
+              hideOnSinglePage: true,
+              pageSize: 10,
+              size: 'small',
+            }}
+            scroll={{ x: 1080 }}
+          />
+          <SQLPairDrawer
+            {...sqlPairDrawer.state}
+            onClose={sqlPairDrawer.closeDrawer}
+          />
+          <QuestionSQLPairModal
+            {...questionSqlPairModal.state}
+            onClose={questionSqlPairModal.closeModal}
+            loading={createSqlPairLoading || editSqlPairLoading}
+            onSubmit={async ({ id, data }) => {
+              if (id) {
+                await editSqlPairMutation({
+                  variables: { where: { id }, data },
+                });
+              } else {
+                await createSqlPairMutation({ variables: { data } });
+              }
+            }}
+          />
+        </PageLayout>
+      </SiderLayout>
+    </ProtectedRoute>
   );
 }

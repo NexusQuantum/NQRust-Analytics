@@ -58,6 +58,87 @@ export type DashboardQueryVariables = Types.Exact<{ [key: string]: never; }>;
 
 export type DashboardQuery = { __typename?: 'Query', dashboard: { __typename?: 'DetailedDashboard', id: number, name: string, description?: string | null, cacheEnabled: boolean, nextScheduledAt?: string | null, schedule?: { __typename?: 'DashboardSchedule', frequency?: Types.ScheduleFrequencyEnum | null, hour?: number | null, minute?: number | null, day?: Types.CacheScheduleDayEnum | null, timezone?: string | null, cron?: string | null } | null, items: Array<{ __typename?: 'DashboardItem', id: number, dashboardId: number, type: Types.DashboardItemType, displayName?: string | null, layout: { __typename?: 'DashboardItemLayout', x: number, y: number, w: number, h: number }, detail: { __typename?: 'DashboardItemDetail', sql: string, chartSchema?: any | null } }> } };
 
+export type CommonDashboardFragment = { __typename?: 'Dashboard', id: number, name: string, description?: string | null, isDefault: boolean, isStarred: boolean, createdBy?: number | null, creatorEmail?: string | null, creatorDisplayName?: string | null, cacheEnabled: boolean };
+
+export type ListDashboardsQueryVariables = Types.Exact<{ [key: string]: never; }>;
+
+
+export type ListDashboardsQuery = { __typename?: 'Query', dashboards: Array<{ __typename?: 'Dashboard', id: number, name: string, description?: string | null, isDefault: boolean, isStarred: boolean, createdBy?: number | null, creatorEmail?: string | null, creatorDisplayName?: string | null, cacheEnabled: boolean }> };
+
+export type GetDashboardByIdQueryVariables = Types.Exact<{
+  id: Types.Scalars['ID'];
+}>;
+
+
+export type GetDashboardByIdQuery = { __typename?: 'Query', dashboard: { __typename?: 'DetailedDashboard', id: number, name: string, description?: string | null, isDefault: boolean, createdBy?: number | null, creatorEmail?: string | null, creatorDisplayName?: string | null, cacheEnabled: boolean, nextScheduledAt?: string | null, schedule?: { __typename?: 'DashboardSchedule', frequency?: Types.ScheduleFrequencyEnum | null, hour?: number | null, minute?: number | null, day?: Types.CacheScheduleDayEnum | null, timezone?: string | null, cron?: string | null } | null, items: Array<{ __typename?: 'DashboardItem', id: number, dashboardId: number, type: Types.DashboardItemType, displayName?: string | null, layout: { __typename?: 'DashboardItemLayout', x: number, y: number, w: number, h: number }, detail: { __typename?: 'DashboardItemDetail', sql: string, chartSchema?: any | null } }> } };
+
+export type CreateDashboardMutationVariables = Types.Exact<{
+  data: Types.CreateDashboardInput;
+}>;
+
+
+export type CreateDashboardMutation = { __typename?: 'Mutation', createDashboard: { __typename?: 'Dashboard', id: number, name: string, description?: string | null, isDefault: boolean, isStarred: boolean, createdBy?: number | null, creatorEmail?: string | null, creatorDisplayName?: string | null, cacheEnabled: boolean } };
+
+export type UpdateDashboardMutationVariables = Types.Exact<{
+  id: Types.Scalars['ID'];
+  data: Types.UpdateDashboardInput;
+}>;
+
+
+export type UpdateDashboardMutation = { __typename?: 'Mutation', updateDashboard: { __typename?: 'Dashboard', id: number, name: string, description?: string | null, isDefault: boolean, isStarred: boolean, createdBy?: number | null, creatorEmail?: string | null, creatorDisplayName?: string | null, cacheEnabled: boolean } };
+
+export type DeleteDashboardMutationVariables = Types.Exact<{
+  id: Types.Scalars['ID'];
+}>;
+
+
+export type DeleteDashboardMutation = { __typename?: 'Mutation', deleteDashboard: boolean };
+
+export type SetDefaultDashboardMutationVariables = Types.Exact<{
+  id: Types.Scalars['ID'];
+}>;
+
+
+export type SetDefaultDashboardMutation = { __typename?: 'Mutation', setDefaultDashboard: { __typename?: 'Dashboard', id: number, name: string, description?: string | null, isDefault: boolean, isStarred: boolean, createdBy?: number | null, creatorEmail?: string | null, creatorDisplayName?: string | null, cacheEnabled: boolean } };
+
+export type ShareDashboardMutationVariables = Types.Exact<{
+  dashboardId: Types.Scalars['ID'];
+  email: Types.Scalars['String'];
+  permission?: Types.InputMaybe<Types.SharePermission>;
+}>;
+
+
+export type ShareDashboardMutation = { __typename?: 'Mutation', shareDashboard: { __typename?: 'DashboardShare', id: number, dashboardId: number, userId: number, permission: Types.SharePermission } };
+
+export type UnshareDashboardMutationVariables = Types.Exact<{
+  dashboardId: Types.Scalars['ID'];
+  userId: Types.Scalars['ID'];
+}>;
+
+
+export type UnshareDashboardMutation = { __typename?: 'Mutation', unshareDashboard: boolean };
+
+export type GetSharedUsersQueryVariables = Types.Exact<{
+  dashboardId: Types.Scalars['ID'];
+}>;
+
+
+export type GetSharedUsersQuery = { __typename?: 'Query', getSharedUsers: Array<{ __typename?: 'DashboardShareWithUser', id: number, dashboardId: number, userId: number, permission: Types.SharePermission, userEmail: string, userDisplayName?: string | null }> };
+
+export type StarDashboardMutationVariables = Types.Exact<{
+  dashboardId: Types.Scalars['ID'];
+}>;
+
+
+export type StarDashboardMutation = { __typename?: 'Mutation', starDashboard: boolean };
+
+export type UnstarDashboardMutationVariables = Types.Exact<{
+  dashboardId: Types.Scalars['ID'];
+}>;
+
+
+export type UnstarDashboardMutation = { __typename?: 'Mutation', unstarDashboard: boolean };
+
 export const CommonDashboardItemFragmentDoc = gql`
     fragment CommonDashboardItem on DashboardItem {
   id
@@ -74,6 +155,19 @@ export const CommonDashboardItemFragmentDoc = gql`
     chartSchema
   }
   displayName
+}
+    `;
+export const CommonDashboardFragmentDoc = gql`
+    fragment CommonDashboard on Dashboard {
+  id
+  name
+  description
+  isDefault
+  isStarred
+  createdBy
+  creatorEmail
+  creatorDisplayName
+  cacheEnabled
 }
     `;
 export const DashboardItemsDocument = gql`
@@ -367,3 +461,398 @@ export function useDashboardLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<
 export type DashboardQueryHookResult = ReturnType<typeof useDashboardQuery>;
 export type DashboardLazyQueryHookResult = ReturnType<typeof useDashboardLazyQuery>;
 export type DashboardQueryResult = Apollo.QueryResult<DashboardQuery, DashboardQueryVariables>;
+export const ListDashboardsDocument = gql`
+    query ListDashboards {
+  dashboards {
+    ...CommonDashboard
+  }
+}
+    ${CommonDashboardFragmentDoc}`;
+
+/**
+ * __useListDashboardsQuery__
+ *
+ * To run a query within a React component, call `useListDashboardsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useListDashboardsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useListDashboardsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useListDashboardsQuery(baseOptions?: Apollo.QueryHookOptions<ListDashboardsQuery, ListDashboardsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ListDashboardsQuery, ListDashboardsQueryVariables>(ListDashboardsDocument, options);
+      }
+export function useListDashboardsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ListDashboardsQuery, ListDashboardsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ListDashboardsQuery, ListDashboardsQueryVariables>(ListDashboardsDocument, options);
+        }
+export type ListDashboardsQueryHookResult = ReturnType<typeof useListDashboardsQuery>;
+export type ListDashboardsLazyQueryHookResult = ReturnType<typeof useListDashboardsLazyQuery>;
+export type ListDashboardsQueryResult = Apollo.QueryResult<ListDashboardsQuery, ListDashboardsQueryVariables>;
+export const GetDashboardByIdDocument = gql`
+    query GetDashboardById($id: ID!) {
+  dashboard(id: $id) {
+    id
+    name
+    description
+    isDefault
+    createdBy
+    creatorEmail
+    creatorDisplayName
+    cacheEnabled
+    nextScheduledAt
+    schedule {
+      frequency
+      hour
+      minute
+      day
+      timezone
+      cron
+    }
+    items {
+      ...CommonDashboardItem
+    }
+  }
+}
+    ${CommonDashboardItemFragmentDoc}`;
+
+/**
+ * __useGetDashboardByIdQuery__
+ *
+ * To run a query within a React component, call `useGetDashboardByIdQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetDashboardByIdQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetDashboardByIdQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetDashboardByIdQuery(baseOptions: Apollo.QueryHookOptions<GetDashboardByIdQuery, GetDashboardByIdQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetDashboardByIdQuery, GetDashboardByIdQueryVariables>(GetDashboardByIdDocument, options);
+      }
+export function useGetDashboardByIdLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetDashboardByIdQuery, GetDashboardByIdQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetDashboardByIdQuery, GetDashboardByIdQueryVariables>(GetDashboardByIdDocument, options);
+        }
+export type GetDashboardByIdQueryHookResult = ReturnType<typeof useGetDashboardByIdQuery>;
+export type GetDashboardByIdLazyQueryHookResult = ReturnType<typeof useGetDashboardByIdLazyQuery>;
+export type GetDashboardByIdQueryResult = Apollo.QueryResult<GetDashboardByIdQuery, GetDashboardByIdQueryVariables>;
+export const CreateDashboardDocument = gql`
+    mutation CreateDashboard($data: CreateDashboardInput!) {
+  createDashboard(data: $data) {
+    ...CommonDashboard
+  }
+}
+    ${CommonDashboardFragmentDoc}`;
+export type CreateDashboardMutationFn = Apollo.MutationFunction<CreateDashboardMutation, CreateDashboardMutationVariables>;
+
+/**
+ * __useCreateDashboardMutation__
+ *
+ * To run a mutation, you first call `useCreateDashboardMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateDashboardMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createDashboardMutation, { data, loading, error }] = useCreateDashboardMutation({
+ *   variables: {
+ *      data: // value for 'data'
+ *   },
+ * });
+ */
+export function useCreateDashboardMutation(baseOptions?: Apollo.MutationHookOptions<CreateDashboardMutation, CreateDashboardMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateDashboardMutation, CreateDashboardMutationVariables>(CreateDashboardDocument, options);
+      }
+export type CreateDashboardMutationHookResult = ReturnType<typeof useCreateDashboardMutation>;
+export type CreateDashboardMutationResult = Apollo.MutationResult<CreateDashboardMutation>;
+export type CreateDashboardMutationOptions = Apollo.BaseMutationOptions<CreateDashboardMutation, CreateDashboardMutationVariables>;
+export const UpdateDashboardDocument = gql`
+    mutation UpdateDashboard($id: ID!, $data: UpdateDashboardInput!) {
+  updateDashboard(id: $id, data: $data) {
+    ...CommonDashboard
+  }
+}
+    ${CommonDashboardFragmentDoc}`;
+export type UpdateDashboardMutationFn = Apollo.MutationFunction<UpdateDashboardMutation, UpdateDashboardMutationVariables>;
+
+/**
+ * __useUpdateDashboardMutation__
+ *
+ * To run a mutation, you first call `useUpdateDashboardMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateDashboardMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateDashboardMutation, { data, loading, error }] = useUpdateDashboardMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      data: // value for 'data'
+ *   },
+ * });
+ */
+export function useUpdateDashboardMutation(baseOptions?: Apollo.MutationHookOptions<UpdateDashboardMutation, UpdateDashboardMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateDashboardMutation, UpdateDashboardMutationVariables>(UpdateDashboardDocument, options);
+      }
+export type UpdateDashboardMutationHookResult = ReturnType<typeof useUpdateDashboardMutation>;
+export type UpdateDashboardMutationResult = Apollo.MutationResult<UpdateDashboardMutation>;
+export type UpdateDashboardMutationOptions = Apollo.BaseMutationOptions<UpdateDashboardMutation, UpdateDashboardMutationVariables>;
+export const DeleteDashboardDocument = gql`
+    mutation DeleteDashboard($id: ID!) {
+  deleteDashboard(id: $id)
+}
+    `;
+export type DeleteDashboardMutationFn = Apollo.MutationFunction<DeleteDashboardMutation, DeleteDashboardMutationVariables>;
+
+/**
+ * __useDeleteDashboardMutation__
+ *
+ * To run a mutation, you first call `useDeleteDashboardMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteDashboardMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteDashboardMutation, { data, loading, error }] = useDeleteDashboardMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteDashboardMutation(baseOptions?: Apollo.MutationHookOptions<DeleteDashboardMutation, DeleteDashboardMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteDashboardMutation, DeleteDashboardMutationVariables>(DeleteDashboardDocument, options);
+      }
+export type DeleteDashboardMutationHookResult = ReturnType<typeof useDeleteDashboardMutation>;
+export type DeleteDashboardMutationResult = Apollo.MutationResult<DeleteDashboardMutation>;
+export type DeleteDashboardMutationOptions = Apollo.BaseMutationOptions<DeleteDashboardMutation, DeleteDashboardMutationVariables>;
+export const SetDefaultDashboardDocument = gql`
+    mutation SetDefaultDashboard($id: ID!) {
+  setDefaultDashboard(id: $id) {
+    ...CommonDashboard
+  }
+}
+    ${CommonDashboardFragmentDoc}`;
+export type SetDefaultDashboardMutationFn = Apollo.MutationFunction<SetDefaultDashboardMutation, SetDefaultDashboardMutationVariables>;
+
+/**
+ * __useSetDefaultDashboardMutation__
+ *
+ * To run a mutation, you first call `useSetDefaultDashboardMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSetDefaultDashboardMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [setDefaultDashboardMutation, { data, loading, error }] = useSetDefaultDashboardMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useSetDefaultDashboardMutation(baseOptions?: Apollo.MutationHookOptions<SetDefaultDashboardMutation, SetDefaultDashboardMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SetDefaultDashboardMutation, SetDefaultDashboardMutationVariables>(SetDefaultDashboardDocument, options);
+      }
+export type SetDefaultDashboardMutationHookResult = ReturnType<typeof useSetDefaultDashboardMutation>;
+export type SetDefaultDashboardMutationResult = Apollo.MutationResult<SetDefaultDashboardMutation>;
+export type SetDefaultDashboardMutationOptions = Apollo.BaseMutationOptions<SetDefaultDashboardMutation, SetDefaultDashboardMutationVariables>;
+export const ShareDashboardDocument = gql`
+    mutation ShareDashboard($dashboardId: ID!, $email: String!, $permission: SharePermission) {
+  shareDashboard(
+    dashboardId: $dashboardId
+    email: $email
+    permission: $permission
+  ) {
+    id
+    dashboardId
+    userId
+    permission
+  }
+}
+    `;
+export type ShareDashboardMutationFn = Apollo.MutationFunction<ShareDashboardMutation, ShareDashboardMutationVariables>;
+
+/**
+ * __useShareDashboardMutation__
+ *
+ * To run a mutation, you first call `useShareDashboardMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useShareDashboardMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [shareDashboardMutation, { data, loading, error }] = useShareDashboardMutation({
+ *   variables: {
+ *      dashboardId: // value for 'dashboardId'
+ *      email: // value for 'email'
+ *      permission: // value for 'permission'
+ *   },
+ * });
+ */
+export function useShareDashboardMutation(baseOptions?: Apollo.MutationHookOptions<ShareDashboardMutation, ShareDashboardMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ShareDashboardMutation, ShareDashboardMutationVariables>(ShareDashboardDocument, options);
+      }
+export type ShareDashboardMutationHookResult = ReturnType<typeof useShareDashboardMutation>;
+export type ShareDashboardMutationResult = Apollo.MutationResult<ShareDashboardMutation>;
+export type ShareDashboardMutationOptions = Apollo.BaseMutationOptions<ShareDashboardMutation, ShareDashboardMutationVariables>;
+export const UnshareDashboardDocument = gql`
+    mutation UnshareDashboard($dashboardId: ID!, $userId: ID!) {
+  unshareDashboard(dashboardId: $dashboardId, userId: $userId)
+}
+    `;
+export type UnshareDashboardMutationFn = Apollo.MutationFunction<UnshareDashboardMutation, UnshareDashboardMutationVariables>;
+
+/**
+ * __useUnshareDashboardMutation__
+ *
+ * To run a mutation, you first call `useUnshareDashboardMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUnshareDashboardMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [unshareDashboardMutation, { data, loading, error }] = useUnshareDashboardMutation({
+ *   variables: {
+ *      dashboardId: // value for 'dashboardId'
+ *      userId: // value for 'userId'
+ *   },
+ * });
+ */
+export function useUnshareDashboardMutation(baseOptions?: Apollo.MutationHookOptions<UnshareDashboardMutation, UnshareDashboardMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UnshareDashboardMutation, UnshareDashboardMutationVariables>(UnshareDashboardDocument, options);
+      }
+export type UnshareDashboardMutationHookResult = ReturnType<typeof useUnshareDashboardMutation>;
+export type UnshareDashboardMutationResult = Apollo.MutationResult<UnshareDashboardMutation>;
+export type UnshareDashboardMutationOptions = Apollo.BaseMutationOptions<UnshareDashboardMutation, UnshareDashboardMutationVariables>;
+export const GetSharedUsersDocument = gql`
+    query GetSharedUsers($dashboardId: ID!) {
+  getSharedUsers(dashboardId: $dashboardId) {
+    id
+    dashboardId
+    userId
+    permission
+    userEmail
+    userDisplayName
+  }
+}
+    `;
+
+/**
+ * __useGetSharedUsersQuery__
+ *
+ * To run a query within a React component, call `useGetSharedUsersQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetSharedUsersQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetSharedUsersQuery({
+ *   variables: {
+ *      dashboardId: // value for 'dashboardId'
+ *   },
+ * });
+ */
+export function useGetSharedUsersQuery(baseOptions: Apollo.QueryHookOptions<GetSharedUsersQuery, GetSharedUsersQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetSharedUsersQuery, GetSharedUsersQueryVariables>(GetSharedUsersDocument, options);
+      }
+export function useGetSharedUsersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetSharedUsersQuery, GetSharedUsersQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetSharedUsersQuery, GetSharedUsersQueryVariables>(GetSharedUsersDocument, options);
+        }
+export type GetSharedUsersQueryHookResult = ReturnType<typeof useGetSharedUsersQuery>;
+export type GetSharedUsersLazyQueryHookResult = ReturnType<typeof useGetSharedUsersLazyQuery>;
+export type GetSharedUsersQueryResult = Apollo.QueryResult<GetSharedUsersQuery, GetSharedUsersQueryVariables>;
+export const StarDashboardDocument = gql`
+    mutation StarDashboard($dashboardId: ID!) {
+  starDashboard(dashboardId: $dashboardId)
+}
+    `;
+export type StarDashboardMutationFn = Apollo.MutationFunction<StarDashboardMutation, StarDashboardMutationVariables>;
+
+/**
+ * __useStarDashboardMutation__
+ *
+ * To run a mutation, you first call `useStarDashboardMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useStarDashboardMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [starDashboardMutation, { data, loading, error }] = useStarDashboardMutation({
+ *   variables: {
+ *      dashboardId: // value for 'dashboardId'
+ *   },
+ * });
+ */
+export function useStarDashboardMutation(baseOptions?: Apollo.MutationHookOptions<StarDashboardMutation, StarDashboardMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<StarDashboardMutation, StarDashboardMutationVariables>(StarDashboardDocument, options);
+      }
+export type StarDashboardMutationHookResult = ReturnType<typeof useStarDashboardMutation>;
+export type StarDashboardMutationResult = Apollo.MutationResult<StarDashboardMutation>;
+export type StarDashboardMutationOptions = Apollo.BaseMutationOptions<StarDashboardMutation, StarDashboardMutationVariables>;
+export const UnstarDashboardDocument = gql`
+    mutation UnstarDashboard($dashboardId: ID!) {
+  unstarDashboard(dashboardId: $dashboardId)
+}
+    `;
+export type UnstarDashboardMutationFn = Apollo.MutationFunction<UnstarDashboardMutation, UnstarDashboardMutationVariables>;
+
+/**
+ * __useUnstarDashboardMutation__
+ *
+ * To run a mutation, you first call `useUnstarDashboardMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUnstarDashboardMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [unstarDashboardMutation, { data, loading, error }] = useUnstarDashboardMutation({
+ *   variables: {
+ *      dashboardId: // value for 'dashboardId'
+ *   },
+ * });
+ */
+export function useUnstarDashboardMutation(baseOptions?: Apollo.MutationHookOptions<UnstarDashboardMutation, UnstarDashboardMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UnstarDashboardMutation, UnstarDashboardMutationVariables>(UnstarDashboardDocument, options);
+      }
+export type UnstarDashboardMutationHookResult = ReturnType<typeof useUnstarDashboardMutation>;
+export type UnstarDashboardMutationResult = Apollo.MutationResult<UnstarDashboardMutation>;
+export type UnstarDashboardMutationOptions = Apollo.BaseMutationOptions<UnstarDashboardMutation, UnstarDashboardMutationVariables>;

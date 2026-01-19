@@ -2,6 +2,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { Dropdown, Menu } from 'antd';
 import MoreOutlined from '@ant-design/icons/MoreOutlined';
+import ShareAltOutlined from '@ant-design/icons/ShareAltOutlined';
 import { Pencil } from 'lucide-react';
 import LabelTitle from '@/components/sidebar/LabelTitle';
 import TreeTitleInput from '@/components/sidebar/home/TreeTitleInput';
@@ -9,6 +10,7 @@ import { DeleteThreadModal } from '@/components/modals/DeleteModal';
 
 const MENU_ITEM_KEYS = {
   RENAME: 'rename',
+  SHARE: 'share',
   DELETE: 'delete',
 };
 
@@ -23,10 +25,11 @@ interface TreeTitleProps {
   title: string;
   onDelete?: (id: string) => void;
   onRename?: (id: string, newName: string) => void;
+  onShare?: (id: string, name: string) => void;
 }
 
 export default function TreeTitle(props: TreeTitleProps) {
-  const { id, onDelete, onRename } = props;
+  const { id, onDelete, onRename, onShare } = props;
   const [title, setTitle] = useState(props.title);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -73,6 +76,19 @@ export default function TreeTitle(props: TreeTitleProps) {
                   onClick: ({ domEvent }) => {
                     domEvent.stopPropagation();
                     setIsEditing(true);
+                  },
+                },
+                {
+                  label: (
+                    <span className="d-flex align-center">
+                      <ShareAltOutlined className="mr-2" style={{ fontSize: 16 }} />
+                      Share
+                    </span>
+                  ),
+                  key: MENU_ITEM_KEYS.SHARE,
+                  onClick: ({ domEvent }) => {
+                    domEvent.stopPropagation();
+                    onShare && onShare(id, title);
                   },
                 },
                 {

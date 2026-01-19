@@ -43,6 +43,11 @@ const bootstrapServer = async () => {
     modelNestedColumnRepository,
     dashboardRepository,
     dashboardItemRepository,
+    dashboardShareRepository,
+    starredDashboardRepository,
+    threadRepository,
+    threadShareRepository,
+    userRepository,
     sqlPairRepository,
     instructionRepository,
     apiHistoryRepository,
@@ -66,6 +71,7 @@ const bootstrapServer = async () => {
     projectRecommendQuestionBackgroundTracker,
     threadRecommendQuestionBackgroundTracker,
     dashboardCacheBackgroundTracker,
+    knex,
   } = components;
 
   const modelService = new ModelService({
@@ -125,44 +131,60 @@ const bootstrapServer = async () => {
       return defaultApolloErrorHandler(error);
     },
     introspection: process.env.NODE_ENV !== 'production',
-    context: (): IContext => ({
-      config: serverConfig,
-      telemetry,
-      // adaptor
-      analyticsEngineAdaptor,
-      ibisServerAdaptor: ibisAdaptor,
-      analyticsAIAdaptor,
-      // services
-      projectService,
-      modelService,
-      mdlService,
-      deployService,
-      askingService,
-      queryService,
-      dashboardService,
-      sqlPairService,
-      instructionService,
-      // repository
-      projectRepository,
-      modelRepository,
-      modelColumnRepository,
-      modelNestedColumnRepository,
-      relationRepository,
-      viewRepository,
-      deployRepository: deployLogRepository,
-      schemaChangeRepository,
-      learningRepository,
-      dashboardRepository,
-      dashboardItemRepository,
-      sqlPairRepository,
-      instructionRepository,
-      apiHistoryRepository,
-      dashboardItemRefreshJobRepository,
-      // background trackers
-      projectRecommendQuestionBackgroundTracker,
-      threadRecommendQuestionBackgroundTracker,
-      dashboardCacheBackgroundTracker,
-    }),
+    context: async ({ req }): Promise<IContext & { user?: any; ipAddress?: string; knex: typeof knex }> => {
+      // Extract authentication from request
+      const { user, ipAddress } = await import('@server/middleware/authMiddleware')
+        .then(mod => mod.createAuthContext(req, knex))
+        .catch(() => ({ user: null, ipAddress: undefined }));
+
+      return {
+        config: serverConfig,
+        telemetry,
+        // auth context
+        user,
+        ipAddress,
+        knex,
+        // adaptor
+        analyticsEngineAdaptor,
+        ibisServerAdaptor: ibisAdaptor,
+        analyticsAIAdaptor,
+        // services
+        projectService,
+        modelService,
+        mdlService,
+        deployService,
+        askingService,
+        queryService,
+        dashboardService,
+        sqlPairService,
+        instructionService,
+        // repository
+        projectRepository,
+        modelRepository,
+        modelColumnRepository,
+        modelNestedColumnRepository,
+        relationRepository,
+        viewRepository,
+        deployRepository: deployLogRepository,
+        schemaChangeRepository,
+        learningRepository,
+        dashboardRepository,
+        dashboardItemRepository,
+        dashboardShareRepository,
+        starredDashboardRepository,
+        threadRepository,
+        threadShareRepository,
+        userRepository,
+        sqlPairRepository,
+        instructionRepository,
+        apiHistoryRepository,
+        dashboardItemRefreshJobRepository,
+        // background trackers
+        projectRecommendQuestionBackgroundTracker,
+        threadRecommendQuestionBackgroundTracker,
+        dashboardCacheBackgroundTracker,
+      };
+    },
   });
   await apolloServer.start();
   return apolloServer;

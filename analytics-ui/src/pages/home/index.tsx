@@ -10,6 +10,7 @@ import useHomeSidebar from '@/hooks/useHomeSidebar';
 import useAskPrompt from '@/hooks/useAskPrompt';
 import useRecommendedQuestionsInstruction from '@/hooks/useRecommendedQuestionsInstruction';
 import RecommendedQuestionsPrompt from '@/components/pages/home/prompt/RecommendedQuestionsPrompt';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import {
   useSuggestedQuestionsQuery,
   useCreateThreadMutation,
@@ -132,25 +133,27 @@ export default function Home() {
   };
 
   return (
-    <SiderLayout loading={false} sidebar={homeSidebar}>
-      {isSampleDataset && (
-        <SampleQuestionsInstruction
-          sampleQuestions={sampleQuestions}
-          onSelect={onSelectQuestion}
-        />
-      )}
+    <ProtectedRoute>
+      <SiderLayout loading={false} sidebar={homeSidebar}>
+        {isSampleDataset && (
+          <SampleQuestionsInstruction
+            sampleQuestions={sampleQuestions}
+            onSelect={onSelectQuestion}
+          />
+        )}
 
-      {!isSampleDataset && (
-        <RecommendedQuestionsInstruction
-          onSelect={onCreateResponse}
-          loading={threadCreating}
+        {!isSampleDataset && (
+          <RecommendedQuestionsInstruction
+            onSelect={onCreateResponse}
+            loading={threadCreating}
+          />
+        )}
+        <Prompt
+          ref={$prompt}
+          {...askPrompt}
+          onCreateResponse={onCreateResponse}
         />
-      )}
-      <Prompt
-        ref={$prompt}
-        {...askPrompt}
-        onCreateResponse={onCreateResponse}
-      />
-    </SiderLayout>
+      </SiderLayout>
+    </ProtectedRoute>
   );
 }

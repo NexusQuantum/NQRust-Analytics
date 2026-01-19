@@ -8,6 +8,7 @@ import { DashboardResolver } from './resolvers/dashboardResolver';
 import { SqlPairResolver } from './resolvers/sqlPairResolver';
 import { InstructionResolver } from './resolvers/instructionResolver';
 import { ApiHistoryResolver } from './resolvers/apiHistoryResolver';
+import { AuthResolver } from './resolvers/authResolver';
 import { convertColumnType } from '@server/utils';
 import { DialectSQLScalar } from './scalars';
 
@@ -20,6 +21,7 @@ const dashboardResolver = new DashboardResolver();
 const sqlPairResolver = new SqlPairResolver();
 const instructionResolver = new InstructionResolver();
 const apiHistoryResolver = new ApiHistoryResolver();
+const authResolver = new AuthResolver();
 const resolvers = {
   JSON: GraphQLJSON,
   DialectSQL: DialectSQLScalar,
@@ -46,6 +48,7 @@ const resolvers = {
     threads: askingResolver.listThreads,
     threadResponse: askingResolver.getResponse,
     nativeSql: modelResolver.getNativeSql,
+    getThreadSharedUsers: askingResolver.getThreadSharedUsers,
 
     // Views
     listViews: modelResolver.listViews,
@@ -67,6 +70,8 @@ const resolvers = {
     // Dashboard
     dashboardItems: dashboardResolver.getDashboardItems,
     dashboard: dashboardResolver.getDashboard,
+    dashboards: dashboardResolver.listDashboards,
+    getSharedUsers: dashboardResolver.getSharedUsers,
 
     // SQL Pairs
     sqlPairs: sqlPairResolver.getProjectSqlPairs,
@@ -75,6 +80,15 @@ const resolvers = {
 
     // API History
     apiHistory: apiHistoryResolver.getApiHistory,
+
+    // User Management
+    me: authResolver.me,
+    users: authResolver.users,
+    user: authResolver.user,
+    roles: authResolver.roles,
+    role: authResolver.role,
+    permissions: authResolver.permissions,
+    projectMembers: authResolver.projectMembers,
   },
   Mutation: {
     deploy: modelResolver.deploy,
@@ -117,6 +131,9 @@ const resolvers = {
     createThread: askingResolver.createThread,
     updateThread: askingResolver.updateThread,
     deleteThread: askingResolver.deleteThread,
+    // Thread Sharing
+    shareThread: askingResolver.shareThread,
+    unshareThread: askingResolver.unshareThread,
     createThreadResponse: askingResolver.createThreadResponse,
     updateThreadResponse: askingResolver.updateThreadResponse,
     previewData: askingResolver.previewData,
@@ -166,6 +183,17 @@ const resolvers = {
     deleteDashboardItem: dashboardResolver.deleteDashboardItem,
     previewItemSQL: dashboardResolver.previewItemSQL,
     setDashboardSchedule: dashboardResolver.setDashboardSchedule,
+    // Multi-Dashboard Management
+    createDashboard: dashboardResolver.createDashboard,
+    updateDashboard: dashboardResolver.updateDashboard,
+    deleteDashboard: dashboardResolver.deleteDashboard,
+    setDefaultDashboard: dashboardResolver.setDefaultDashboard,
+    // Dashboard Sharing
+    shareDashboard: dashboardResolver.shareDashboard,
+    unshareDashboard: dashboardResolver.unshareDashboard,
+    // Dashboard Starring
+    starDashboard: dashboardResolver.starDashboard,
+    unstarDashboard: dashboardResolver.unstarDashboard,
 
     // SQL Pairs
     createSqlPair: sqlPairResolver.createSqlPair,
@@ -177,6 +205,30 @@ const resolvers = {
     createInstruction: instructionResolver.createInstruction,
     updateInstruction: instructionResolver.updateInstruction,
     deleteInstruction: instructionResolver.deleteInstruction,
+
+    // Auth
+    register: authResolver.register,
+    login: authResolver.login,
+    logout: authResolver.logout,
+    changePassword: authResolver.changePassword,
+    requestPasswordReset: authResolver.requestPasswordReset,
+    refreshToken: authResolver.refreshToken,
+    revokeAllSessions: authResolver.revokeAllSessions,
+
+    // User Management
+    createUser: authResolver.createUser,
+    updateUser: authResolver.updateUser,
+    deleteUser: authResolver.deleteUser,
+
+    // Role Management
+    createRole: authResolver.createRole,
+    updateRole: authResolver.updateRole,
+    deleteRole: authResolver.deleteRole,
+
+    // Project Members
+    inviteProjectMember: authResolver.inviteProjectMember,
+    updateProjectMember: authResolver.updateProjectMember,
+    removeProjectMember: authResolver.removeProjectMember,
   },
   ThreadResponse: askingResolver.getThreadResponseNestedResolver(),
   DetailStep: askingResolver.getDetailStepNestedResolver(),
@@ -196,6 +248,11 @@ const resolvers = {
 
   // Add ApiHistoryResponse nested resolvers
   ApiHistoryResponse: apiHistoryResolver.getApiHistoryNestedResolver(),
+
+  // Add User Management nested resolvers
+  User: authResolver.getUserNestedResolver(),
+  Role: authResolver.getRoleNestedResolver(),
+  ProjectMember: authResolver.getProjectMemberNestedResolver(),
 };
 
 export default resolvers;
