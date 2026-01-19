@@ -27,14 +27,14 @@ exports.up = async function (knex) {
     }
 
     // Set the first dashboard per project as default
+    // Use SQLite-compatible syntax (no table alias in UPDATE)
     await knex.raw(`
-    UPDATE dashboard d
-    SET is_default = true
-    WHERE id = (
+    UPDATE dashboard
+    SET is_default = 1
+    WHERE id IN (
       SELECT MIN(d2.id)
       FROM dashboard d2
-      WHERE d2.project_id = d.project_id
-        AND d2.created_by = d.created_by
+      GROUP BY d2.project_id, d2.created_by
     )
   `);
 
