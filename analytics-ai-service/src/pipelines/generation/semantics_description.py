@@ -13,7 +13,7 @@ from src.core.pipeline import EnhancedBasicPipeline
 from src.core.provider import LLMProvider
 from src.pipelines.common import clean_up_new_lines
 from src.pipelines.indexing import clean_display_name
-from src.utils import trace_cost
+from src.utils import add_additional_properties_false, trace_cost
 
 logger = logging.getLogger("analytics-service")
 
@@ -237,7 +237,7 @@ SEMANTICS_DESCRIPTION_MODEL_KWARGS = {
         "type": "json_schema",
         "json_schema": {
             "name": "semantic_description",
-            "schema": SemanticResult.model_json_schema(),
+            "schema": add_additional_properties_false(SemanticResult.model_json_schema()),
         },
     }
 }

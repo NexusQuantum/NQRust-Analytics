@@ -17,7 +17,7 @@ from src.pipelines.generation.utils.chart import (
     ChartGenerationResults,
     chart_generation_instructions,
 )
-from src.utils import trace_cost
+from src.utils import add_additional_properties_false, trace_cost
 
 logger = logging.getLogger("analytics-service")
 
@@ -186,7 +186,7 @@ CHART_GENERATION_MODEL_KWARGS = {
         "type": "json_schema",
         "json_schema": {
             "name": "chart_generation_schema",
-            "schema": ChartGenerationResults.model_json_schema(),
+            "schema": add_additional_properties_false(ChartGenerationResults.model_json_schema()),
         },
     }
 }

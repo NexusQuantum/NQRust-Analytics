@@ -15,7 +15,7 @@ from src.core.pipeline import EnhancedBasicPipeline
 from src.core.provider import DocumentStoreProvider, EmbedderProvider, LLMProvider
 from src.pipelines.common import build_table_ddl, clean_up_new_lines
 from src.pipelines.generation.utils.sql import construct_instructions
-from src.utils import trace_cost
+from src.utils import add_additional_properties_false, trace_cost
 from src.web.v1.services import Configuration
 from src.web.v1.services.ask import AskHistory
 
@@ -316,7 +316,7 @@ INTENT_CLASSIFICAION_MODEL_KWARGS = {
         "type": "json_schema",
         "json_schema": {
             "name": "intent_classification",
-            "schema": IntentClassificationResult.model_json_schema(),
+            "schema": add_additional_properties_false(IntentClassificationResult.model_json_schema()),
         },
     }
 }

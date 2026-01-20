@@ -218,3 +218,28 @@ def extract_braces_content(resp: str) -> str:
     """
     match = re.search(r"```json\s*(\{.*?\})\s*```", resp, re.DOTALL)
     return match.group(1) if match else resp
+
+
+def add_additional_properties_false(schema: dict) -> dict:
+    """
+    Recursively add additionalProperties: false to all objects in a JSON schema.
+    This is required for Anthropic/Claude API compatibility when using structured outputs.
+
+    Args:
+        schema: A JSON schema dictionary (typically from Pydantic's model_json_schema())
+
+    Returns:
+        The modified schema with additionalProperties: false added to all object types
+    """
+    if isinstance(schema, dict):
+        # Add additionalProperties: false to objects
+        if schema.get("type") == "object" or "properties" in schema:
+            schema["additionalProperties"] = False
+        # Recursively process all values
+        for value in schema.values():
+            add_additional_properties_false(value)
+    elif isinstance(schema, list):
+        # Recursively process list items
+        for item in schema:
+            add_additional_properties_false(item)
+    return schema

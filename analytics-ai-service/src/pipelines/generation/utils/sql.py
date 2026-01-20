@@ -12,6 +12,7 @@ from src.core.engine import (
     add_quotes,
     clean_generation_result,
 )
+from src.utils import add_additional_properties_false
 from src.web.v1.services.ask import AskHistory
 
 logger = logging.getLogger("analytics-service")
@@ -534,7 +535,7 @@ SQL_GENERATION_MODEL_KWARGS = {
         "type": "json_schema",
         "json_schema": {
             "name": "sql_generation_result",
-            "schema": SqlGenerationResult.model_json_schema(),
+            "schema": add_additional_properties_false(SqlGenerationResult.model_json_schema()),
         },
     }
 }

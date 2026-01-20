@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from src.core.pipeline import EnhancedBasicPipeline
 from src.core.provider import LLMProvider
 from src.pipelines.common import clean_up_new_lines
-from src.utils import trace_cost
+from src.utils import add_additional_properties_false, trace_cost
 
 logger = logging.getLogger("analytics-service")
 
@@ -141,7 +141,7 @@ SQL_TABLES_EXTRACTION_MODEL_KWARGS = {
         "type": "json_schema",
         "json_schema": {
             "name": "sql_tables_extraction_result",
-            "schema": SQLTablesExtractionResult.model_json_schema(),
+            "schema": add_additional_properties_false(SQLTablesExtractionResult.model_json_schema()),
         },
     }
 }

@@ -17,7 +17,7 @@ from src.pipelines.generation.utils.chart import (
     ChartGenerationResults,
     chart_generation_instructions,
 )
-from src.utils import trace_cost
+from src.utils import add_additional_properties_false, trace_cost
 from src.web.v1.services.chart_adjustment import ChartAdjustmentOption
 
 logger = logging.getLogger("analytics-service")
@@ -205,7 +205,7 @@ CHART_ADJUSTMENT_MODEL_KWARGS = {
         "type": "json_schema",
         "json_schema": {
             "name": "chart_adjustment_results",
-            "schema": ChartGenerationResults.model_json_schema(),
+            "schema": add_additional_properties_false(ChartGenerationResults.model_json_schema()),
         },
     }
 }

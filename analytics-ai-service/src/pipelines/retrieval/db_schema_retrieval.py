@@ -19,7 +19,7 @@ from src.pipelines.common import (
     clean_up_new_lines,
     get_engine_supported_data_type,
 )
-from src.utils import trace_cost
+from src.utils import add_additional_properties_false, trace_cost
 from src.web.v1.services.ask import AskHistory
 
 logger = logging.getLogger("analytics-service")
@@ -443,7 +443,7 @@ RETRIEVAL_MODEL_KWARGS = {
         "type": "json_schema",
         "json_schema": {
             "name": "retrieval_schema",
-            "schema": RetrievalResults.model_json_schema(),
+            "schema": add_additional_properties_false(RetrievalResults.model_json_schema()),
         },
     }
 }
