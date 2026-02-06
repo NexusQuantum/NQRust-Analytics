@@ -28,6 +28,11 @@ export interface IDashboardShareRepository
         dashboardId: number,
         userId: number,
     ): Promise<DashboardShare | null>;
+    upsertShare(
+        dashboardId: number,
+        userId: number,
+        permission: SharePermission,
+    ): Promise<DashboardShare>;
     deleteByDashboardAndUser(dashboardId: number, userId: number): Promise<boolean>;
 }
 
@@ -71,6 +76,27 @@ export class DashboardShareRepository
         userId: number,
     ): Promise<DashboardShare | null> {
         return this.findOneBy({ dashboardId, userId });
+    }
+
+    /**
+     * Atomically insert or update a share record.
+     * Uses ON CONFLICT to handle concurrent share requests safely.
+     */
+    public async upsertShare(
+        dashboardId: number,
+        userId: number,
+        permission: SharePermission,
+    ): Promise<DashboardShare> {
+        const [result] = await this.knex('dashboard_share')
+            .insert({
+                dashboard_id: dashboardId,
+                user_id: userId,
+                permission,
+            })
+            .onConflict(['dashboard_id', 'user_id'])
+            .merge({ permission, updated_at: this.knex.fn.now() })
+            .returning('*');
+        return this.transformFromDBData(result);
     }
 
     public async deleteByDashboardAndUser(

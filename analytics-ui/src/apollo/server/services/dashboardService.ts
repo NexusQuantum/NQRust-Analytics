@@ -613,23 +613,36 @@ export class DashboardService implements IDashboardService {
   ): Promise<Dashboard & { isStarred: boolean }> {
     const project = await this.projectService.getCurrentProject();
 
-    // Check if this is the user's first dashboard
-    const existingDashboards =
-      await this.dashboardRepository.findAccessibleByUser(project.id, userId);
-    const isFirst = existingDashboards.filter((d) => d.createdBy === userId).length === 0;
+    // Use a transaction so the "is first?" check and the insert are atomic.
+    // Prevents concurrent creates from both becoming the default.
+    const tx = await this.dashboardRepository.transaction();
+    try {
+      // Check owned dashboards inside the transaction (findAllBy supports tx)
+      const ownedDashboards = await this.dashboardRepository.findAllBy(
+        { projectId: project.id, createdBy: userId } as Partial<Dashboard>,
+        { tx },
+      );
+      const isFirst = ownedDashboards.length === 0;
 
-    const dashboard = await this.dashboardRepository.createOne({
-      name: input.name,
-      description: input.description,
-      projectId: project.id,
-      createdBy: userId,
-      isDefault: isFirst, // First dashboard is default
-      cacheEnabled: false,
-    });
+      const dashboard = await this.dashboardRepository.createOne(
+        {
+          name: input.name,
+          description: input.description,
+          projectId: project.id,
+          createdBy: userId,
+          isDefault: isFirst,
+          cacheEnabled: false,
+        },
+        { tx },
+      );
 
-    logger.info(`Dashboard created: ${dashboard.id} by user ${userId}`);
-    // Return with isStarred: false since a new dashboard cannot be starred yet
-    return { ...dashboard, isStarred: false };
+      await this.dashboardRepository.commit(tx);
+      logger.info(`Dashboard created: ${dashboard.id} by user ${userId}`);
+      return { ...dashboard, isStarred: false };
+    } catch (error) {
+      await this.dashboardRepository.rollback(tx);
+      throw error;
+    }
   }
 
   /**
@@ -673,24 +686,32 @@ export class DashboardService implements IDashboardService {
       throw new Error('Dashboard not found');
     }
 
-    // If deleting the default dashboard, set another one as default
-    if (dashboard.isDefault) {
-      const project = await this.projectService.getCurrentProject();
-      const otherDashboards =
-        await this.dashboardRepository.findAccessibleByUser(project.id, userId);
-      const nextDefault = otherDashboards.find(
-        (d) => d.id !== dashboardId && d.createdBy === userId,
-      );
-      if (nextDefault) {
-        await this.dashboardRepository.updateOne(nextDefault.id, {
-          isDefault: true,
-        });
+    // Use a transaction to atomically reassign the default and delete.
+    // Prevents concurrent deletes from corrupting the default state.
+    const tx = await this.dashboardRepository.transaction();
+    try {
+      if (dashboard.isDefault) {
+        // Find another owned dashboard to become the new default (findAllBy supports tx)
+        const ownedDashboards = await this.dashboardRepository.findAllBy(
+          { projectId: dashboard.projectId, createdBy: userId } as Partial<Dashboard>,
+          { tx },
+        );
+        const nextDefault = ownedDashboards.find((d) => d.id !== dashboardId);
+        if (nextDefault) {
+          await this.dashboardRepository.updateOne(nextDefault.id, {
+            isDefault: true,
+          }, { tx });
+        }
       }
-    }
 
-    await this.dashboardRepository.deleteOne(dashboardId.toString());
-    logger.info(`Dashboard deleted: ${dashboardId} by user ${userId}`);
-    return true;
+      await this.dashboardRepository.deleteOne(dashboardId.toString(), { tx });
+      await this.dashboardRepository.commit(tx);
+      logger.info(`Dashboard deleted: ${dashboardId} by user ${userId}`);
+      return true;
+    } catch (error) {
+      await this.dashboardRepository.rollback(tx);
+      throw error;
+    }
   }
 
   /**
@@ -739,25 +760,13 @@ export class DashboardService implements IDashboardService {
       throw new Error('Cannot share dashboard with yourself');
     }
 
-    // Check if already shared
-    const existingShare =
-      await this.dashboardShareRepository.findByDashboardAndUser(
-        dashboardId,
-        targetUser.id,
-      );
-    if (existingShare) {
-      // Update permission if already shared
-      return this.dashboardShareRepository.updateOne(existingShare.id, {
-        permission,
-      });
-    }
-
-    // Create new share
-    const share = await this.dashboardShareRepository.createOne({
+    // Atomic upsert: insert or update the share in a single operation.
+    // Prevents duplicate key errors from concurrent share requests.
+    const share = await this.dashboardShareRepository.upsertShare(
       dashboardId,
-      userId: targetUser.id,
+      targetUser.id,
       permission,
-    });
+    );
 
     logger.info(
       `Dashboard ${dashboardId} shared with user ${targetUser.id} (${permission})`,

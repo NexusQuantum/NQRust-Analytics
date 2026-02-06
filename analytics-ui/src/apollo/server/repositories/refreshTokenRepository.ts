@@ -68,6 +68,30 @@ export class RefreshTokenRepository
         return result ? this.transformFromDBData(result) : null;
     }
 
+    /**
+     * Atomically find a valid token and revoke it in a single transaction.
+     * Uses SELECT FOR UPDATE to prevent concurrent refresh race conditions.
+     * Returns the token if found and successfully revoked, null otherwise.
+     */
+    public async findAndRevokeValidToken(tokenHash: string): Promise<RefreshToken | null> {
+        return this.knex.transaction(async (trx) => {
+            const result = await trx(this.tableName)
+                .where({ token_hash: tokenHash })
+                .whereNull('revoked_at')
+                .where('expires_at', '>', trx.fn.now())
+                .forUpdate()
+                .first();
+
+            if (!result) return null;
+
+            await trx(this.tableName)
+                .where({ id: result.id })
+                .update({ revoked_at: trx.fn.now() });
+
+            return this.transformFromDBData(result);
+        });
+    }
+
     public async revokeToken(id: number): Promise<void> {
         await this.knex(this.tableName)
             .where({ id })

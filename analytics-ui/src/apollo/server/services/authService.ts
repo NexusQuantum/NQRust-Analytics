@@ -207,11 +207,12 @@ export class AuthService {
         // Hash the incoming token to look it up
         const tokenHash = RefreshTokenRepository.hashToken(refreshToken);
 
-        // Find the token
-        const storedToken = await this.refreshTokenRepository.findValidByTokenHash(tokenHash);
+        // Atomically find and revoke the token to prevent concurrent refresh race conditions.
+        // SELECT FOR UPDATE ensures only one concurrent request can claim this token.
+        const storedToken = await this.refreshTokenRepository.findAndRevokeValidToken(tokenHash);
 
         if (!storedToken) {
-            // Token not found or expired/revoked
+            // Token not found, expired, revoked, or already claimed by a concurrent request
             throw new AuthServiceError(
                 'Invalid or expired refresh token',
                 'INVALID_REFRESH_TOKEN',
@@ -230,9 +231,6 @@ export class AuthService {
                 403
             );
         }
-
-        // Token rotation: revoke old token and issue new one
-        await this.refreshTokenRepository.revokeToken(storedToken.id);
 
         // Create new refresh token in the same family
         const { token: newRefreshToken } = await this.refreshTokenRepository.createRefreshToken(

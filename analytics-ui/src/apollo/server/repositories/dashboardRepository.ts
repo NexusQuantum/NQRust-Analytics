@@ -105,18 +105,22 @@ export class DashboardRepository
       throw new Error(`Dashboard not found: ${dashboardId}`);
     }
 
-    // Unset all other defaults for this user in this project
-    await this.knex('dashboard')
-      .where({
-        project_id: dashboard.projectId,
-        created_by: userId,
-      })
-      .update({ is_default: false });
+    // Use a transaction to atomically swap the default dashboard,
+    // preventing concurrent calls from leaving multiple defaults.
+    await this.knex.transaction(async (trx) => {
+      // Unset all other defaults for this user in this project
+      await trx('dashboard')
+        .where({
+          project_id: dashboard.projectId,
+          created_by: userId,
+        })
+        .update({ is_default: false });
 
-    // Set the new default
-    await this.knex('dashboard')
-      .where({ id: dashboardId })
-      .update({ is_default: true });
+      // Set the new default
+      await trx('dashboard')
+        .where({ id: dashboardId })
+        .update({ is_default: true });
+    });
   }
 
   protected transformFromDBData = (data: any): DashboardWithCreator => {
