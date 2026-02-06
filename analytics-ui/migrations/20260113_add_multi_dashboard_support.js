@@ -30,7 +30,7 @@ exports.up = async function (knex) {
     // Use SQLite-compatible syntax (no table alias in UPDATE)
     await knex.raw(`
     UPDATE dashboard
-    SET is_default = 1
+    SET is_default = true
     WHERE id IN (
       SELECT MIN(d2.id)
       FROM dashboard d2
