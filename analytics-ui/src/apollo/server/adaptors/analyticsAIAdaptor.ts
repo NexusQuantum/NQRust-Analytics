@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { Readable } from 'stream';
 import {
   AskCandidateType,
@@ -133,9 +133,14 @@ export interface IAnalyticsAIAdaptor {
 
 export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
   private readonly analyticsAIBaseEndpoint: string;
+  private readonly httpClient: AxiosInstance;
 
   constructor({ analyticsAIBaseEndpoint }: { analyticsAIBaseEndpoint: string }) {
     this.analyticsAIBaseEndpoint = analyticsAIBaseEndpoint;
+    this.httpClient = axios.create({
+      baseURL: analyticsAIBaseEndpoint,
+      timeout: 120_000, // 2 minutes — matches AI service LLM timeout
+    });
   }
 
   public async delete(projectId: number): Promise<void> {
@@ -143,8 +148,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
       if (!projectId) {
         throw new Error('Project ID is required');
       }
-      const url = `${this.analyticsAIBaseEndpoint}/v1/semantics`;
-      const response = await axios.delete(url, {
+      const url = `/v1/semantics`;
+      const response = await this.httpClient.delete(url, {
         params: {
           project_id: projectId.toString(),
         },
@@ -178,8 +183,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
         project_id: projectId.toString(),
       };
 
-      return axios
-        .post(`${this.analyticsAIBaseEndpoint}/v1/sql-pairs`, body)
+      return this.httpClient
+        .post(`/v1/sql-pairs`, body)
         .then((res) => {
           return { queryId: res.data.event_id };
         });
@@ -192,8 +197,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
   }
   public async getSqlPairResult(queryId: string): Promise<SqlPairResult> {
     try {
-      const res = await axios.get(
-        `${this.analyticsAIBaseEndpoint}/v1/sql-pairs/${queryId}`,
+      const res = await this.httpClient.get(
+        `/v1/sql-pairs/${queryId}`,
       );
       const { status, error } = this.transformStatusAndError(res.data);
       return {
@@ -212,7 +217,7 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
     sqlPairIds: number[],
   ): Promise<void> {
     try {
-      await axios.delete(`${this.analyticsAIBaseEndpoint}/v1/sql-pairs`, {
+      await this.httpClient.delete(`/v1/sql-pairs`, {
         data: {
           sql_pair_ids: sqlPairIds.map((id) => id.toString()),
           project_id: projectId.toString(),
@@ -234,7 +239,7 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
 
   public async ask(input: AskInput): Promise<AsyncQueryResponse> {
     try {
-      const res = await axios.post(`${this.analyticsAIBaseEndpoint}/v1/asks`, {
+      const res = await this.httpClient.post(`/v1/asks`, {
         query: input.query,
         id: input.deployId,
         histories: this.transformHistoryInput(input.histories),
@@ -250,7 +255,7 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
   public async cancelAsk(queryId: string): Promise<void> {
     // make PATCH request /v1/asks/:query_id to cancel the query
     try {
-      await axios.patch(`${this.analyticsAIBaseEndpoint}/v1/asks/${queryId}`, {
+      await this.httpClient.patch(`/v1/asks/${queryId}`, {
         status: 'stopped',
       });
     } catch (err: any) {
@@ -262,8 +267,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
   public async getAskResult(queryId: string): Promise<AskResult> {
     // make GET request /v1/asks/:query_id/result to get the result
     try {
-      const res = await axios.get(
-        `${this.analyticsAIBaseEndpoint}/v1/asks/${queryId}/result`,
+      const res = await this.httpClient.get(
+        `/v1/asks/${queryId}/result`,
       );
       return this.transformAskResult(res.data);
     } catch (err: any) {
@@ -280,8 +285,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
   public async getAskStreamingResult(queryId: string): Promise<Readable> {
     // make GET request /v1/asks/:query_id/streaming-result to get the streaming result
     try {
-      const res = await axios.get(
-        `${this.analyticsAIBaseEndpoint}/v1/asks/${queryId}/streaming-result`,
+      const res = await this.httpClient.get(
+        `/v1/asks/${queryId}/streaming-result`,
         { responseType: 'stream' },
       );
       return res.data;
@@ -304,8 +309,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
     input: AskDetailInput,
   ): Promise<AsyncQueryResponse> {
     try {
-      const res = await axios.post(
-        `${this.analyticsAIBaseEndpoint}/v1/ask-details`,
+      const res = await this.httpClient.post(
+        `/v1/ask-details`,
         input,
       );
       return { queryId: res.data.query_id };
@@ -320,8 +325,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
   public async getAskDetailResult(queryId: string): Promise<AskDetailResult> {
     // make GET request /v1/ask-details/:query_id/result to get the result
     try {
-      const res = await axios.get(
-        `${this.analyticsAIBaseEndpoint}/v1/ask-details/${queryId}/result`,
+      const res = await this.httpClient.get(
+        `/v1/ask-details/${queryId}/result`,
       );
       return this.transformAskDetailResult(res.data);
     } catch (err: any) {
@@ -335,8 +340,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
   public async deploy(deployData: DeployData): Promise<AnalyticsAIDeployResponse> {
     const { manifest, hash } = deployData;
     try {
-      const res = await axios.post(
-        `${this.analyticsAIBaseEndpoint}/v1/semantics-preparations`,
+      const res = await this.httpClient.post(
+        `/v1/semantics-preparations`,
         {
           mdl: JSON.stringify(manifest),
           id: hash,
@@ -379,8 +384,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
     };
     logger.info(`Analytics AI: Generating recommendation questions`);
     try {
-      const res = await axios.post(
-        `${this.analyticsAIBaseEndpoint}/v1/question-recommendations`,
+      const res = await this.httpClient.post(
+        `/v1/question-recommendations`,
         body,
       );
       logger.info(
@@ -399,8 +404,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
     queryId: string,
   ): Promise<RecommendationQuestionsResult> {
     try {
-      const res = await axios.get(
-        `${this.analyticsAIBaseEndpoint}/v1/question-recommendations/${queryId}`,
+      const res = await this.httpClient.get(
+        `/v1/question-recommendations/${queryId}`,
       );
       return this.transformRecommendationQuestionsResult(res.data);
     } catch (err: any) {
@@ -424,8 +429,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
     };
     // make POST request /v1/sql-answers to create text-based answer
     try {
-      const res = await axios.post(
-        `${this.analyticsAIBaseEndpoint}/v1/sql-answers`,
+      const res = await this.httpClient.post(
+        `/v1/sql-answers`,
         body,
       );
       return { queryId: res.data.query_id };
@@ -442,8 +447,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
   ): Promise<TextBasedAnswerResult> {
     // make GET request /v1/sql-answers/:query_id to get the result
     try {
-      const res = await axios.get(
-        `${this.analyticsAIBaseEndpoint}/v1/sql-answers/${queryId}`,
+      const res = await this.httpClient.get(
+        `/v1/sql-answers/${queryId}`,
       );
       return this.transformTextBasedAnswerResult(res.data);
     } catch (err: any) {
@@ -457,8 +462,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
   public async streamTextBasedAnswer(queryId: string): Promise<Readable> {
     // make GET request /v1/sql-answers/:query_id/streaming to get the streaming result
     try {
-      const res = await axios.get(
-        `${this.analyticsAIBaseEndpoint}/v1/sql-answers/${queryId}/streaming`,
+      const res = await this.httpClient.get(
+        `/v1/sql-answers/${queryId}/streaming`,
         { responseType: 'stream' },
       );
       return res.data;
@@ -472,8 +477,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
 
   public async generateChart(input: ChartInput): Promise<AsyncQueryResponse> {
     try {
-      const res = await axios.post(
-        `${this.analyticsAIBaseEndpoint}/v1/charts`,
+      const res = await this.httpClient.post(
+        `/v1/charts`,
         input,
       );
       return { queryId: res.data.query_id };
@@ -485,8 +490,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
 
   public async getChartResult(queryId: string): Promise<ChartResult> {
     try {
-      const res = await axios.get(
-        `${this.analyticsAIBaseEndpoint}/v1/charts/${queryId}`,
+      const res = await this.httpClient.get(
+        `/v1/charts/${queryId}`,
       );
       return this.transformChartResult(res.data);
     } catch (err: any) {
@@ -499,7 +504,7 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
 
   public async cancelChart(queryId: string): Promise<void> {
     try {
-      await axios.patch(`${this.analyticsAIBaseEndpoint}/v1/charts/${queryId}`, {
+      await this.httpClient.patch(`/v1/charts/${queryId}`, {
         status: 'stopped',
       });
     } catch (err: any) {
@@ -512,8 +517,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
     input: ChartAdjustmentInput,
   ): Promise<AsyncQueryResponse> {
     try {
-      const res = await axios.post(
-        `${this.analyticsAIBaseEndpoint}/v1/chart-adjustments`,
+      const res = await this.httpClient.post(
+        `/v1/chart-adjustments`,
         this.transformChartAdjustmentInput(input),
       );
       return { queryId: res.data.query_id };
@@ -525,8 +530,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
 
   public async getChartAdjustmentResult(queryId: string): Promise<ChartResult> {
     try {
-      const res = await axios.get(
-        `${this.analyticsAIBaseEndpoint}/v1/chart-adjustments/${queryId}`,
+      const res = await this.httpClient.get(
+        `/v1/chart-adjustments/${queryId}`,
       );
       return this.transformChartResult(res.data);
     } catch (err: any) {
@@ -539,8 +544,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
 
   public async cancelChartAdjustment(queryId: string): Promise<void> {
     try {
-      await axios.patch(
-        `${this.analyticsAIBaseEndpoint}/v1/chart-adjustments/${queryId}`,
+      await this.httpClient.patch(
+        `/v1/chart-adjustments/${queryId}`,
         {
           status: 'stopped',
         },
@@ -562,8 +567,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
         configurations: input.configurations,
       };
 
-      const res = await axios.post(
-        `${this.analyticsAIBaseEndpoint}/v1/sql-questions`,
+      const res = await this.httpClient.post(
+        `/v1/sql-questions`,
         body,
       );
       return { queryId: res.data.query_id };
@@ -588,8 +593,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
       project_id: input[0]?.projectId.toString(),
     };
     try {
-      const res = await axios.post(
-        `${this.analyticsAIBaseEndpoint}/v1/instructions`,
+      const res = await this.httpClient.post(
+        `/v1/instructions`,
         body,
       );
       return { queryId: res.data.event_id };
@@ -605,8 +610,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
     queryId: string,
   ): Promise<Partial<QuestionsResult>> {
     try {
-      const res = await axios.get(
-        `${this.analyticsAIBaseEndpoint}/v1/sql-questions/${queryId}`,
+      const res = await this.httpClient.get(
+        `/v1/sql-questions/${queryId}`,
       );
       const { status, error } = this.transformStatusAndError(res.data);
       return {
@@ -626,8 +631,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
     queryId: string,
   ): Promise<InstructionResult> {
     try {
-      const res = await axios.get(
-        `${this.analyticsAIBaseEndpoint}/v1/instructions/${queryId}`,
+      const res = await this.httpClient.get(
+        `/v1/instructions/${queryId}`,
       );
       return this.transformStatusAndError(res.data) as InstructionResult;
     } catch (err: any) {
@@ -643,7 +648,7 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
     projectId: number,
   ): Promise<void> {
     try {
-      await axios.delete(`${this.analyticsAIBaseEndpoint}/v1/instructions`, {
+      await this.httpClient.delete(`/v1/instructions`, {
         data: {
           instruction_ids: ids.map((id) => id.toString()),
           project_id: projectId.toString(),
@@ -669,8 +674,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
         project_id: input.projectId.toString(),
         configurations: input.configurations,
       };
-      const res = await axios.post(
-        `${this.analyticsAIBaseEndpoint}/v1/ask-feedbacks`,
+      const res = await this.httpClient.post(
+        `/v1/ask-feedbacks`,
         body,
       );
       return { queryId: res.data.query_id };
@@ -686,8 +691,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
     queryId: string,
   ): Promise<AskFeedbackResult> {
     try {
-      const res = await axios.get(
-        `${this.analyticsAIBaseEndpoint}/v1/ask-feedbacks/${queryId}`,
+      const res = await this.httpClient.get(
+        `/v1/ask-feedbacks/${queryId}`,
       );
       return this.transformAskFeedbackResult(res.data);
     } catch (err: any) {
@@ -700,8 +705,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
 
   public async cancelAskFeedback(queryId: string): Promise<void> {
     try {
-      await axios.patch(
-        `${this.analyticsAIBaseEndpoint}/v1/ask-feedbacks/${queryId}`,
+      await this.httpClient.patch(
+        `/v1/ask-feedbacks/${queryId}`,
         {
           status: 'stopped',
         },
@@ -797,8 +802,8 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
 
   private async getDeployStatus(deployId: string): Promise<AnalyticsAISystemStatus> {
     try {
-      const res = await axios.get(
-        `${this.analyticsAIBaseEndpoint}/v1/semantics-preparations/${deployId}/status`,
+      const res = await this.httpClient.get(
+        `/v1/semantics-preparations/${deployId}/status`,
       );
       if (res.data.error) {
         // passing AI response error string to catch block

@@ -14,7 +14,7 @@ export const bootstrapKnex = (options: KnexOptions) => {
       client: 'pg',
       connection: pgUrl,
       debug,
-      pool: { min: 2, max: 10 },
+      pool: { min: 2, max: 30 },
     });
   } else {
     console.log('using sqlite');
@@ -25,6 +25,12 @@ export const bootstrapKnex = (options: KnexOptions) => {
         filename: options.sqliteFile,
       },
       useNullAsDefault: true,
+      pool: {
+        afterCreate: (conn: any, cb: any) => {
+          conn.pragma('journal_mode = WAL');
+          cb();
+        },
+      },
     });
   }
 };

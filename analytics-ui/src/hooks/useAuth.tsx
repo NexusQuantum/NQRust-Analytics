@@ -202,9 +202,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem(REFRESH_TOKEN_KEY);
         setAccessToken(null);
         setUser(null);
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login';
+        }
     };
 
-    const handleRefreshToken = async (refreshToken: string) => {
+    const handleRefreshToken = useCallback(async (refreshToken: string) => {
         try {
             const { data } = await refreshTokenMutation({
                 variables: { refreshToken },
@@ -216,7 +219,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
             clearTokens();
         }
-    };
+    }, [refreshTokenMutation]);
+
+    // Proactive token refresh: schedule refresh 1 minute before access token expires
+    useEffect(() => {
+        if (!accessToken) return;
+
+        try {
+            const payload = JSON.parse(atob(accessToken.split('.')[1]));
+            const expiresAt = payload.exp * 1000;
+            const refreshAt = expiresAt - 3_600_000; // 1 hour before expiry
+            const delay = refreshAt - Date.now();
+
+            if (delay <= 0) {
+                // Token already expired or about to — refresh immediately
+                const storedRefresh = localStorage.getItem(REFRESH_TOKEN_KEY);
+                if (storedRefresh) handleRefreshToken(storedRefresh);
+                return;
+            }
+
+            const timerId = setTimeout(() => {
+                const storedRefresh = localStorage.getItem(REFRESH_TOKEN_KEY);
+                if (storedRefresh) handleRefreshToken(storedRefresh);
+            }, delay);
+
+            return () => clearTimeout(timerId);
+        } catch {
+            // Malformed token — will be caught on next API call
+        }
+    }, [accessToken, handleRefreshToken]);
+
+    // Cross-tab auth sync: detect when another tab clears tokens
+    useEffect(() => {
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === ACCESS_TOKEN_KEY && !e.newValue) {
+                setUser(null);
+                setAccessToken(null);
+                if (!window.location.pathname.startsWith('/login')) {
+                    window.location.href = '/login';
+                }
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
 
     const login = useCallback(async (email: string, password: string) => {
         setIsLoading(true);
@@ -270,7 +316,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 await handleRefreshToken(refreshToken);
             }
         }
-    }, [accessToken, refetchMe]);
+    }, [accessToken, refetchMe, handleRefreshToken]);
 
     const hasPermission = useCallback((resource: string, action: string): boolean => {
         if (!user) return false;

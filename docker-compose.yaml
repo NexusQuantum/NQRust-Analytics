@@ -48,6 +48,29 @@ services:
     networks:
       - analytics
 
+  analytics-engine:
+    image: ghcr.io/nexusquantum/analytics-engine:latest
+    restart: on-failure
+    platform: linux/amd64
+    ports:
+      - "8080:8080"
+    volumes:
+      - data:/usr/src/app/etc
+      - ./analytics-engine/analytics-core-legacy/docker/etc/config.properties:/usr/src/app/etc/config.properties:ro
+    networks:
+      - analytics
+
+  ibis-server:
+    image: ghcr.io/nexusquantum/analytics-engine-ibis:latest
+    restart: on-failure
+    platform: linux/amd64
+    ports:
+      - "8000:8000"
+    networks:
+      - analytics
+    depends_on:
+      - analytics-engine
+
   # Northwind PostgreSQL Demo Database
   northwind-db:
     image: postgres:15
@@ -74,9 +97,9 @@ services:
     environment:
       DB_TYPE: sqlite
       SQLITE_FILE: /app/data/db.sqlite3
-      ANALYTICS_ENGINE_ENDPOINT: http://host.docker.internal:8080
+      ANALYTICS_ENGINE_ENDPOINT: http://analytics-engine:8080
       ANALYTICS_AI_ENDPOINT: http://analytics-service:5555
-      IBIS_SERVER_ENDPOINT: http://host.docker.internal:8000
+      IBIS_SERVER_ENDPOINT: http://ibis-server:8000
       GENERATION_MODEL: gpt-4o-mini
       ANALYTICS_ENGINE_PORT: 8080
       ANALYTICS_AI_SERVICE_VERSION: 0.27.1
@@ -87,12 +110,15 @@ services:
       NEXT_PUBLIC_TELEMETRY_ENABLED: false
       EXPERIMENTAL_ENGINE_RUST_VERSION: false
       ANALYTICS_PRODUCT_VERSION: 0.27.0
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
-      - "3000:3000"
+      - "13000:3000"
     volumes:
       - data:/app/data
     networks:
       - analytics
     depends_on:
       - analytics-service
-      # - analytics-engine
+      - analytics-engine
+      - ibis-server

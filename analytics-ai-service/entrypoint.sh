@@ -19,7 +19,7 @@ done
 echo "qdrant has started."
 
 # Start analytics-service in the background
-uvicorn src.__main__:app --host 0.0.0.0 --port $ANALYTICS_AI_SERVICE_PORT --loop uvloop --http httptools &
+uvicorn src.__main__:app --host 0.0.0.0 --port $ANALYTICS_AI_SERVICE_PORT --workers 4 --loop uvloop --http httptools &
 
 if [[ -n "$SHOULD_FORCE_DEPLOY" ]]; then
 

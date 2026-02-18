@@ -6,6 +6,7 @@ import { AuditLogRepository, AuditActions } from '../repositories/auditLogReposi
 import { RefreshTokenRepository } from '../repositories/refreshTokenRepository';
 import { AuthService, AuthPayload, AuthServiceError } from '../services/authService';
 import { RateLimitService } from '../services/rateLimitService';
+import { GraphQLError } from 'graphql';
 import { Knex } from 'knex';
 
 // Extended context interface for auth - user will be added by auth middleware
@@ -54,7 +55,9 @@ export class AuthResolver {
 
     private requireAuth(ctx: AuthContext): UserWithRoles {
         if (!ctx.user) {
-            throw new Error('Authentication required');
+            throw new GraphQLError('Authentication required', {
+                extensions: { code: 'UNAUTHENTICATED' },
+            });
         }
         return ctx.user;
     }
@@ -62,7 +65,9 @@ export class AuthResolver {
     private async requireAdmin(ctx: AuthContext, authService: AuthService): Promise<UserWithRoles> {
         const user = this.requireAuth(ctx);
         if (!(await authService.isAdmin(user.id))) {
-            throw new Error('Admin access required');
+            throw new GraphQLError('Admin access required', {
+                extensions: { code: 'FORBIDDEN' },
+            });
         }
         return user;
     }

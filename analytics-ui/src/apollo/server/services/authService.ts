@@ -7,7 +7,7 @@ import { RefreshTokenRepository } from '../repositories/refreshTokenRepository';
 
 // JWT configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'development-secret-change-in-production';
-const JWT_ACCESS_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || '15m';
+const JWT_ACCESS_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || '7d';
 const JWT_REFRESH_EXPIRES_IN_DAYS = parseInt(process.env.JWT_REFRESH_EXPIRES_IN_DAYS || '30', 10);
 const SALT_ROUNDS = 12;
 
