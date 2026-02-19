@@ -4,7 +4,6 @@ timeout: 120
 models:
   - alias: default
     model: openrouter/z-ai/glm-5
-    api_base: https://openrouter.ai/api/v1
     context_window_size: 128000
     timeout: 600
     kwargs:
@@ -15,7 +14,6 @@ type: embedder
 provider: litellm_embedder
 models:
   - model: openrouter/openai/text-embedding-3-large
-    api_base: https://openrouter.ai/api/v1
     alias: default
     timeout: 120
 
