@@ -1,0 +1,108 @@
+volumes:
+  data:
+  northwind_data:
+
+
+networks:
+  analytics:
+    driver: bridge
+
+services:
+
+  analytics-service:
+    image: ghcr.io/nexusquantum/analytics-ai-service:latest
+    restart: on-failure
+    platform: linux/amd64
+    expose:
+      - 5555
+    ports:
+      - "5555:5555"
+    environment:
+      PYTHONUNBUFFERED: 1
+      CONFIG_PATH: /app/config.yaml
+      ANALYTICS_UI_ENDPOINT: http://analytics-ui:3000
+    env_file:
+      - .env
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./data:/app/data:ro
+    networks:
+      - analytics
+    depends_on:
+      - qdrant
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.0
+    restart: on-failure
+    expose:
+      - 6333
+      - 6334
+    volumes:
+      - data:/qdrant/storage
+    networks:
+      - analytics
+
+  analytics-engine:
+    image: ghcr.io/nexusquantum/analytics-engine:latest
+    restart: on-failure
+    platform: linux/amd64
+    ports:
+      - "8080:8080"
+    volumes:
+      - data:/usr/src/app/etc
+      - ./analytics-engine/analytics-core-legacy/docker/etc/config.properties:/usr/src/app/etc/config.properties:ro
+    networks:
+      - analytics
+
+  ibis-server:
+    image: ghcr.io/nexusquantum/analytics-engine-ibis:latest
+    restart: on-failure
+    platform: linux/amd64
+    ports:
+      - "8000:8000"
+    networks:
+      - analytics
+    depends_on:
+      - analytics-engine
+
+  northwind-db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: northwind
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo123
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./northwind.sql:/docker-entrypoint-initdb.d/northwind.sql:ro
+      - northwind_data:/var/lib/postgresql/data
+    networks:
+      - analytics
+
+  analytics-ui:
+    image: ghcr.io/nexusquantum/analytics-ui:latest
+    restart: on-failure
+    platform: linux/amd64
+    environment:
+      DB_TYPE: sqlite
+      SQLITE_FILE: /app/data/db.sqlite3
+      ANALYTICS_ENGINE_ENDPOINT: http://analytics-engine:8080
+      ANALYTICS_AI_ENDPOINT: http://analytics-service:5555
+      IBIS_SERVER_ENDPOINT: http://ibis-server:8000
+      GENERATION_MODEL: gpt-4o-mini
+      ANALYTICS_ENGINE_PORT: 8080
+      TELEMETRY_ENABLED: false
+      NEXT_PUBLIC_TELEMETRY_ENABLED: false
+    env_file:
+      - .env
+    ports:
+      - "13000:3000"
+    volumes:
+      - data:/app/data
+    networks:
+      - analytics
+    depends_on:
+      - analytics-service
+      - analytics-engine
+      - ibis-server
