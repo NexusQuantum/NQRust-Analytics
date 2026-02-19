@@ -101,7 +101,8 @@ jobs:
             # Clone or pull the repo
             if [ -d "${{ env.DEPLOY_DIR }}/.git" ]; then
               echo "Pulling latest code..."
-              git -C ${{ env.DEPLOY_DIR }} pull --ff-only
+              git -C ${{ env.DEPLOY_DIR }} fetch origin main
+              git -C ${{ env.DEPLOY_DIR }} reset --hard origin/main
             else
               echo "Cloning repo..."
               rm -rf ${{ env.DEPLOY_DIR }}
