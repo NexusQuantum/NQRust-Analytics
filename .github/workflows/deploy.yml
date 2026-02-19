@@ -88,7 +88,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          envs: OPENROUTER_API_KEY,OPENAI_API_KEY,JWT_SECRET,GHCR_USER,GHCR_TOKEN
+          envs: OPENROUTER_API_KEY,OPENAI_API_KEY,JWT_SECRET,GHCR_USER,GHCR_TOKEN,LICENSE_API_KEY,LICENSE_PUBLIC_KEY
           script: |
             set -e
 
@@ -122,8 +122,15 @@ jobs:
             JWT_REFRESH_EXPIRES_IN_DAYS=30
             DB_TYPE=sqlite
             SQLITE_FILE=/app/data/db.sqlite3
+            PERSIST_CREDENTIAL_DIR=/app/data
             TELEMETRY_ENABLED=false
             NEXT_PUBLIC_TELEMETRY_ENABLED=false
+            LICENSE_KEY=
+            LICENSE_API_KEY=$LICENSE_API_KEY
+            LICENSE_SERVER_URL=https://billing.nexusquantum.id
+            LICENSE_FILE_PATH=
+            LICENSE_GRACE_PERIOD_DAYS=7
+            LICENSE_PUBLIC_KEY=$LICENSE_PUBLIC_KEY
             ENVEOF
 
             # Login to ghcr.io and pull new images
@@ -142,3 +149,5 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GHCR_PAT }}
+          LICENSE_API_KEY: ${{ secrets.LICENSE_API_KEY }}
+          LICENSE_PUBLIC_KEY: ${{ secrets.LICENSE_PUBLIC_KEY }}

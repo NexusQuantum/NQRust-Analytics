@@ -84,9 +84,11 @@ services:
     image: ghcr.io/nexusquantum/analytics-ui:latest
     restart: on-failure
     platform: linux/amd64
+    hostname: analytics-ui
     environment:
       DB_TYPE: sqlite
       SQLITE_FILE: /app/data/db.sqlite3
+      PERSIST_CREDENTIAL_DIR: /app/data
       ANALYTICS_ENGINE_ENDPOINT: http://analytics-engine:8080
       ANALYTICS_AI_ENDPOINT: http://analytics-service:5555
       IBIS_SERVER_ENDPOINT: http://ibis-server:8000
