@@ -453,12 +453,20 @@ errorHandlers.set('CreateInstruction', new CreateInstructionErrorHandler());
 errorHandlers.set('UpdateInstruction', new UpdateInstructionErrorHandler());
 errorHandlers.set('DeleteInstruction', new DeleteInstructionErrorHandler());
 
+// Debounce network error toast — show at most once per 10 seconds
+let lastNetworkErrorToast = 0;
+const NETWORK_ERROR_DEBOUNCE_MS = 10_000;
+
 const errorHandler = (error: ErrorResponse) => {
   // networkError
   if (error.networkError) {
-    message.error(
-      'No internet. Please check your network connection and try again.',
-    );
+    const now = Date.now();
+    if (now - lastNetworkErrorToast > NETWORK_ERROR_DEBOUNCE_MS) {
+      lastNetworkErrorToast = now;
+      message.error(
+        'No internet. Please check your network connection and try again.',
+      );
+    }
   }
 
   const operationName = error?.operation?.operationName || '';
