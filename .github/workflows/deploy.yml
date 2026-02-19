@@ -104,7 +104,7 @@ jobs:
               git -C ${{ env.DEPLOY_DIR }} pull --ff-only
             else
               echo "Cloning repo..."
-              mkdir -p ${{ env.DEPLOY_DIR }}
+              rm -rf ${{ env.DEPLOY_DIR }}
               git clone --depth=1 https://github.com/NexusQuantum/NQRust-Analytics.git ${{ env.DEPLOY_DIR }}
             fi
 
