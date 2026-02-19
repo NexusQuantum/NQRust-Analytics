@@ -80,7 +80,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
@@ -105,8 +105,12 @@ jobs:
             else
               echo "Cloning repo..."
               mkdir -p ${{ env.DEPLOY_DIR }}
-              git clone --depth=1 --recurse-submodules https://github.com/NexusQuantum/NQRust-Analytics.git ${{ env.DEPLOY_DIR }}
+              git clone --depth=1 https://github.com/NexusQuantum/NQRust-Analytics.git ${{ env.DEPLOY_DIR }}
             fi
+
+            # Create config.properties required by analytics-engine (from private submodule)
+            mkdir -p ${{ env.DEPLOY_DIR }}/analytics-engine/analytics-core-legacy/docker/etc
+            echo "node.environment=test" > ${{ env.DEPLOY_DIR }}/analytics-engine/analytics-core-legacy/docker/etc/config.properties
 
             # Write .env from secrets
             cat > ${{ env.DEPLOY_DIR }}/.env << ENVEOF
