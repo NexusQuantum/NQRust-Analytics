@@ -88,7 +88,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          envs: OPENROUTER_API_KEY,JWT_SECRET,GHCR_USER,GHCR_TOKEN
+          envs: OPENROUTER_API_KEY,OPENAI_API_KEY,JWT_SECRET,GHCR_USER,GHCR_TOKEN
           script: |
             set -e
 
@@ -116,6 +116,7 @@ jobs:
             # Write .env from secrets
             cat > ${{ env.DEPLOY_DIR }}/.env << ENVEOF
             OPENROUTER_API_KEY=$OPENROUTER_API_KEY
+            OPENAI_API_KEY=$OPENAI_API_KEY
             JWT_SECRET=$JWT_SECRET
             JWT_ACCESS_EXPIRES_IN=7d
             JWT_REFRESH_EXPIRES_IN_DAYS=30
@@ -137,6 +138,7 @@ jobs:
             echo "Deployment complete."
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GHCR_PAT }}

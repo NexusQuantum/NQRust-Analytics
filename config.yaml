@@ -13,7 +13,7 @@ models:
 type: embedder
 provider: litellm_embedder
 models:
-  - model: openrouter/openai/text-embedding-3-large
+  - model: text-embedding-3-large
     alias: default
     timeout: 120
 
