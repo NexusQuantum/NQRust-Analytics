@@ -16,6 +16,7 @@ import {
 import { PreviewDataResponse } from '@server/services/queryService';
 import { transformToObjects } from '@server/utils/dataUtils';
 import { enhanceVegaSpec } from '@/utils/vegaSpecUtils';
+import { requireLicense } from '@/apollo/server/utils/licenseGuard';
 
 const { projectService, analyticsAIAdaptor, deployService, queryService } =
   components;
@@ -54,6 +55,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (!requireLicense(res)) return;
   const {
     question,
     sql,

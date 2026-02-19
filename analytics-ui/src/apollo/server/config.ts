@@ -50,6 +50,14 @@ export interface IConfig {
   // OAuth providers
   googleOAuthEnabled?: boolean;
   githubOAuthEnabled?: boolean;
+
+  // licensing
+  licenseKey?: string;
+  licenseApiKey?: string;
+  licenseServerUrl: string;
+  licenseFilePath?: string;
+  licenseGracePeriodDays: number;
+  licensePublicKey?: string;
 }
 
 const defaultConfig = {
@@ -81,6 +89,10 @@ const defaultConfig = {
   // encryption
   encryptionPassword: 'sementic',
   encryptionSalt: 'layer',
+
+  // licensing
+  licenseServerUrl: 'https://billing.nexusquantum.id',
+  licenseGracePeriodDays: 7,
 };
 
 const config = {
@@ -159,6 +171,16 @@ const config = {
     !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
   githubOAuthEnabled: process.env.GITHUB_OAUTH_ENABLED !== 'false' &&
     !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
+
+  // licensing
+  licenseKey: process.env.LICENSE_KEY,
+  licenseApiKey: process.env.LICENSE_API_KEY,
+  licenseServerUrl: process.env.LICENSE_SERVER_URL,
+  licenseFilePath: process.env.LICENSE_FILE_PATH,
+  licenseGracePeriodDays: process.env.LICENSE_GRACE_PERIOD_DAYS
+    ? parseInt(process.env.LICENSE_GRACE_PERIOD_DAYS)
+    : undefined,
+  licensePublicKey: process.env.LICENSE_PUBLIC_KEY?.replace(/\\n/g, '\n'),
 };
 
 export function getConfig(): IConfig {

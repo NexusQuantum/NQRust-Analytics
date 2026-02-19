@@ -8,6 +8,7 @@ import {
   validateSql,
 } from '@/apollo/server/utils/apiUtils';
 import { getLogger } from '@server/utils';
+import { requireLicense } from '@/apollo/server/utils/licenseGuard';
 
 const logger = getLogger('API_SQL_PAIR_BY_ID');
 logger.level = 'debug';
@@ -129,6 +130,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (!requireLicense(res)) return;
   const startTime = Date.now();
   let project;
 

@@ -15,6 +15,7 @@ import {
   transformHistoryInput,
 } from '@/apollo/server/utils/apiUtils';
 import { DataSourceName } from '@server/types';
+import { requireLicense } from '@/apollo/server/utils/licenseGuard';
 
 const logger = getLogger('API_GENERATE_SQL');
 logger.level = 'debug';
@@ -39,6 +40,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (!requireLicense(res)) return;
   const {
     question,
     threadId,

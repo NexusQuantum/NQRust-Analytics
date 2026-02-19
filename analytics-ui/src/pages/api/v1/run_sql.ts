@@ -11,6 +11,7 @@ import {
   handleApiError,
 } from '@/apollo/server/utils/apiUtils';
 import { transformToObjects } from '@server/utils/dataUtils';
+import { requireLicense } from '@/apollo/server/utils/licenseGuard';
 
 const logger = getLogger('API_RUN_SQL');
 logger.level = 'debug';
@@ -42,6 +43,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (!requireLicense(res)) return;
   const { sql, threadId, limit = 1000 } = req.body as RunSqlRequest;
   const startTime = Date.now();
   let project;

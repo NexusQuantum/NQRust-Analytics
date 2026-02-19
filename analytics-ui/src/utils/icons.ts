@@ -11,6 +11,7 @@ import {
   Hash,
   Check,
   Key,
+  KeyRound,
   Focus,
   ArrowLeftRight,
   Monitor,
@@ -127,5 +128,9 @@ export const TranslateIcon = styled(Languages)`
 `;
 
 export const OpenInNewIcon = styled(ExternalLink)`
+  height: 1em;
+`;
+
+export const LicenseIcon = styled(KeyRound)`
   height: 1em;
 `;

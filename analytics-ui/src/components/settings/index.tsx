@@ -7,6 +7,7 @@ import { ModalAction } from '@/hooks/useModalAction';
 import { SettingsIcon, Info } from 'lucide-react';
 import DataSourceSettings from './DataSourceSettings';
 import ProjectSettings from './ProjectSettings';
+import LicenseSettings from './LicenseSettings';
 import { getSettingMenu } from './utils';
 import {
   useGetSettingsLazyQuery,
@@ -69,6 +70,7 @@ const DynamicComponent = ({
         />
       ),
       [SETTINGS.PROJECT]: <ProjectSettings data={{ language }} />,
+      [SETTINGS.LICENSE]: <LicenseSettings />,
     }[menu] || null
   );
 };

@@ -36,6 +36,7 @@ import {
   getSqlGenerationState,
   endStream,
 } from '@/apollo/server/utils';
+import { requireLicense } from '@/apollo/server/utils/licenseGuard';
 
 const logger = getLogger('API_STREAM_ASK');
 logger.level = 'debug';
@@ -96,6 +97,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (!requireLicense(res)) return;
   const { question, sampleSize, language, threadId } =
     req.body as AsyncAskRequest;
   const startTime = Date.now();

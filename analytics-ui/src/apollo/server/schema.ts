@@ -1285,6 +1285,28 @@ export const typeDefs = gql`
     id: Int!
   }
 
+  # ===== License Types =====
+
+  type LicenseState {
+    isLicensed: Boolean!
+    status: String!
+    isGracePeriod: Boolean!
+    graceDaysRemaining: Int
+    customerName: String
+    product: String
+    features: [String!]!
+    expiresAt: String
+    activations: Int
+    maxActivations: Int
+    verifiedAt: String
+    licenseKey: String
+    errorMessage: String
+  }
+
+  input ActivateLicenseInput {
+    licenseKey: String!
+  }
+
   # Query and Mutation
   type Query {
     # On Boarding Steps
@@ -1370,6 +1392,9 @@ export const typeDefs = gql`
     
     # List project members for current project
     projectMembers: [ProjectMember!]!
+
+    # License
+    licenseStatus: LicenseState!
   }
 
   type Mutation {
@@ -1592,5 +1617,9 @@ export const typeDefs = gql`
     
     # Remove a member from the project
     removeProjectMember(where: ProjectMemberWhereInput!): Boolean!
+
+    # ===== License Mutations (Admin only) =====
+    activateLicense(data: ActivateLicenseInput!): LicenseState!
+    refreshLicense: LicenseState!
   }
 `;

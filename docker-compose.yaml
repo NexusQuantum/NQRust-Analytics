@@ -94,9 +94,11 @@ services:
     restart: on-failure
     platform: linux/amd64
     image: analytics-ui:local
+    hostname: analytics-ui
     environment:
       DB_TYPE: sqlite
       SQLITE_FILE: /app/data/db.sqlite3
+      PERSIST_CREDENTIAL_DIR: /app/data
       ANALYTICS_ENGINE_ENDPOINT: http://analytics-engine:8080
       ANALYTICS_AI_ENDPOINT: http://analytics-service:5555
       IBIS_SERVER_ENDPOINT: http://ibis-server:8000
@@ -110,6 +112,12 @@ services:
       NEXT_PUBLIC_TELEMETRY_ENABLED: false
       EXPERIMENTAL_ENGINE_RUST_VERSION: false
       ANALYTICS_PRODUCT_VERSION: 0.27.0
+      LICENSE_KEY: ${LICENSE_KEY:-}
+      LICENSE_API_KEY: ${LICENSE_API_KEY:-}
+      LICENSE_SERVER_URL: ${LICENSE_SERVER_URL:-https://billing.nexusquantum.id}
+      LICENSE_FILE_PATH: ${LICENSE_FILE_PATH:-}
+      LICENSE_GRACE_PERIOD_DAYS: ${LICENSE_GRACE_PERIOD_DAYS:-7}
+      LICENSE_PUBLIC_KEY: ${LICENSE_PUBLIC_KEY:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

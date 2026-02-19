@@ -8,6 +8,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { PostHogProvider } from 'posthog-js/react';
 import { ApolloProvider } from '@apollo/client';
 import { defaultIndicator } from '@/components/PageLoading';
+import LicenseGuard from '@/components/LicenseGuard';
 
 require('../styles/index.less');
 
@@ -53,9 +54,11 @@ function App({ Component, pageProps }: AppProps) {
         <ApolloProvider client={apolloClient}>
           <AuthProvider>
             <PostHogProvider client={posthog}>
-              <main className="app">
-                <Component {...pageProps} />
-              </main>
+              <LicenseGuard>
+                <main className="app">
+                  <Component {...pageProps} />
+                </main>
+              </LicenseGuard>
             </PostHogProvider>
           </AuthProvider>
         </ApolloProvider>

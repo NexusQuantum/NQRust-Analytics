@@ -36,6 +36,8 @@ import {
   IProjectService,
   IDashboardService,
   IInstructionService,
+  ILicenseService,
+  LicenseState,
 } from '@server/services';
 import { ITelemetry } from '@server/telemetry/telemetry';
 import {
@@ -68,6 +70,10 @@ export interface IContext {
   dashboardService: IDashboardService;
   sqlPairService: ISqlPairService;
   instructionService: IInstructionService;
+  licenseService: ILicenseService;
+
+  // license
+  licenseState: LicenseState;
 
   // repository
   projectRepository: IProjectRepository;

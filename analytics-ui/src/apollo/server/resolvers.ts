@@ -9,6 +9,7 @@ import { SqlPairResolver } from './resolvers/sqlPairResolver';
 import { InstructionResolver } from './resolvers/instructionResolver';
 import { ApiHistoryResolver } from './resolvers/apiHistoryResolver';
 import { AuthResolver } from './resolvers/authResolver';
+import { LicenseResolver } from './resolvers/licenseResolver';
 import { convertColumnType } from '@server/utils';
 import { DialectSQLScalar } from './scalars';
 
@@ -22,6 +23,7 @@ const sqlPairResolver = new SqlPairResolver();
 const instructionResolver = new InstructionResolver();
 const apiHistoryResolver = new ApiHistoryResolver();
 const authResolver = new AuthResolver();
+const licenseResolver = new LicenseResolver();
 const resolvers = {
   JSON: GraphQLJSON,
   DialectSQL: DialectSQLScalar,
@@ -89,6 +91,9 @@ const resolvers = {
     role: authResolver.role,
     permissions: authResolver.permissions,
     projectMembers: authResolver.projectMembers,
+
+    // License
+    licenseStatus: licenseResolver.licenseStatus,
   },
   Mutation: {
     deploy: modelResolver.deploy,
@@ -229,6 +234,10 @@ const resolvers = {
     inviteProjectMember: authResolver.inviteProjectMember,
     updateProjectMember: authResolver.updateProjectMember,
     removeProjectMember: authResolver.removeProjectMember,
+
+    // License
+    activateLicense: licenseResolver.activateLicense,
+    refreshLicense: licenseResolver.refreshLicense,
   },
   ThreadResponse: askingResolver.getThreadResponseNestedResolver(),
   DetailStep: askingResolver.getDetailStepNestedResolver(),

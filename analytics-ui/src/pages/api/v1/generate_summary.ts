@@ -17,6 +17,7 @@ import {
   AnalyticsAILanguage,
 } from '@/apollo/server/models/adaptor';
 import { getLogger } from '@server/utils';
+import { requireLicense } from '@/apollo/server/utils/licenseGuard';
 
 const logger = getLogger('API_GENERATE_SUMMARY');
 logger.level = 'debug';
@@ -36,6 +37,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (!requireLicense(res)) return;
   const { question, sql, sampleSize, language, threadId } =
     req.body as GenerateSummaryRequest;
   const startTime = Date.now();

@@ -20,6 +20,9 @@ RUN corepack prepare yarn@4.5.3 --activate
 FROM base AS deps
 WORKDIR /app
 
+# Build tools needed for native addons (better-sqlite3, duckdb, etc.)
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies based on the preferred package manager
 RUN yarn install --immutable
 RUN yarn add sharp
@@ -67,6 +70,11 @@ COPY --from=builder /app/node_modules/tildify ./node_modules/tildify
 COPY --from=builder /app/node_modules/getopts ./node_modules/getopts
 COPY --from=builder /app/node_modules/escalade/sync ./node_modules/escalade/sync
 COPY --from=builder /app/node_modules/.yarn-state.yml ./node_modules/.yarn-state.yml
+
+# Native addon for SQLite (better-sqlite3)
+COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+COPY --from=builder /app/node_modules/bindings ./node_modules/bindings
+COPY --from=builder /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path
 
 EXPOSE 3000
 

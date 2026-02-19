@@ -1,5 +1,5 @@
 import { SETTINGS } from '@/utils/enum';
-import { DatabaseIcon, FolderIcon } from '@/utils/icons';
+import { DatabaseIcon, FolderIcon, LicenseIcon } from '@/utils/icons';
 
 export const getSettingMenu = (menu: SETTINGS) =>
   ({
@@ -10,5 +10,9 @@ export const getSettingMenu = (menu: SETTINGS) =>
     [SETTINGS.PROJECT]: {
       icon: FolderIcon,
       label: 'Project settings',
+    },
+    [SETTINGS.LICENSE]: {
+      icon: LicenseIcon,
+      label: 'License',
     },
   })[menu] || null;

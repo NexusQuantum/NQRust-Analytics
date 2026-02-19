@@ -23,6 +23,7 @@ import {
   UserRepository,
   StarredDashboardRepository,
   ThreadShareRepository,
+  LicenseRepository,
 } from '@server/repositories';
 import {
   AnalyticsEngineAdaptor,
@@ -39,6 +40,7 @@ import {
   DashboardService,
   AskingTaskTracker,
   InstructionService,
+  LicenseService,
 } from '@server/services';
 import { PostHogTelemetry } from './apollo/server/telemetry/telemetry';
 import {
@@ -83,6 +85,14 @@ export const initComponents = () => {
   const apiHistoryRepository = new ApiHistoryRepository(knex);
   const dashboardItemRefreshJobRepository =
     new DashboardItemRefreshJobRepository(knex);
+  const licenseRepository = new LicenseRepository(knex);
+
+  // license service
+  const licenseService = new LicenseService(serverConfig, licenseRepository);
+  licenseService.checkLicense().catch((err) => {
+    // Non-fatal at startup — will be re-checked on requests
+    console.warn('License check failed at startup:', err?.message || err);
+  });
 
   // adaptors
   const analyticsEngineAdaptor = new AnalyticsEngineAdaptor({
@@ -211,6 +221,7 @@ export const initComponents = () => {
     apiHistoryRepository,
     instructionRepository,
     dashboardItemRefreshJobRepository,
+    licenseRepository,
 
     // adaptors
     analyticsEngineAdaptor,
@@ -228,6 +239,7 @@ export const initComponents = () => {
     sqlPairService,
     instructionService,
     askingTaskTracker,
+    licenseService,
 
     // background trackers
     projectRecommendQuestionBackgroundTracker,

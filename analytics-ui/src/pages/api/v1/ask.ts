@@ -22,6 +22,7 @@ import {
   AnalyticsAIError,
 } from '@/apollo/server/models/adaptor';
 import { getLogger } from '@server/utils';
+import { requireLicense } from '@/apollo/server/utils/licenseGuard';
 
 const logger = getLogger('API_ASK');
 logger.level = 'debug';
@@ -45,6 +46,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (!requireLicense(res)) return;
   const { question, sampleSize, language, threadId } = req.body as AskRequest;
   const startTime = Date.now();
   let project;

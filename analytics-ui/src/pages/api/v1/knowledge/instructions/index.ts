@@ -8,6 +8,7 @@ import {
 } from '@/apollo/server/utils/apiUtils';
 import { getLogger } from '@server/utils';
 import { isNil } from 'lodash';
+import { requireLicense } from '@/apollo/server/utils/licenseGuard';
 
 const logger = getLogger('API_INSTRUCTIONS');
 logger.level = 'debug';
@@ -169,6 +170,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (!requireLicense(res)) return;
   const startTime = Date.now();
   let project;
 
