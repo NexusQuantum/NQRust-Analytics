@@ -16,7 +16,7 @@ export { default as Card } from 'antd/lib/card';
 export { default as Collapse } from 'antd/lib/collapse';
 // export { default as Carousel } from 'antd/lib/carousel';
 // export { default as Cascader } from 'antd/lib/cascader';
-// export { default as Checkbox } from 'antd/lib/checkbox';
+export { default as Checkbox } from 'antd/lib/checkbox';
 export { default as Col } from 'antd/lib/col';
 // export { default as Comment } from 'antd/lib/comment';
 // export { default as ConfigProvider } from 'antd/lib/config-provider';
