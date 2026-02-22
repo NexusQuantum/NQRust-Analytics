@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Form, Input, Button, Alert, Typography, Tag, Upload, Divider } from 'antd';
+import { Form, Input, Button, Alert, Typography, Tag, Upload, Divider, Checkbox } from 'antd';
 import {
   KeyOutlined,
   CheckCircleOutlined,
@@ -10,9 +10,13 @@ import {
   UploadOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery, gql } from '@apollo/client';
+import EulaViewer from '@/components/EulaViewer';
+import { EULA_VERSION } from '@/constants/eulaContent';
 import styles from './license.module.less';
 
 const { Title, Text } = Typography;
+
+const EULA_STORAGE_KEY = 'nqrust_eula_accepted';
 
 const LICENSE_STATUS_QUERY = gql`
   query LicenseStatus {
@@ -59,6 +63,14 @@ export default function LicensePage() {
   const [form] = Form.useForm();
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [step, setStep] = useState<'eula' | 'license'>(() => {
+    if (typeof window !== 'undefined') {
+      const accepted = localStorage.getItem(EULA_STORAGE_KEY);
+      return accepted === EULA_VERSION ? 'license' : 'eula';
+    }
+    return 'eula';
+  });
+  const [eulaChecked, setEulaChecked] = useState(false);
 
   const { data, loading: queryLoading, refetch } = useQuery(LICENSE_STATUS_QUERY, {
     fetchPolicy: 'network-only',
@@ -86,6 +98,11 @@ export default function LicensePage() {
       setLicenseCookieAndRedirect();
     }
   }, [licenseState, setLicenseCookieAndRedirect]);
+
+  const handleAcceptEula = () => {
+    localStorage.setItem(EULA_STORAGE_KEY, EULA_VERSION);
+    setStep('license');
+  };
 
   const handleSubmit = async (values: { licenseKey: string }) => {
     setError(null);
@@ -189,152 +206,199 @@ export default function LicensePage() {
   return (
     <>
       <Head>
-        <title>License Activation - NQRust Analytics</title>
+        <title>
+          {step === 'eula'
+            ? 'EULA - NQRust Analytics'
+            : 'License Activation - NQRust Analytics'}
+        </title>
       </Head>
       <div className={styles.container}>
-        <div className={styles.card}>
-          <div className={styles.header}>
-            <div className={styles.logo}>
-              <img
-                src="/images/nexus-analytics-logo-192.png"
-                alt="NQRust Analytics"
-              />
-            </div>
-            <Title level={2} className={styles.title}>
-              License Activation
-            </Title>
-            <Text type="secondary">
-              Enter your license key to activate NQRust Analytics
-            </Text>
-          </div>
-
-          {showCurrentLicense && (
-            <div className={infoClass}>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Status</span>
-                <span>{getStatusTag()}</span>
+        <div className={`${styles.card} ${step === 'eula' ? styles.cardWide : ''}`}>
+          {step === 'eula' ? (
+            <>
+              <div className={styles.header}>
+                <div className={styles.logo}>
+                  <img
+                    src="/images/nexus-analytics-logo-192.png"
+                    alt="NQRust Analytics"
+                  />
+                </div>
+                <Title level={2} className={styles.title}>
+                  End User License Agreement
+                </Title>
+                <Text type="secondary">
+                  Please read and accept the EULA to continue
+                </Text>
               </div>
-              {licenseState.customerName && (
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Customer</span>
-                  <span className={styles.infoValue}>
-                    {licenseState.customerName}
-                  </span>
-                </div>
-              )}
-              {licenseState.product && (
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Product</span>
-                  <span className={styles.infoValue}>
-                    {licenseState.product}
-                  </span>
-                </div>
-              )}
-              {licenseState.expiresAt && (
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Expires</span>
-                  <span className={styles.infoValue}>
-                    {licenseState.expiresAt}
-                  </span>
-                </div>
-              )}
-              {licenseState.isGracePeriod && (
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Grace Period</span>
-                  <span className={styles.infoValue}>
-                    {licenseState.graceDaysRemaining} days remaining
-                  </span>
-                </div>
-              )}
-              {licenseState.activations != null &&
-                licenseState.maxActivations != null && (
-                  <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>Activations</span>
-                    <span className={styles.infoValue}>
-                      {licenseState.activations} / {licenseState.maxActivations}
-                    </span>
-                  </div>
-                )}
-            </div>
-          )}
 
-          {error && (
-            <Alert
-              message={error}
-              type="error"
-              showIcon
-              closable
-              onClose={() => setError(null)}
-              className={styles.alert}
-            />
-          )}
+              <EulaViewer maxHeight={350} />
 
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleSubmit}
-            requiredMark={false}
-            size="large"
-          >
-            <Form.Item
-              name="licenseKey"
-              label="License Key"
-              rules={[
-                { required: true, message: 'Please enter your license key' },
-                {
-                  pattern: /^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/,
-                  message: 'License key must be in format XXXX-XXXX-XXXX-XXXX',
-                },
-              ]}
-            >
-              <Input
-                prefix={<KeyOutlined style={{ color: '#bfbfbf' }} />}
-                placeholder="XXXX-XXXX-XXXX-XXXX"
-                maxLength={19}
-                autoComplete="off"
-              />
-            </Form.Item>
+              <div style={{ marginTop: 16 }}>
+                <Checkbox
+                  checked={eulaChecked}
+                  onChange={(e) => setEulaChecked(e.target.checked)}
+                >
+                  I have read and agree to the End User License Agreement
+                </Checkbox>
+              </div>
 
-            <Form.Item>
               <Button
                 type="primary"
-                htmlType="submit"
-                loading={activating}
                 block
+                disabled={!eulaChecked}
+                onClick={handleAcceptEula}
                 className={styles.submitButton}
+                style={{ marginTop: 16 }}
               >
-                Activate License
+                Accept & Continue
               </Button>
-            </Form.Item>
-          </Form>
+            </>
+          ) : (
+            <>
+              <div className={styles.header}>
+                <div className={styles.logo}>
+                  <img
+                    src="/images/nexus-analytics-logo-192.png"
+                    alt="NQRust Analytics"
+                  />
+                </div>
+                <Title level={2} className={styles.title}>
+                  License Activation
+                </Title>
+                <Text type="secondary">
+                  Enter your license key to activate NQRust Analytics
+                </Text>
+              </div>
 
-          <Divider style={{ margin: '16px 0' }}>
-            <Text type="secondary" style={{ fontSize: 13 }}>
-              or
-            </Text>
-          </Divider>
+              {showCurrentLicense && (
+                <div className={infoClass}>
+                  <div className={styles.infoRow}>
+                    <span className={styles.infoLabel}>Status</span>
+                    <span>{getStatusTag()}</span>
+                  </div>
+                  {licenseState.customerName && (
+                    <div className={styles.infoRow}>
+                      <span className={styles.infoLabel}>Customer</span>
+                      <span className={styles.infoValue}>
+                        {licenseState.customerName}
+                      </span>
+                    </div>
+                  )}
+                  {licenseState.product && (
+                    <div className={styles.infoRow}>
+                      <span className={styles.infoLabel}>Product</span>
+                      <span className={styles.infoValue}>
+                        {licenseState.product}
+                      </span>
+                    </div>
+                  )}
+                  {licenseState.expiresAt && (
+                    <div className={styles.infoRow}>
+                      <span className={styles.infoLabel}>Expires</span>
+                      <span className={styles.infoValue}>
+                        {licenseState.expiresAt}
+                      </span>
+                    </div>
+                  )}
+                  {licenseState.isGracePeriod && (
+                    <div className={styles.infoRow}>
+                      <span className={styles.infoLabel}>Grace Period</span>
+                      <span className={styles.infoValue}>
+                        {licenseState.graceDaysRemaining} days remaining
+                      </span>
+                    </div>
+                  )}
+                  {licenseState.activations != null &&
+                    licenseState.maxActivations != null && (
+                      <div className={styles.infoRow}>
+                        <span className={styles.infoLabel}>Activations</span>
+                        <span className={styles.infoValue}>
+                          {licenseState.activations} / {licenseState.maxActivations}
+                        </span>
+                      </div>
+                    )}
+                </div>
+              )}
 
-          <div className={styles.uploadSection}>
-            <Upload.Dragger
-              accept=".lic"
-              maxCount={1}
-              showUploadList={false}
-              beforeUpload={handleLicFileUpload}
-              disabled={uploading}
-            >
-              <p className="ant-upload-drag-icon">
-                <UploadOutlined style={{ fontSize: 32, color: '#999' }} />
-              </p>
-              <p className="ant-upload-text">
-                {uploading
-                  ? 'Verifying license...'
-                  : 'Click or drag .lic file to upload'}
-              </p>
-              <p className="ant-upload-hint">
-                For offline or air-gapped deployments
-              </p>
-            </Upload.Dragger>
-          </div>
+              {error && (
+                <Alert
+                  message={error}
+                  type="error"
+                  showIcon
+                  closable
+                  onClose={() => setError(null)}
+                  className={styles.alert}
+                />
+              )}
+
+              <Form
+                form={form}
+                layout="vertical"
+                onFinish={handleSubmit}
+                requiredMark={false}
+                size="large"
+              >
+                <Form.Item
+                  name="licenseKey"
+                  label="License Key"
+                  rules={[
+                    { required: true, message: 'Please enter your license key' },
+                    {
+                      pattern: /^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/,
+                      message: 'License key must be in format XXXX-XXXX-XXXX-XXXX',
+                    },
+                  ]}
+                >
+                  <Input
+                    prefix={<KeyOutlined style={{ color: '#bfbfbf' }} />}
+                    placeholder="XXXX-XXXX-XXXX-XXXX"
+                    maxLength={19}
+                    autoComplete="off"
+                  />
+                </Form.Item>
+
+                <Form.Item>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={activating}
+                    block
+                    className={styles.submitButton}
+                  >
+                    Activate License
+                  </Button>
+                </Form.Item>
+              </Form>
+
+              <Divider style={{ margin: '16px 0' }}>
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  or
+                </Text>
+              </Divider>
+
+              <div className={styles.uploadSection}>
+                <Upload.Dragger
+                  accept=".lic"
+                  maxCount={1}
+                  showUploadList={false}
+                  beforeUpload={handleLicFileUpload}
+                  disabled={uploading}
+                >
+                  <p className="ant-upload-drag-icon">
+                    <UploadOutlined style={{ fontSize: 32, color: '#999' }} />
+                  </p>
+                  <p className="ant-upload-text">
+                    {uploading
+                      ? 'Verifying license...'
+                      : 'Click or drag .lic file to upload'}
+                  </p>
+                  <p className="ant-upload-hint">
+                    For offline or air-gapped deployments
+                  </p>
+                </Upload.Dragger>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>

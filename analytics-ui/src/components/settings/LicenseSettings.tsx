@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Form, Input, Button, Alert, Tag, Upload, message, Divider } from 'antd';
+import { Form, Input, Button, Alert, Tag, Upload, message, Divider, Modal } from 'antd';
 import {
   KeyOutlined,
   CheckCircleOutlined,
@@ -7,8 +7,10 @@ import {
   WarningOutlined,
   SyncOutlined,
   UploadOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, gql } from '@apollo/client';
+import EulaViewer from '@/components/EulaViewer';
 
 const LICENSE_STATUS_QUERY = gql`
   query LicenseStatus {
@@ -106,6 +108,7 @@ export default function LicenseSettings() {
   const [form] = Form.useForm();
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [eulaModalVisible, setEulaModalVisible] = useState(false);
 
   const {
     data,
@@ -324,6 +327,34 @@ export default function LicenseSettings() {
           className="mb-3"
         />
       )}
+
+      <div className="d-flex align-center justify-space-between mb-2">
+        <span className="gray-9 text-bold">End User License Agreement</span>
+        <Button
+          size="small"
+          icon={<FileTextOutlined />}
+          onClick={() => setEulaModalVisible(true)}
+        >
+          View EULA
+        </Button>
+      </div>
+      <div className="gray-6 mb-2" style={{ fontSize: 12 }}>
+        Review the terms and conditions of the software license.
+      </div>
+
+      <Modal
+        title="End User License Agreement"
+        visible={eulaModalVisible}
+        onCancel={() => setEulaModalVisible(false)}
+        footer={null}
+        width={720}
+        centered
+        destroyOnClose
+      >
+        <EulaViewer maxHeight={500} />
+      </Modal>
+
+      <Divider style={{ margin: '16px 0' }} />
 
       <div className="gray-9 text-bold mb-2">
         {showCurrentLicense ? 'Change License Key' : 'Activate License'}
