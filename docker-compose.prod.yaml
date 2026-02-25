@@ -1,6 +1,7 @@
 volumes:
   data:
   northwind_data:
+  insurance_data:
 
 
 networks:
@@ -77,6 +78,22 @@ services:
     volumes:
       - ./northwind.sql:/docker-entrypoint-initdb.d/northwind.sql:ro
       - northwind_data:/var/lib/postgresql/data
+    networks:
+      - analytics
+
+  insurance-db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: insurance
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo123
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./insurance-demo.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./insurance-init.sh:/docker-entrypoint-initdb.d/02-data.sh:ro
+      - insurance_data:/var/lib/postgresql/data
     networks:
       - analytics
 
