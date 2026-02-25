@@ -3,13 +3,18 @@
 # Source: https://github.com/Kielx/Insurance-company-database
 set -e
 
+# Install curl if not available
+if ! command -v curl &> /dev/null; then
+    apt-get update -qq && apt-get install -y -qq curl > /dev/null
+fi
+
 BASE_URL="https://raw.githubusercontent.com/Kielx/Insurance-company-database/master/01_database/dataGenerator/generatedData"
 
 load() {
     local table=$1
     local file=$2
     echo "Loading $table from $file..."
-    wget -qO- "$BASE_URL/$file" | psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
+    curl -sL "$BASE_URL/$file" | psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
         -c "COPY $table FROM STDIN WITH (FORMAT CSV, HEADER true)"
 }
 
