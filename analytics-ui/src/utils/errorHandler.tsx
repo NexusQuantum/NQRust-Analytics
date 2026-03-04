@@ -457,15 +457,62 @@ errorHandlers.set('DeleteInstruction', new DeleteInstructionErrorHandler());
 let lastNetworkErrorToast = 0;
 const NETWORK_ERROR_DEBOUNCE_MS = 10_000;
 
+/**
+ * Determine whether a networkError is truly an internet-connectivity issue
+ * vs. a server-side failure (5xx, parse error, CORS, etc.).
+ *
+ * Apollo's `networkError` can be:
+ *  - A `TypeError` with message "Failed to fetch" / "NetworkError …" → real connectivity loss
+ *  - A `ServerError` (has `.statusCode`) → server responded but with HTTP error
+ *  - A `ServerParseError` (has `.statusCode`) → server responded but body wasn't valid JSON
+ */
+const isRealConnectivityError = (err: Error & { statusCode?: number }): boolean => {
+  // If it carries an HTTP status code, the server DID respond → not a connectivity issue
+  if (err.statusCode) return false;
+
+  // TypeError "Failed to fetch" is the browser's signal for genuine network failure
+  // (offline, DNS failure, refused connection, CORS with no response)
+  if (err instanceof TypeError) return true;
+
+  // Fallback heuristic: check well-known browser network-error messages
+  const msg = err.message?.toLowerCase() ?? '';
+  if (
+    msg.includes('failed to fetch') ||
+    msg.includes('networkerror') ||
+    msg.includes('network request failed') ||
+    msg.includes('load failed')
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
 const errorHandler = (error: ErrorResponse) => {
   // networkError
   if (error.networkError) {
     const now = Date.now();
     if (now - lastNetworkErrorToast > NETWORK_ERROR_DEBOUNCE_MS) {
-      lastNetworkErrorToast = now;
-      message.error(
-        'No internet. Please check your network connection and try again.',
-      );
+      const err = error.networkError as Error & { statusCode?: number };
+
+      if (isRealConnectivityError(err)) {
+        // Genuine connectivity problem — confirm with navigator.onLine as extra signal
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          lastNetworkErrorToast = now;
+          message.error(
+            'No internet. Please check your network connection and try again.',
+          );
+        } else {
+          lastNetworkErrorToast = now;
+          message.error(
+            'Unable to reach the server. Please try again in a moment.',
+          );
+        }
+      } else if (err.statusCode && err.statusCode >= 500) {
+        lastNetworkErrorToast = now;
+        message.error('Server error. Please try again later.');
+      }
+      // For other statusCode errors (4xx etc.), let graphQLErrors handlers deal with them
     }
   }
 
