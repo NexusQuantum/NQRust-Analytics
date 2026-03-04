@@ -21,23 +21,27 @@ export default function LicenseGuard({
     router.pathname.startsWith(p),
   );
 
-  // When license is valid, ensure the middleware cookie is set
+  // When license is valid, ensure the middleware cookie is set (and refreshed)
   useEffect(() => {
-    if (license?.isLicensed && !cookieSetRef.current) {
+    if (license?.isLicensed) {
       cookieSetRef.current = true;
       fetch('/api/license-check').catch(() => {});
     }
     if (license && !license.isLicensed) {
       cookieSetRef.current = false;
     }
-  }, [license?.isLicensed]);
+  }, [license?.isLicensed, license?.verifiedAt]);
 
   // Redirect when license is definitively invalid (not on error/loading)
   useEffect(() => {
     if (isPublicPage || !license || error) return;
 
     if (!license.isLicensed) {
-      fetch('/api/license-check').finally(() => {
+      // Clear the cookie first, then wait a tick for the browser to commit it
+      fetch('/api/license-check').then(() => {
+        // Allow browser to process Set-Cookie header before navigating
+        setTimeout(() => router.replace(LICENSE_PAGE), 50);
+      }).catch(() => {
         router.replace(LICENSE_PAGE);
       });
     }

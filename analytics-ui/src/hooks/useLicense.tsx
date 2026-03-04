@@ -38,7 +38,7 @@ export interface LicenseState {
 
 export function useLicense() {
   const { data, loading, error, refetch } = useQuery(LICENSE_STATUS_QUERY, {
-    fetchPolicy: 'cache-first',
+    fetchPolicy: 'cache-and-network',
   });
 
   return {

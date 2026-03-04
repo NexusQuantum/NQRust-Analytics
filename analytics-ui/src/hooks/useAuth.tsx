@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { gql, useMutation, useQuery } from '@apollo/client';
+import { onTokenRefresh } from '@/apollo/client';
 
 // GraphQL queries and mutations
 const ME_QUERY = gql`
@@ -221,22 +222,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [refreshTokenMutation]);
 
-    // Proactive token refresh: schedule refresh 1 minute before access token expires
+    // Proactive token refresh: schedule refresh at 80% of token lifetime
     useEffect(() => {
         if (!accessToken) return;
 
         try {
             const payload = JSON.parse(atob(accessToken.split('.')[1]));
             const expiresAt = payload.exp * 1000;
-            const refreshAt = expiresAt - 3_600_000; // 1 hour before expiry
-            const delay = refreshAt - Date.now();
+            const issuedAt = (payload.iat || 0) * 1000;
+            const now = Date.now();
 
-            if (delay <= 0) {
-                // Token already expired or about to — refresh immediately
-                const storedRefresh = localStorage.getItem(REFRESH_TOKEN_KEY);
-                if (storedRefresh) handleRefreshToken(storedRefresh);
-                return;
-            }
+            // If token is already expired, let the Apollo error link handle it
+            // (don't refresh here to avoid infinite loop)
+            if (expiresAt <= now) return;
+
+            // Schedule refresh at 80% of remaining lifetime (min 30s from now)
+            const lifetime = issuedAt > 0 ? expiresAt - issuedAt : expiresAt - now;
+            const refreshAt = issuedAt > 0
+                ? issuedAt + lifetime * 0.8
+                : now + (expiresAt - now) * 0.8;
+            const delay = Math.max(refreshAt - now, 30_000);
 
             const timerId = setTimeout(() => {
                 const storedRefresh = localStorage.getItem(REFRESH_TOKEN_KEY);
@@ -263,6 +268,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
+
+    // Sync React state when Apollo error link refreshes tokens in the background
+    useEffect(() => {
+        return onTokenRefresh((newAccessToken) => {
+            setAccessToken(newAccessToken);
+            // Re-fetch user profile with the new token
+            refetchMe().then(({ data }) => {
+                if (data?.me) setUser(data.me);
+            }).catch(() => {});
+        });
+    }, [refetchMe]);
+
+    // Re-validate session when user returns to the tab after being idle
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState !== 'visible') return;
+            const storedToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+            if (!storedToken) return;
+
+            // If React state token differs from localStorage, sync it
+            // (Apollo error link may have refreshed it while tab was idle)
+            if (storedToken !== accessToken) {
+                setAccessToken(storedToken);
+            }
+
+            // Verify the session is still valid
+            refetchMe().then(({ data }) => {
+                if (data?.me) setUser(data.me);
+            }).catch(() => {
+                // Token might be expired — trigger refresh
+                const storedRefresh = localStorage.getItem(REFRESH_TOKEN_KEY);
+                if (storedRefresh) handleRefreshToken(storedRefresh);
+            });
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [accessToken, refetchMe, handleRefreshToken]);
 
     const login = useCallback(async (email: string, password: string) => {
         setIsLoading(true);

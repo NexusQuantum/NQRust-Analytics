@@ -8,10 +8,29 @@ const REFRESH_TOKEN_KEY = 'nqrust_refresh_token';
 
 // Track in-flight refresh to prevent concurrent refresh storms
 let isRefreshing = false;
-let pendingRequests: Array<() => void> = [];
+
+// Queue holds both the retry callback and observer so we can error out on failure
+interface PendingRequest {
+  resolve: () => void;
+  reject: (err: Error) => void;
+}
+let pendingRequests: PendingRequest[] = [];
+
+// Listeners notified when tokens are refreshed (so React state can sync)
+type TokenRefreshListener = (accessToken: string) => void;
+const tokenRefreshListeners = new Set<TokenRefreshListener>();
+export const onTokenRefresh = (listener: TokenRefreshListener) => {
+  tokenRefreshListeners.add(listener);
+  return () => tokenRefreshListeners.delete(listener);
+};
 
 const resolvePendingRequests = () => {
-  pendingRequests.forEach((cb) => cb());
+  pendingRequests.forEach((req) => req.resolve());
+  pendingRequests = [];
+};
+
+const rejectPendingRequests = (err: Error) => {
+  pendingRequests.forEach((req) => req.reject(err));
   pendingRequests = [];
 };
 
@@ -67,23 +86,35 @@ const apolloErrorLink = onError(
           .then((res) => res.json())
           .then((result) => {
             if (result.data?.refreshToken) {
-              localStorage.setItem(
-                ACCESS_TOKEN_KEY,
-                result.data.refreshToken.accessToken
-              );
+              const newAccessToken = result.data.refreshToken.accessToken;
+              localStorage.setItem(ACCESS_TOKEN_KEY, newAccessToken);
               localStorage.setItem(
                 REFRESH_TOKEN_KEY,
                 result.data.refreshToken.refreshToken
               );
+              // Notify React state (useAuth) so it stays in sync
+              tokenRefreshListeners.forEach((fn) => fn(newAccessToken));
               resolvePendingRequests();
             } else {
-              pendingRequests = [];
+              rejectPendingRequests(new Error('Token refresh failed'));
               forceLogout();
             }
           })
-          .catch(() => {
-            pendingRequests = [];
-            forceLogout();
+          .catch((err) => {
+            // Only force logout for non-connectivity errors (e.g. invalid refresh token)
+            // For genuine network failures, keep the user logged in — they can retry
+            const isNetworkFailure =
+              err instanceof TypeError ||
+              (err?.message?.toLowerCase()?.includes('failed to fetch'));
+            if (isNetworkFailure) {
+              // Network is down; error out pending operations so spinners stop
+              rejectPendingRequests(
+                new Error('Network unavailable. Please try again.'),
+              );
+            } else {
+              rejectPendingRequests(err);
+              forceLogout();
+            }
           })
           .finally(() => {
             isRefreshing = false;
@@ -92,15 +123,20 @@ const apolloErrorLink = onError(
 
       // Queue the failed operation to retry after refresh completes
       return new Observable((observer) => {
-        pendingRequests.push(() => {
-          const newToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-          operation.setContext(({ headers = {} }: { headers: Record<string, string> }) => ({
-            headers: {
-              ...headers,
-              authorization: newToken ? `Bearer ${newToken}` : '',
-            },
-          }));
-          forward(operation).subscribe(observer);
+        pendingRequests.push({
+          resolve: () => {
+            const newToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+            operation.setContext(({ headers = {} }: { headers: Record<string, string> }) => ({
+              headers: {
+                ...headers,
+                authorization: newToken ? `Bearer ${newToken}` : '',
+              },
+            }));
+            forward(operation).subscribe(observer);
+          },
+          reject: (err: Error) => {
+            observer.error(err);
+          },
         });
       });
     }
