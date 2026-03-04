@@ -121,9 +121,8 @@ export default function HomeThread() {
         onGenerateThreadResponseAnswer(data.updateThreadResponse.id);
       },
     });
-  const [fetchThreadResponse, threadResponseResult] =
+  const [fetchThreadResponseRaw, threadResponseResult] =
     useThreadResponseLazyQuery({
-      pollInterval: 1000,
       onCompleted(next) {
         const nextResponse = next.threadResponse;
         updateThreadQuery((prev) => ({
@@ -137,6 +136,18 @@ export default function HomeThread() {
         }));
       },
     });
+  // Wrap to start polling only after a valid fetch with responseId
+  const fetchThreadResponse: typeof fetchThreadResponseRaw = async (options) => {
+    try {
+      const result = await fetchThreadResponseRaw(options);
+      // Only start polling if the initial fetch succeeded
+      threadResponseResult.startPolling(1000);
+      return result;
+    } catch (error) {
+      console.error('Failed to fetch thread response:', error);
+      throw error;
+    }
+  };
 
   const [generateThreadRecommendationQuestions] =
     useGenerateThreadRecommendationQuestionsMutation({

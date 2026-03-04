@@ -58,9 +58,12 @@ export default function useRecommendedQuestionsInstruction() {
   );
 
   useEffect(() => {
+    let cancelled = false;
     const fetchRecommendationQuestionsData = async () => {
       const result = await fetchRecommendationQuestions();
+      if (cancelled) return;
       const data = result.data?.getProjectRecommendationQuestions;
+      if (!data) return;
 
       // for existing projects that do not have to generate recommended questions yet
       if (isRecommendedFinished(data.status)) {
@@ -74,13 +77,17 @@ export default function useRecommendedQuestionsInstruction() {
     };
 
     fetchRecommendationQuestionsData();
+    return () => {
+      cancelled = true;
+      recommendationQuestionsResult.stopPolling();
+    };
   }, []);
 
   useEffect(() => {
     if (isRecommendedFinished(recommendedQuestionsTask?.status)) {
       recommendationQuestionsResult.stopPolling();
 
-      if (recommendedQuestionsTask.questions.length === 0) {
+      if (!recommendedQuestionsTask?.questions?.length) {
         isRegenerate && setShowRetry(true);
 
         if (
@@ -114,6 +121,7 @@ export default function useRecommendedQuestionsInstruction() {
       fetchRecommendationQuestions();
     } catch (error) {
       console.error(error);
+      setGenerating(false);
     }
   };
 
