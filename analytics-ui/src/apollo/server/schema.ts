@@ -54,8 +54,6 @@ export const typeDefs = gql`
 
   type AuthPayload {
     user: User!
-    accessToken: String!
-    refreshToken: String!
   }
 
   # Auth Inputs
@@ -63,11 +61,6 @@ export const typeDefs = gql`
     email: String!
     password: String!
     displayName: String!
-  }
-
-  input LoginInput {
-    email: String!
-    password: String!
   }
 
   input ChangePasswordInput {
@@ -1560,27 +1553,15 @@ export const typeDefs = gql`
     deleteInstruction(where: InstructionWhereInput!): Boolean!
 
     # ===== Authentication Mutations =====
-    
+
     # Register a new user
     register(data: RegisterInput!): AuthPayload!
-    
-    # Login with email and password
-    login(data: LoginInput!): AuthPayload!
-    
-    # Logout current user
-    logout: Boolean!
-    
+
     # Change password for current user
     changePassword(data: ChangePasswordInput!): Boolean!
-    
+
     # Request password reset (sends email)
     requestPasswordReset(email: String!): Boolean!
-    
-    # Refresh access token using refresh token
-    refreshToken(refreshToken: String!): AuthPayload!
-    
-    # Revoke all sessions (force logout everywhere)
-    revokeAllSessions: Boolean!
 
     # ===== User Management Mutations (Admin only) =====
     

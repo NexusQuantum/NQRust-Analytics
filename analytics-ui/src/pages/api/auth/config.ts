@@ -6,11 +6,13 @@ export interface AuthConfigResponse {
     google: boolean;
     github: boolean;
   };
+  keycloakEnabled: boolean;
 }
 
 /**
- * API endpoint to get authentication configuration
- * Returns which OAuth providers are enabled for the frontend to conditionally render login buttons
+ * API endpoint to get authentication configuration.
+ * Returns which OAuth providers are enabled.
+ * Keycloak is configured via KEYCLOAK_* environment variables.
  */
 export default function handler(
   _req: NextApiRequest,
@@ -23,5 +25,7 @@ export default function handler(
       google: config.googleOAuthEnabled ?? false,
       github: config.githubOAuthEnabled ?? false,
     },
+    keycloakEnabled: process.env.KEYCLOAK_OAUTH_ENABLED === 'true' &&
+      !!(process.env.KEYCLOAK_CLIENT_ID && process.env.KEYCLOAK_CLIENT_SECRET),
   });
 }

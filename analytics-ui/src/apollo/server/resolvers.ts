@@ -213,12 +213,8 @@ const resolvers = {
 
     // Auth
     register: authResolver.register,
-    login: authResolver.login,
-    logout: authResolver.logout,
     changePassword: authResolver.changePassword,
     requestPasswordReset: authResolver.requestPasswordReset,
-    refreshToken: authResolver.refreshToken,
-    revokeAllSessions: authResolver.revokeAllSessions,
 
     // User Management
     createUser: authResolver.createUser,

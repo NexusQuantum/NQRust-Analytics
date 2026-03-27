@@ -9,16 +9,20 @@ import { PostHogProvider } from 'posthog-js/react';
 import { ApolloProvider } from '@apollo/client';
 import { defaultIndicator } from '@/components/PageLoading';
 import LicenseGuard from '@/components/LicenseGuard';
+import { SessionProvider } from 'next-auth/react';
 
 require('../styles/index.less');
 
 Spin.setDefaultIndicator(defaultIndicator);
 
-function App({ Component, pageProps }: AppProps) {
+function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   return (
     <>
       <Head>
         <title>NQRust - Analytics</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
         <link rel="icon" href="/favicon.ico?v=6" />
         <link
           rel="apple-touch-icon"
@@ -50,19 +54,21 @@ function App({ Component, pageProps }: AppProps) {
           href="/images/nexus-analytics-logo-512.png?v=6"
         />
       </Head>
-      <GlobalConfigProvider>
-        <ApolloProvider client={apolloClient}>
-          <AuthProvider>
-            <PostHogProvider client={posthog}>
-              <LicenseGuard>
-                <main className="app">
-                  <Component {...pageProps} />
-                </main>
-              </LicenseGuard>
-            </PostHogProvider>
-          </AuthProvider>
-        </ApolloProvider>
-      </GlobalConfigProvider>
+      <SessionProvider session={session} refetchInterval={5 * 60}>
+        <GlobalConfigProvider>
+          <ApolloProvider client={apolloClient}>
+            <AuthProvider>
+              <PostHogProvider client={posthog}>
+                <LicenseGuard>
+                  <main className="app">
+                    <Component {...pageProps} />
+                  </main>
+                </LicenseGuard>
+              </PostHogProvider>
+            </AuthProvider>
+          </ApolloProvider>
+        </GlobalConfigProvider>
+      </SessionProvider>
     </>
   );
 }

@@ -31,6 +31,7 @@
     "micro": "^9.4.1",
     "micro-cors": "^0.1.1",
     "next": "14.2.32",
+    "next-auth": "^4.24.13",
     "pg": "^8.8.0",
     "pg-cursor": "^2.7.4",
     "posthog-node": "^4.3.2",
