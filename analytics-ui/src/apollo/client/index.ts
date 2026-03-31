@@ -1,5 +1,6 @@
-import { ApolloClient, ApolloLink, HttpLink, InMemoryCache, from } from '@apollo/client';
+import { ApolloClient, HttpLink, InMemoryCache, from } from '@apollo/client';
 import { onError } from '@apollo/client/link/error';
+import { signOut } from 'next-auth/react';
 import errorHandler from '@/utils/errorHandler';
 
 const apolloErrorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
@@ -8,10 +9,9 @@ const apolloErrorLink = onError(({ graphQLErrors, networkError, operation, forwa
   );
 
   if (hasAuthError) {
-    // NextAuth manages session refresh automatically. On auth error just redirect to login.
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login';
-    }
+    // Sign out via NextAuth to properly clear the session cookie before redirecting.
+    // Using window.location.href would skip cookie cleanup and risk a redirect loop.
+    signOut({ callbackUrl: '/login' });
     return;
   }
 
@@ -24,11 +24,8 @@ const httpLink = new HttpLink({
   credentials: 'include', // Send NextAuth session cookie with every GraphQL request
 });
 
-// Passthrough link — auth is handled via NextAuth HttpOnly session cookie automatically
-const authLink = new ApolloLink((operation, forward) => forward(operation));
-
 const client = new ApolloClient({
-  link: from([apolloErrorLink, authLink, httpLink]),
+  link: from([apolloErrorLink, httpLink]),
   cache: new InMemoryCache(),
 });
 

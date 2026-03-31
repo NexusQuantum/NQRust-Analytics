@@ -1,6 +1,7 @@
 import microCors from 'micro-cors';
 import { NextApiRequest, NextApiResponse, PageConfig } from 'next';
 import { ApolloServer } from 'apollo-server-micro';
+import { getToken } from 'next-auth/jwt';
 import { typeDefs } from '@server';
 import resolvers from '@server/resolvers';
 import { IContext } from '@server/types';
@@ -138,11 +139,8 @@ const bootstrapServer = async () => {
       let user = null;
       let ipAddress: string | undefined;
       try {
-        const { getToken } = await import('next-auth/jwt');
         const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
         if (token?.userId) {
-          const { UserRepository } = await import('@server/repositories/userRepository');
-          const userRepository = new UserRepository(knex);
           const dbUser = await userRepository.findByIdWithRoles(Number(token.userId));
           if (dbUser && dbUser.isActive) user = dbUser;
         }
@@ -150,7 +148,9 @@ const bootstrapServer = async () => {
         ipAddress = typeof forwarded === 'string'
           ? forwarded.split(',')[0].trim()
           : req.socket?.remoteAddress;
-      } catch { /* unauthenticated — user stays null */ }
+      } catch (err) {
+        logger.warn('Failed to extract auth context from request:', err);
+      }
 
       return {
         req,

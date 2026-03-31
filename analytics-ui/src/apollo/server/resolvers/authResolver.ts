@@ -11,7 +11,6 @@ import { Knex } from 'knex';
 export interface AuthContext extends Omit<IContext, 'user'> {
     user: UserWithRoles | null;
     ipAddress?: string;
-    knex: Knex;
 }
 
 export class AuthResolver {
@@ -29,14 +28,6 @@ export class AuthResolver {
         };
     }
 
-    private getKnex(ctx: IContext): Knex {
-        const projectRepo = ctx.projectRepository as any;
-        if (projectRepo?.knex) {
-            return projectRepo.knex;
-        }
-        throw new Error('Database connection not available');
-    }
-
     private requireAuth(ctx: AuthContext): UserWithRoles {
         if (!ctx.user) {
             throw new GraphQLError('Authentication required', {
@@ -46,12 +37,9 @@ export class AuthResolver {
         return ctx.user;
     }
 
-    private async requireAdmin(ctx: AuthContext): Promise<UserWithRoles> {
+    private requireAdmin(ctx: AuthContext): UserWithRoles {
         const user = this.requireAuth(ctx);
-        const knex = this.getKnex(ctx);
-        const { userRepository } = this.createRepositories(knex);
-        const roles = await userRepository.getUserRoles(user.id);
-        if (!roles.some(r => r.name === 'admin')) {
+        if (!user.roles.some(r => r.name === 'admin')) {
             throw new GraphQLError('Admin access required', {
                 extensions: { code: 'FORBIDDEN' },
             });
@@ -73,9 +61,9 @@ export class AuthResolver {
 
     users = async (_root: unknown, _args: unknown, ctx: IContext) => {
         const authCtx = ctx as AuthContext;
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const repos = this.createRepositories(knex);
-        await this.requireAdmin(authCtx);
+        this.requireAdmin(authCtx);
 
         const users = await repos.userRepository.findAll();
         return Promise.all(
@@ -89,16 +77,16 @@ export class AuthResolver {
         ctx: IContext
     ) => {
         const authCtx = ctx as AuthContext;
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const repos = this.createRepositories(knex);
-        await this.requireAdmin(authCtx);
+        this.requireAdmin(authCtx);
         return repos.userRepository.findByIdWithRoles(args.where.id);
     };
 
     roles = async (_root: unknown, _args: unknown, ctx: IContext) => {
         const authCtx = ctx as AuthContext;
         this.requireAuth(authCtx);
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const { roleRepository } = this.createRepositories(knex);
 
         const roles = await roleRepository.findAll();
@@ -114,7 +102,7 @@ export class AuthResolver {
     ) => {
         const authCtx = ctx as AuthContext;
         this.requireAuth(authCtx);
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const { roleRepository } = this.createRepositories(knex);
         return roleRepository.findByIdWithPermissions(args.where.id);
     };
@@ -122,7 +110,7 @@ export class AuthResolver {
     permissions = async (_root: unknown, _args: unknown, ctx: IContext) => {
         const authCtx = ctx as AuthContext;
         this.requireAuth(authCtx);
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const { roleRepository } = this.createRepositories(knex);
         return roleRepository.getAllPermissions();
     };
@@ -130,7 +118,7 @@ export class AuthResolver {
     projectMembers = async (_root: unknown, _args: unknown, ctx: IContext) => {
         const authCtx = ctx as AuthContext;
         this.requireAuth(authCtx);
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const { projectMemberRepository } = this.createRepositories(knex);
 
         const projectId = await this.getCurrentProjectId(ctx);
@@ -145,7 +133,7 @@ export class AuthResolver {
         ctx: IContext
     ) => {
         const authCtx = ctx as AuthContext;
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const { userRepository, roleRepository, auditLogRepository } = this.createRepositories(knex);
 
         try {
@@ -170,7 +158,7 @@ export class AuthResolver {
     ) => {
         const authCtx = ctx as AuthContext;
         const user = this.requireAuth(authCtx);
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const { userRepository, auditLogRepository } = this.createRepositories(knex);
 
         try {
@@ -196,7 +184,7 @@ export class AuthResolver {
         ctx: IContext
     ) => {
         const authCtx = ctx as AuthContext;
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const { userRepository, auditLogRepository } = this.createRepositories(knex);
         await AuthUtils.requestPasswordReset(
             { userRepository, auditLogRepository },
@@ -221,9 +209,9 @@ export class AuthResolver {
         ctx: IContext
     ) => {
         const authCtx = ctx as AuthContext;
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const repos = this.createRepositories(knex);
-        const currentUser = await this.requireAdmin(authCtx);
+        const currentUser = this.requireAdmin(authCtx);
 
         const result = await AuthUtils.register(
             {
@@ -265,9 +253,9 @@ export class AuthResolver {
         ctx: IContext
     ) => {
         const authCtx = ctx as AuthContext;
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const repos = this.createRepositories(knex);
-        const currentUser = await this.requireAdmin(authCtx);
+        const currentUser = this.requireAdmin(authCtx);
 
         const updateData: Partial<User> = {};
         if (args.data.displayName !== undefined) {
@@ -317,9 +305,9 @@ export class AuthResolver {
         ctx: IContext
     ) => {
         const authCtx = ctx as AuthContext;
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const repos = this.createRepositories(knex);
-        const currentUser = await this.requireAdmin(authCtx);
+        const currentUser = this.requireAdmin(authCtx);
 
         if (args.where.id === currentUser.id) {
             throw new Error('Cannot delete your own account');
@@ -348,9 +336,9 @@ export class AuthResolver {
         ctx: IContext
     ) => {
         const authCtx = ctx as AuthContext;
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const repos = this.createRepositories(knex);
-        const currentUser = await this.requireAdmin(authCtx);
+        const currentUser = this.requireAdmin(authCtx);
 
         const role = await repos.roleRepository.createOne({
             name: args.data.name.toLowerCase(),
@@ -380,9 +368,9 @@ export class AuthResolver {
         ctx: IContext
     ) => {
         const authCtx = ctx as AuthContext;
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const repos = this.createRepositories(knex);
-        const currentUser = await this.requireAdmin(authCtx);
+        const currentUser = this.requireAdmin(authCtx);
 
         const role = await repos.roleRepository.findOneBy({ id: args.where.id } as Partial<Role>);
         if (!role) {
@@ -427,9 +415,9 @@ export class AuthResolver {
         ctx: IContext
     ) => {
         const authCtx = ctx as AuthContext;
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const repos = this.createRepositories(knex);
-        const currentUser = await this.requireAdmin(authCtx);
+        const currentUser = this.requireAdmin(authCtx);
 
         const role = await repos.roleRepository.findOneBy({ id: args.where.id } as Partial<Role>);
         if (!role) {
@@ -462,7 +450,7 @@ export class AuthResolver {
     ) => {
         const authCtx = ctx as AuthContext;
         const currentUser = this.requireAuth(authCtx);
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const repos = this.createRepositories(knex);
 
         const projectId = await this.getCurrentProjectId(ctx);
@@ -515,7 +503,7 @@ export class AuthResolver {
     ) => {
         const authCtx = ctx as AuthContext;
         const currentUser = this.requireAuth(authCtx);
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const repos = this.createRepositories(knex);
 
         const projectId = await this.getCurrentProjectId(ctx);
@@ -550,7 +538,7 @@ export class AuthResolver {
     ) => {
         const authCtx = ctx as AuthContext;
         const currentUser = this.requireAuth(authCtx);
-        const knex = this.getKnex(ctx);
+        const knex = ctx.knex;
         const repos = this.createRepositories(knex);
 
         const projectId = await this.getCurrentProjectId(ctx);
@@ -579,7 +567,7 @@ export class AuthResolver {
         return {
             roles: async (user: UserWithRoles, _args: unknown, ctx: IContext) => {
                 if (user.roles) return user.roles;
-                const knex = this.getKnex(ctx);
+                const knex = ctx.knex;
                 const { userRepository } = this.createRepositories(knex);
                 return userRepository.getUserRoles(user.id);
             },
@@ -590,7 +578,7 @@ export class AuthResolver {
         return {
             permissions: async (role: RoleWithPermissions, _args: unknown, ctx: IContext) => {
                 if (role.permissions) return role.permissions;
-                const knex = this.getKnex(ctx);
+                const knex = ctx.knex;
                 const { roleRepository } = this.createRepositories(knex);
                 return roleRepository.getRolePermissions(role.id);
             },
@@ -600,13 +588,13 @@ export class AuthResolver {
     getProjectMemberNestedResolver() {
         return {
             user: async (member: ProjectMemberWithUser, _args: unknown, ctx: IContext) => {
-                const knex = this.getKnex(ctx);
+                const knex = ctx.knex;
                 const { userRepository } = this.createRepositories(knex);
                 return userRepository.findByIdWithRoles(member.userId);
             },
             invitedBy: async (member: ProjectMemberWithUser, _args: unknown, ctx: IContext) => {
                 if (!member.invitedBy) return null;
-                const knex = this.getKnex(ctx);
+                const knex = ctx.knex;
                 const { userRepository } = this.createRepositories(knex);
                 return userRepository.findByIdWithRoles(member.invitedBy);
             },

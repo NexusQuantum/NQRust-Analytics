@@ -1,5 +1,6 @@
 import NextAuth, { NextAuthOptions, Session } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import { Knex } from 'knex';
 import { components } from '@/common';
 import { UserRepository } from '@/apollo/server/repositories/userRepository';
 import { RoleRepository } from '@/apollo/server/repositories/roleRepository';
@@ -112,24 +113,27 @@ export const authOptions: NextAuthOptions = {
         async signIn({ user, account }) {
             if (account?.provider === 'keycloak') {
                 const userRepository = new UserRepository(knex);
-                const roleRepository = new RoleRepository(knex);
                 const autoRegister = process.env.KEYCLOAK_AUTO_REGISTER !== 'false';
 
                 let dbUser = await userRepository.findByEmail(user.email!);
                 if (!dbUser) {
                     if (!autoRegister) return false;
-                    const newUser = await userRepository.createOne({
-                        email: user.email!,
-                        passwordHash: '',
-                        displayName: user.name || user.email!,
-                        avatarUrl: (user as any).image || null,
-                        isActive: true,
-                        isVerified: true,
+                    dbUser = await knex.transaction(async (trx: Knex.Transaction) => {
+                        const trxUserRepository = new UserRepository(trx);
+                        const trxRoleRepository = new RoleRepository(trx);
+                        const newUser = await trxUserRepository.createOne({
+                            email: user.email!,
+                            passwordHash: '',
+                            displayName: user.name || user.email!,
+                            avatarUrl: (user as any).image || null,
+                            isActive: true,
+                            isVerified: true,
+                        });
+                        const defaultRole = process.env.KEYCLOAK_DEFAULT_ROLE || 'viewer';
+                        const role = await trxRoleRepository.findByName(defaultRole);
+                        if (role) await trxUserRepository.assignRole(newUser.id, role.id);
+                        return trxUserRepository.findByIdWithRoles(newUser.id);
                     });
-                    const defaultRole = process.env.KEYCLOAK_DEFAULT_ROLE || 'viewer';
-                    const role = await roleRepository.findByName(defaultRole);
-                    if (role) await userRepository.assignRole(newUser.id, role.id);
-                    dbUser = await userRepository.findByIdWithRoles(newUser.id);
                 }
 
                 if (!dbUser?.isActive) return false;
