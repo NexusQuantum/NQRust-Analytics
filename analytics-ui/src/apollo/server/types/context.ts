@@ -1,3 +1,5 @@
+import type { NextApiRequest, NextApiResponse } from 'next';
+import type { Knex } from 'knex';
 import { IConfig } from '@server/config';
 import {
   IIbisAdaptor,
@@ -48,6 +50,13 @@ import {
 import { ISqlPairService } from '../services/sqlPairService';
 
 export interface IContext {
+  // HTTP request/response — available in all GraphQL resolvers
+  req: NextApiRequest;
+  res: NextApiResponse;
+
+  // Database connection
+  knex: Knex;
+
   config: IConfig;
   // telemetry
   telemetry: ITelemetry;

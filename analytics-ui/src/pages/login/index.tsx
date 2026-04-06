@@ -2,75 +2,69 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { Form, Input, Button, Alert, Typography, Divider } from 'antd';
-import { MailOutlined, LockOutlined, GoogleOutlined, GithubOutlined } from '@ant-design/icons';
-import { useAuth } from '@/hooks/useAuth';
+import { MailOutlined, LockOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { signIn, useSession } from 'next-auth/react';
 import styles from './login.module.less';
 
 const { Title, Text } = Typography;
 
-interface OAuthProviders {
-    google: boolean;
-    github: boolean;
+interface LoginPageProps {
+    keycloakSSOEnabled: boolean;
 }
 
-export default function LoginPage() {
+export default function LoginPage({ keycloakSSOEnabled }: LoginPageProps) {
     const router = useRouter();
-    const { login, isAuthenticated, isLoading } = useAuth();
+    const { status } = useSession();
     const [form] = Form.useForm();
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const [oauthProviders, setOauthProviders] = useState<OAuthProviders>({ google: false, github: false });
-    const [oauthLoading, setOauthLoading] = useState(true);
 
-    // Fetch enabled OAuth providers
-    useEffect(() => {
-        fetch('/api/auth/config')
-            .then((res) => res.json())
-            .then((data) => {
-                setOauthProviders(data.providers || { google: false, github: false });
-            })
-            .catch(() => {
-                // On error, assume no OAuth providers available
-                setOauthProviders({ google: false, github: false });
-            })
-            .finally(() => {
-                setOauthLoading(false);
-            });
-    }, []);
-
-    // Check for OAuth error in URL
+    // Check for NextAuth error in URL (e.g., ?error=CredentialsSignin)
     useEffect(() => {
         if (router.query.error) {
-            setError(router.query.error as string);
+            const errMsg = router.query.error as string;
+            if (errMsg === 'CredentialsSignin') {
+                setError('Invalid email or password.');
+            } else {
+                setError(errMsg);
+            }
         }
     }, [router.query]);
 
     // Redirect if already authenticated
     useEffect(() => {
-        if (isAuthenticated) {
+        if (status === 'authenticated') {
             router.push('/home');
         }
-    }, [isAuthenticated, router]);
+    }, [status, router]);
 
     const handleSubmit = async (values: { email: string; password: string }) => {
         setError(null);
         setSubmitting(true);
-
         try {
-            await login(values.email, values.password);
-            router.push('/home');
-        } catch (err: any) {
-            setError(err.message || 'Login failed. Please check your credentials.');
+            const result = await signIn('credentials', {
+                email: values.email,
+                password: values.password,
+                redirect: false,
+                callbackUrl: '/home',
+            });
+            if (result?.error) {
+                setError('Invalid email or password.');
+            } else if (result?.ok) {
+                router.push('/home');
+            }
+        } catch {
+            setError('Login failed. Please try again.');
         } finally {
             setSubmitting(false);
         }
     };
 
-    const handleOAuthLogin = (provider: 'google' | 'github') => {
-        window.location.href = `/api/auth/oauth/${provider}`;
+    const handleKeycloakLogin = () => {
+        signIn('keycloak', { callbackUrl: '/home' });
     };
 
-    if (isLoading) {
+    if (status === 'loading') {
         return (
             <div className={styles.container}>
                 <div className={styles.loading}>Loading...</div>
@@ -108,34 +102,20 @@ export default function LoginPage() {
                         />
                     )}
 
-                    {/* OAuth Buttons - only show if at least one provider is enabled */}
-                    {!oauthLoading && (oauthProviders.google || oauthProviders.github) && (
+                    {/* Keycloak SSO Button */}
+                    {keycloakSSOEnabled && (
                         <>
                             <div className={styles.oauthButtons}>
-                                {oauthProviders.google && (
-                                    <Button
-                                        size="large"
-                                        block
-                                        icon={<GoogleOutlined />}
-                                        onClick={() => handleOAuthLogin('google')}
-                                        className={styles.googleButton}
-                                    >
-                                        Continue with Google
-                                    </Button>
-                                )}
-                                {oauthProviders.github && (
-                                    <Button
-                                        size="large"
-                                        block
-                                        icon={<GithubOutlined />}
-                                        onClick={() => handleOAuthLogin('github')}
-                                        className={styles.githubButton}
-                                    >
-                                        Continue with GitHub
-                                    </Button>
-                                )}
+                                <Button
+                                    size="large"
+                                    block
+                                    icon={<SafetyCertificateOutlined />}
+                                    onClick={handleKeycloakLogin}
+                                    className={styles.ssoButton}
+                                >
+                                    Login with NQRust Identity
+                                </Button>
                             </div>
-
                             <Divider plain>
                                 <Text type="secondary">or sign in with email</Text>
                             </Divider>
@@ -155,7 +135,7 @@ export default function LoginPage() {
                                 { required: true, message: 'Please enter your email' },
                                 {
                                     pattern: /^[^\s@]+@[^\s@]+(\.[^\s@]+)?$/,
-                                    message: 'Please enter a valid email'
+                                    message: 'Please enter a valid email',
                                 },
                             ]}
                         >
@@ -193,4 +173,15 @@ export default function LoginPage() {
             </div>
         </>
     );
+}
+
+// Expose KEYCLOAK_OAUTH_ENABLED to the client at build-time via server-side props
+export async function getServerSideProps() {
+    return {
+        props: {
+            keycloakSSOEnabled:
+                process.env.KEYCLOAK_OAUTH_ENABLED === 'true' &&
+                !!(process.env.KEYCLOAK_CLIENT_ID && process.env.KEYCLOAK_CLIENT_SECRET),
+        },
+    };
 }

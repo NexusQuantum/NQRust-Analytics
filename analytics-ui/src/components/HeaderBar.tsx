@@ -88,7 +88,7 @@ export default function HeaderBar() {
                 <Database size={16} className="mr-1" />
                 Data Source
               </StyledButton>
-              {/* <StyledButton
+              <StyledButton
                 type="text"
                 $isHighlight={pathname.startsWith(Path.Knowledge)}
                 onClick={() => router.push(Path.KnowledgeQuestionSQLPairs)}
@@ -96,14 +96,6 @@ export default function HeaderBar() {
               >
                 Knowledge
               </StyledButton>
-              <StyledButton
-                type="text"
-                $isHighlight={pathname.startsWith(Path.APIManagement)}
-                onClick={() => router.push(Path.APIManagementHistory)}
-                block
-              >
-                API Management
-              </StyledButton> */}
             </Space>
           )}
         </Space>

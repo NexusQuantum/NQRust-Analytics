@@ -11,7 +11,10 @@ networks:
 services:
 
   analytics-service:
-    image: ghcr.io/nexusquantum/analytics-ai-service:latest
+    build:
+      context: ./analytics-ai-service
+      dockerfile: docker/Dockerfile
+    image: analytics-service:local
     restart: on-failure
     platform: linux/amd64
     expose:
@@ -98,7 +101,10 @@ services:
       - analytics
 
   analytics-ui:
-    image: ghcr.io/nexusquantum/analytics-ui:latest
+    build:
+      context: ./analytics-ui
+      dockerfile: Dockerfile
+    image: analytics-ui:local
     restart: on-failure
     platform: linux/amd64
     hostname: analytics-ui

@@ -183,6 +183,17 @@ const config = {
   licensePublicKey: process.env.LICENSE_PUBLIC_KEY?.replace(/\\n/g, '\n'),
 };
 
+let _configWarned = false;
 export function getConfig(): IConfig {
-  return { ...defaultConfig, ...pickBy(config) };
+  const result = { ...defaultConfig, ...pickBy(config) } as IConfig;
+  if (!_configWarned) {
+    _configWarned = true;
+    if (result.encryptionPassword === defaultConfig.encryptionPassword) {
+      console.warn('[security] ENCRYPTION_PASSWORD is using the default insecure value. Set the ENCRYPTION_PASSWORD environment variable before going to production.');
+    }
+    if (result.encryptionSalt === defaultConfig.encryptionSalt) {
+      console.warn('[security] ENCRYPTION_SALT is using the default insecure value. Set the ENCRYPTION_SALT environment variable before going to production.');
+    }
+  }
+  return result;
 }

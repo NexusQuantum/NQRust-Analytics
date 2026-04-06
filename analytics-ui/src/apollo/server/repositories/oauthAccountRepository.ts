@@ -16,7 +16,7 @@ export interface OAuthAccount {
     updatedAt: Date;
 }
 
-export type OAuthProvider = 'google' | 'github';
+export type OAuthProvider = 'google' | 'github' | (string & {});
 
 export interface IOAuthAccountRepository extends IBasicRepository<OAuthAccount> {
     findByProviderAndUserId(provider: string, providerUserId: string): Promise<OAuthAccount | null>;

@@ -14,8 +14,8 @@ import {
     message,
     Alert,
     Popconfirm,
-    Avatar,
 } from 'antd';
+import Avatar from 'antd/es/avatar';
 import {
     UserOutlined,
     PlusOutlined,

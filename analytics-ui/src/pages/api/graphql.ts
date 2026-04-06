@@ -1,6 +1,7 @@
 import microCors from 'micro-cors';
 import { NextApiRequest, NextApiResponse, PageConfig } from 'next';
 import { ApolloServer } from 'apollo-server-micro';
+import { getToken } from 'next-auth/jwt';
 import { typeDefs } from '@server';
 import resolvers from '@server/resolvers';
 import { IContext } from '@server/types';
@@ -132,16 +133,30 @@ const bootstrapServer = async () => {
       return defaultApolloErrorHandler(error);
     },
     introspection: process.env.NODE_ENV !== 'production',
-    context: async ({ req }): Promise<IContext & { user?: any; ipAddress?: string; knex: typeof knex }> => {
-      // Extract authentication from request
-      const { user, ipAddress } = await import('@server/middleware/authMiddleware')
-        .then(mod => mod.createAuthContext(req, knex))
-        .catch(() => ({ user: null, ipAddress: undefined }));
+    cache: 'bounded',
+    context: async ({ req, res }): Promise<IContext & { user?: any; ipAddress?: string; knex: typeof knex }> => {
+      // Extract authentication from NextAuth JWT cookie
+      let user = null;
+      let ipAddress: string | undefined;
+      try {
+        const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+        if (token?.userId) {
+          const dbUser = await userRepository.findByIdWithRoles(Number(token.userId));
+          if (dbUser && dbUser.isActive) user = dbUser;
+        }
+        const forwarded = req.headers['x-forwarded-for'];
+        ipAddress = typeof forwarded === 'string'
+          ? forwarded.split(',')[0].trim()
+          : req.socket?.remoteAddress;
+      } catch (err) {
+        logger.warn('Failed to extract auth context from request:', err);
+      }
 
       return {
+        req,
+        res,
         config: serverConfig,
         telemetry,
-        // auth context
         user,
         ipAddress,
         knex,

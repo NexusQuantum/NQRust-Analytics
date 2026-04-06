@@ -8,9 +8,9 @@ import {
     Card,
     Typography,
     Divider,
-    Avatar,
     Alert,
 } from 'antd';
+import Avatar from 'antd/es/avatar';
 import {
     UserOutlined,
     LockOutlined,
