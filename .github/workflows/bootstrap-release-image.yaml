@@ -10,6 +10,10 @@ on:
 env:
   ANALYTICS_BOOTSTRAP_IMAGE: ghcr.io/h-pun/analytics-bootstrap
 
+permissions:
+  contents: read
+  packages: write
+
 defaults:
   run:
     working-directory: docker/bootstrap
