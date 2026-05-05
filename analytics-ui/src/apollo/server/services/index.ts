@@ -9,3 +9,5 @@ export * from './dashboardService';
 export * from './askingTaskTracker';
 export * from './instructionService';
 export * from './licenseService';
+export * from './notebookService';
+export * from './documentService';

@@ -66,6 +66,23 @@ export interface IAnalyticsAIAdaptor {
   getAskStreamingResult(queryId: string): Promise<Readable>;
 
   /**
+   * Document indexing (NotebookLM-style document RAG).
+   */
+  indexDocument(payload: {
+    document_id: string;
+    notebook_id: string;
+    project_id: string;
+    filename: string;
+    file_path: string;
+  }): Promise<void>;
+  getDocumentIndexStatus(documentId: string): Promise<{
+    status: string;
+    chunks_indexed?: number;
+    error?: { code: string; message: string };
+  }>;
+  deleteIndexedDocument(documentId: string): Promise<void>;
+
+  /**
    * After you choose a candidate, you can request AI service to generate the detail.
    * 1. use generateAskDetail() to generate the detail. AI service will return a queryId
    * 2. use getAskDetailResult() to get the result of the queryId
@@ -244,10 +261,56 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
         id: input.deployId,
         histories: this.transformHistoryInput(input.histories),
         configurations: input.configurations,
+        selected_document_ids: (input.selectedDocumentIds || []).map(String),
       });
       return { queryId: res.data.query_id };
     } catch (err: any) {
       logger.debug(`Got error when asking analytics AI: ${getAIServiceError(err)}`);
+      throw err;
+    }
+  }
+
+  /**
+   * Document RAG (NotebookLM-style) — wraps the AI service's
+   * /v1/documents/* endpoints. document_id, notebook_id, project_id are
+   * sent as strings to keep the AI service contract type-stable.
+   */
+  public async indexDocument(payload: {
+    document_id: string;
+    notebook_id: string;
+    project_id: string;
+    filename: string;
+    file_path: string;
+  }): Promise<void> {
+    try {
+      await this.httpClient.post(`/v1/documents/index`, payload);
+    } catch (err: any) {
+      logger.debug(`indexDocument failed: ${getAIServiceError(err)}`);
+      throw err;
+    }
+  }
+
+  public async getDocumentIndexStatus(documentId: string): Promise<{
+    status: string;
+    chunks_indexed?: number;
+    error?: { code: string; message: string };
+  }> {
+    try {
+      const res = await this.httpClient.get(
+        `/v1/documents/${documentId}/status`,
+      );
+      return res.data;
+    } catch (err: any) {
+      logger.debug(`getDocumentIndexStatus failed: ${getAIServiceError(err)}`);
+      throw err;
+    }
+  }
+
+  public async deleteIndexedDocument(documentId: string): Promise<void> {
+    try {
+      await this.httpClient.delete(`/v1/documents/${documentId}`);
+    } catch (err: any) {
+      logger.debug(`deleteIndexedDocument failed: ${getAIServiceError(err)}`);
       throw err;
     }
   }
@@ -426,6 +489,7 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
       thread_id: input.threadId,
       user_id: input.userId,
       configurations: input.configurations,
+      selected_document_ids: (input.selectedDocumentIds || []).map(String),
     };
     // make POST request /v1/sql-answers to create text-based answer
     try {

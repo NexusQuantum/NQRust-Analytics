@@ -5,6 +5,7 @@ import posthog from 'posthog-js';
 import apolloClient from '@/apollo/client';
 import { GlobalConfigProvider } from '@/hooks/useGlobalConfig';
 import { AuthProvider } from '@/hooks/useAuth';
+import { NotebookProvider } from '@/hooks/useNotebookContext';
 import { PostHogProvider } from 'posthog-js/react';
 import { ApolloProvider } from '@apollo/client';
 import { defaultIndicator } from '@/components/PageLoading';
@@ -59,11 +60,13 @@ function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
           <ApolloProvider client={apolloClient}>
             <AuthProvider>
               <PostHogProvider client={posthog}>
-                <LicenseGuard>
-                  <main className="app">
-                    <Component {...pageProps} />
-                  </main>
-                </LicenseGuard>
+                <NotebookProvider>
+                  <LicenseGuard>
+                    <main className="app">
+                      <Component {...pageProps} />
+                    </main>
+                  </LicenseGuard>
+                </NotebookProvider>
               </PostHogProvider>
             </AuthProvider>
           </ApolloProvider>

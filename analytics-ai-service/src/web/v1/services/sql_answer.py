@@ -26,6 +26,7 @@ class SqlAnswerRequest(BaseRequest):
     sql: str
     sql_data: Dict
     custom_instruction: Optional[str] = None
+    selected_document_ids: Optional[list[str]] = None
 
 
 class SqlAnswerResponse(BaseModel):
@@ -73,6 +74,7 @@ class SqlAnswerContext:
     configurations: dict
     trace_id: Optional[str] = None
     custom_instruction: Optional[str] = None
+    selected_document_ids: Optional[list[str]] = None
 
 
 class SqlAnswerService:
@@ -128,21 +130,53 @@ class SqlAnswerService:
         """Start SQL answer task asynchronously"""
         try:
             asyncio.create_task(
-                self._pipelines["sql_answer"].run(
-                    query=context.query,
-                    sql=context.sql,
-                    sql_data=preprocessed_sql_data.get("sql_data", {}),
-                    language=context.configurations.get("language", "en"),
-                    current_time=context.configurations.get(
-                        "show_current_time", lambda: ""
-                    )(),
-                    query_id=context.query_id,
-                    custom_instruction=context.custom_instruction,
+                self._run_with_doc_context(
+                    context=context,
+                    preprocessed_sql_data=preprocessed_sql_data,
                 )
             )
         except Exception as e:
             logger.error(f"Error starting SQL answer task: {e}")
             raise
+
+    async def _run_with_doc_context(
+        self, context: SqlAnswerContext, preprocessed_sql_data: Dict
+    ) -> None:
+        """Wrapper that retrieves doc chunks (if any) before calling sql_answer."""
+        document_context: list[dict] = []
+        if (
+            context.selected_document_ids
+            and "documents_retrieval" in self._pipelines
+        ):
+            try:
+                doc_result = await self._pipelines["documents_retrieval"].run(
+                    query=context.query,
+                    selected_document_ids=context.selected_document_ids,
+                    project_id=context.project_id,
+                )
+                document_context = (
+                    doc_result.get("formatted_output", {}).get("documents", [])
+                    or []
+                )
+                logger.info(
+                    f"[sql-answer] Retrieved {len(document_context)} doc chunks "
+                    f"from {len(context.selected_document_ids)} selected document(s)"
+                )
+            except Exception as e:
+                logger.warning(f"[sql-answer] Doc retrieval failed: {e}")
+
+        await self._pipelines["sql_answer"].run(
+            query=context.query,
+            sql=context.sql,
+            sql_data=preprocessed_sql_data.get("sql_data", {}),
+            language=context.configurations.get("language", "en"),
+            current_time=context.configurations.get(
+                "show_current_time", lambda: ""
+            )(),
+            query_id=context.query_id,
+            custom_instruction=context.custom_instruction,
+            document_context=document_context,
+        )
 
     def _format_result(
         self, context: SqlAnswerContext, preprocessed_sql_data: Dict
@@ -209,6 +243,7 @@ class SqlAnswerService:
             else {},
             trace_id=trace_id,
             custom_instruction=sql_answer_request.custom_instruction,
+            selected_document_ids=sql_answer_request.selected_document_ids,
         )
 
         try:

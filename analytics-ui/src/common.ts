@@ -24,6 +24,9 @@ import {
   StarredDashboardRepository,
   ThreadShareRepository,
   LicenseRepository,
+  NotebookRepository,
+  DocumentRepository,
+  DocumentSelectionRepository,
 } from '@server/repositories';
 import {
   AnalyticsEngineAdaptor,
@@ -41,6 +44,8 @@ import {
   AskingTaskTracker,
   InstructionService,
   LicenseService,
+  NotebookService,
+  DocumentService,
 } from '@server/services';
 import { PostHogTelemetry } from './apollo/server/telemetry/telemetry';
 import {
@@ -86,6 +91,9 @@ export const initComponents = () => {
   const dashboardItemRefreshJobRepository =
     new DashboardItemRefreshJobRepository(knex);
   const licenseRepository = new LicenseRepository(knex);
+  const notebookRepository = new NotebookRepository(knex);
+  const documentRepository = new DocumentRepository(knex);
+  const documentSelectionRepository = new DocumentSelectionRepository(knex);
 
   // license service
   const licenseService = new LicenseService(serverConfig, licenseRepository);
@@ -171,6 +179,11 @@ export const initComponents = () => {
     instructionRepository,
     analyticsAIAdaptor,
   });
+  const notebookService = new NotebookService({ notebookRepository });
+  const documentService = new DocumentService({
+    documentRepository,
+    selectionRepository: documentSelectionRepository,
+  });
 
   // background trackers
   const projectRecommendQuestionBackgroundTracker =
@@ -222,6 +235,9 @@ export const initComponents = () => {
     instructionRepository,
     dashboardItemRefreshJobRepository,
     licenseRepository,
+    notebookRepository,
+    documentRepository,
+    documentSelectionRepository,
 
     // adaptors
     analyticsEngineAdaptor,
@@ -240,6 +256,8 @@ export const initComponents = () => {
     instructionService,
     askingTaskTracker,
     licenseService,
+    notebookService,
+    documentService,
 
     // background trackers
     projectRecommendQuestionBackgroundTracker,

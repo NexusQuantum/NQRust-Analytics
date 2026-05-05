@@ -1,0 +1,96 @@
+# Dev infrastructure only: Qdrant + Postgres demo + Analytics Engine + Ibis.
+# Runs the services we don't actively develop. analytics-ai-service and
+# analytics-ui run natively on the host for fast iteration.
+#
+# Usage:
+#   docker compose -f docker-compose.dev-infra.yaml up -d
+#   docker compose -f docker-compose.dev-infra.yaml down
+
+volumes:
+  data:
+  qdrant_data:
+  northwind_data:
+
+networks:
+  analytics:
+    driver: bridge
+
+services:
+  bootstrap:
+    image: busybox
+    restart: "no"
+    platform: linux/amd64
+    volumes:
+      - data:/app/data
+    # Inline init script to avoid CRLF parsing issues from the Windows-checked
+    # init.sh in docker/bootstrap/. Equivalent behavior.
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        DATA=/app/data
+        if [ ! -f "$$DATA/config.properties" ]; then
+          echo "init config.properties"
+          echo "node.environment=production" > "$$DATA/config.properties"
+        fi
+        if ! grep -q "analytics.experimental-enable-dynamic-fields" "$$DATA/config.properties"; then
+          echo "analytics.experimental-enable-dynamic-fields=true" >> "$$DATA/config.properties"
+        fi
+        mkdir -p "$$DATA/mdl"
+        if [ ! -f "$$DATA/mdl/sample.json" ]; then
+          echo '{"catalog": "test_catalog", "schema": "test_schema", "models": []}' > "$$DATA/mdl/sample.json"
+        fi
+        echo "bootstrap complete"
+    networks:
+      - analytics
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.0
+    restart: on-failure
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - analytics
+
+  northwind-db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: northwind
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo123
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/northwind.sql:/docker-entrypoint-initdb.d/northwind.sql:ro
+      - northwind_data:/var/lib/postgresql/data
+    networks:
+      - analytics
+
+  analytics-engine:
+    image: ghcr.io/nexusquantum/analytics-engine:latest
+    restart: on-failure
+    platform: linux/amd64
+    ports:
+      - "8080:8080"
+    volumes:
+      - data:/usr/src/app/etc
+    networks:
+      - analytics
+    depends_on:
+      - bootstrap
+
+  ibis-server:
+    image: ghcr.io/nexusquantum/analytics-engine-ibis:latest
+    restart: on-failure
+    platform: linux/amd64
+    ports:
+      - "8000:8000"
+    networks:
+      - analytics
+    depends_on:
+      - analytics-engine

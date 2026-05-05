@@ -62,6 +62,8 @@ export interface AskingPayload {
 
 export interface AskingTaskInput {
   question: string;
+  /** NotebookLM-style: documents the user has checked as additional context. */
+  selectedDocumentIds?: number[];
 }
 
 export interface AskingDetailTaskInput {
@@ -605,6 +607,7 @@ export class AskingService implements IAskingService {
       histories,
       deployId,
       configurations: { language },
+      selectedDocumentIds: input.selectedDocumentIds,
       rerunFromCancelled,
       previousTaskId,
       threadResponseId,
@@ -826,6 +829,7 @@ export class AskingService implements IAskingService {
 
   public async generateThreadResponseAnswer(
     threadResponseId: number,
+    selectedDocumentIds?: number[],
   ): Promise<ThreadResponse> {
     const threadResponse = await this.threadResponseRepository.findOneBy({
       id: threadResponseId,
@@ -835,13 +839,15 @@ export class AskingService implements IAskingService {
       throw new Error(`Thread response ${threadResponseId} not found`);
     }
 
-    // update with initial status
+    // update with initial status — persist selectedDocumentIds in answerDetail
+    // so the background tracker can pick them up when calling AI service.
     const updatedThreadResponse = await this.threadResponseRepository.updateOne(
       threadResponse.id,
       {
         answerDetail: {
           status: ThreadResponseAnswerStatus.NOT_STARTED,
-        },
+          selectedDocumentIds: selectedDocumentIds || [],
+        } as any,
       },
     );
 

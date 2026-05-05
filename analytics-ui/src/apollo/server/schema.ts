@@ -711,6 +711,9 @@ export const typeDefs = gql`
     question: String!
     # Used for follow-up questions
     threadId: Int
+    # Documents the user has checked as additional context (NotebookLM-style).
+    # Empty/missing = use the database only.
+    selectedDocumentIds: [Int!]
   }
 
   enum AskingTaskStatus {
@@ -1388,6 +1391,11 @@ export const typeDefs = gql`
 
     # License
     licenseStatus: LicenseState!
+
+    # ===== Notebooks (NotebookLM-style document RAG) =====
+    notebooks(projectId: ID!): [Notebook!]!
+    notebook(id: ID!): Notebook
+    documents(notebookId: ID!): [Document!]!
   }
 
   type Mutation {
@@ -1471,7 +1479,7 @@ export const typeDefs = gql`
     generateThreadResponseBreakdown(responseId: Int!): ThreadResponse!
 
     # Generate Thread Response Answer
-    generateThreadResponseAnswer(responseId: Int!): ThreadResponse!
+    generateThreadResponseAnswer(responseId: Int!, selectedDocumentIds: [Int!]): ThreadResponse!
 
     # Generate Thread Response Chart
     generateThreadResponseChart(responseId: Int!): ThreadResponse!
@@ -1602,5 +1610,47 @@ export const typeDefs = gql`
     # ===== License Mutations (Admin only) =====
     activateLicense(data: ActivateLicenseInput!): LicenseState!
     refreshLicense: LicenseState!
+
+    # ===== Notebooks (NotebookLM-style document RAG) =====
+    createNotebook(input: CreateNotebookInput!): Notebook!
+    renameNotebook(id: ID!, name: String!): Notebook!
+    deleteNotebook(id: ID!): Boolean!
+    deleteDocument(id: ID!): Boolean!
+    toggleDocumentSelection(documentId: ID!, selected: Boolean!): Document!
+  }
+
+  # ===== Notebook Types =====
+
+  type Notebook {
+    id: Int!
+    projectId: Int!
+    name: String!
+    createdBy: Int
+    documentCount: Int!
+    createdAt: String
+    updatedAt: String
+  }
+
+  type Document {
+    id: Int!
+    notebookId: Int!
+    filename: String!
+    originalFilename: String!
+    mimeType: String!
+    size: Int!
+    pageCount: Int
+    status: String!
+    errorMessage: String
+    qdrantIndexedAt: String
+    uploadedBy: Int
+    createdAt: String
+    updatedAt: String
+    """Whether this document is currently checked as active context for the requesting user."""
+    selected: Boolean!
+  }
+
+  input CreateNotebookInput {
+    projectId: ID!
+    name: String!
   }
 `;

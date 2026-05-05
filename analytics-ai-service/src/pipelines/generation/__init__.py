@@ -1,6 +1,7 @@
 from .chart_adjustment import ChartAdjustment
 from .chart_generation import ChartGeneration
 from .data_assistance import DataAssistance
+from .document_answer import DocumentAnswer
 from .followup_sql_generation import FollowUpSQLGeneration
 from .followup_sql_generation_reasoning import FollowUpSQLGenerationReasoning
 from .intent_classification import IntentClassification
@@ -22,6 +23,7 @@ __all__ = [
     "ChartGeneration",
     "ChartAdjustment",
     "DataAssistance",
+    "DocumentAnswer",
     "FollowUpSQLGeneration",
     "IntentClassification",
     "QuestionRecommendation",

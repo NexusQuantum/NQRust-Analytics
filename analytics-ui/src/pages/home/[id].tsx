@@ -14,6 +14,8 @@ import { Path } from '@/utils/enum';
 import useHomeSidebar from '@/hooks/useHomeSidebar';
 import SiderLayout from '@/components/layouts/SiderLayout';
 import Prompt from '@/components/pages/home/prompt';
+import SourcesPanel from '@/components/sources/SourcesPanel';
+import { useNotebookContext } from '@/hooks/useNotebookContext';
 import useAskPrompt, {
   getIsFinished,
   canFetchThreadResponse,
@@ -82,6 +84,12 @@ export default function HomeThread() {
   const questionSqlPairModal = useModalAction();
   const adjustReasoningStepsModal = useModalAction();
   const adjustSqlModal = useModalAction();
+  const notebookCtxFull = useNotebookContext();
+  const { notebookId, setSelectedDocumentIds } = notebookCtxFull;
+  // Mirror to ref so closure-captured callbacks read the *latest* selection
+  // at trigger time, not at component mount time.
+  const notebookCtxRef = useRef(notebookCtxFull);
+  notebookCtxRef.current = notebookCtxFull;
 
   const [showRecommendedQuestions, setShowRecommendedQuestions] =
     useState<boolean>(false);
@@ -201,7 +209,21 @@ export default function HomeThread() {
   };
 
   const onGenerateThreadResponseAnswer = async (responseId: number) => {
-    await generateThreadResponseAnswer({ variables: { responseId } });
+    const docIds = notebookCtxRef.current?.selectedDocumentIds || [];
+    console.log(
+      '[home] onGenerateThreadResponseAnswer responseId=',
+      responseId,
+      'selectedDocumentIds=',
+      docIds,
+      'notebookId=',
+      notebookCtxRef.current?.notebookId,
+    );
+    await generateThreadResponseAnswer({
+      variables: {
+        responseId,
+        selectedDocumentIds: docIds,
+      },
+    });
     fetchThreadResponse({ variables: { responseId } });
   };
 
@@ -344,11 +366,19 @@ export default function HomeThread() {
 
   return (
     <SiderLayout loading={false} sidebar={homeSidebar}>
-      <PromptThreadProvider value={providerValue}>
-        <PromptThread />
-      </PromptThreadProvider>
+      <div style={{ display: 'flex', height: '100%' }}>
+        <SourcesPanel
+          notebookId={notebookId}
+          onSelectionChange={setSelectedDocumentIds}
+        />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <PromptThreadProvider value={providerValue}>
+            <PromptThread />
+          </PromptThreadProvider>
 
-      <div style={{ padding: '64px' }} />
+          <div style={{ padding: '64px' }} />
+        </div>
+      </div>
       <Prompt
         ref={$prompt}
         {...askPrompt}

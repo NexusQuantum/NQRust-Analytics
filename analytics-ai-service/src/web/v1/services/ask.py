@@ -45,6 +45,9 @@ class AskRequest(BaseRequest):
     use_dry_plan: bool = False
     allow_dry_plan_fallback: bool = True
     custom_instruction: Optional[str] = None
+    # Documents the user has checked as additional context (NotebookLM-style).
+    # Empty list = no document context; behavior identical to pre-feature.
+    selected_document_ids: List[str] = Field(default_factory=list)
 
 
 class AskResponse(BaseModel):
@@ -143,6 +146,8 @@ class AskContext:
     table_ddls: List[str] = None
     sql_samples: List[dict] = None
     instructions: List[dict] = None
+    selected_document_ids: List[str] = None
+    document_context: List[dict] = None
 
 
 class AskService:
@@ -564,6 +569,7 @@ class AskService:
         is_followup: bool,
         rephrased_question: Optional[str],
         intent_reasoning: Optional[str],
+        document_context: Optional[List[dict]] = None,
     ) -> dict:
         """
         Generate SQL using the appropriate pipeline (follow-up vs first-time).
@@ -605,6 +611,8 @@ class AskService:
             has_json_field = retrieval_result.get("has_json_field", False)
 
             if histories:
+                # Document context is only injected on first-time generation;
+                # followup uses prior conversation as the bridge.
                 generation_results = await self._pipelines[
                     "followup_sql_generation"
                 ].run(
@@ -636,6 +644,7 @@ class AskService:
                     sql_functions=sql_functions,
                     use_dry_plan=use_dry_plan,
                     allow_dry_plan_fallback=allow_dry_plan_fallback,
+                    document_context=document_context,
                 )
 
             return generation_results
@@ -698,6 +707,16 @@ class AskService:
             documents = _retrieval_result.get("retrieval_results", [])
 
             if not documents:
+                # NotebookLM-style escape hatch: if the user has attached
+                # documents as context, allow the SQL pipeline to continue
+                # with an empty schema. The LLM can then answer the question
+                # using only the document context.
+                if getattr(self, "_current_has_doc_context", False):
+                    logger.info(
+                        f"ask pipeline - NO_RELEVANT_DATA but documents are attached, continuing"
+                    )
+                    return [], [], _retrieval_result
+
                 logger.exception(f"ask pipeline - NO_RELEVANT_DATA: {user_query}")
                 if not self._is_stopped(query_id, self._ask_results):
                     self._update_status(
@@ -1131,6 +1150,12 @@ class AskService:
                 )
 
             # Step 5: Retrieve database schemas
+            # Tag whether the user attached documents — used by the schema
+            # retrieval gate to decide if NO_RELEVANT_DATA should be a hard
+            # fail or a soft continue (NotebookLM-style document RAG).
+            self._current_has_doc_context = bool(
+                ask_request.selected_document_ids
+            )
             try:
                 schema_result = await self._retrieve_database_schemas(
                     context.query_id,
@@ -1180,6 +1205,36 @@ class AskService:
 
             # Step 7: Generate SQL
             if not self._is_stopped(query_id, self._ask_results):
+                # Retrieve document context from user-selected documents
+                # (no-op when selected_document_ids is empty).
+                document_context: List[dict] = []
+                if (
+                    ask_request.selected_document_ids
+                    and "documents_retrieval" in self._pipelines
+                ):
+                    try:
+                        doc_retrieval_result = await self._pipelines[
+                            "documents_retrieval"
+                        ].run(
+                            query=context.user_query,
+                            selected_document_ids=ask_request.selected_document_ids,
+                            project_id=context.project_id,
+                        )
+                        document_context = (
+                            doc_retrieval_result.get("formatted_output", {}).get(
+                                "documents", []
+                            )
+                            or []
+                        )
+                        logger.info(
+                            f"[ask] Retrieved {len(document_context)} document chunks "
+                            f"from {len(ask_request.selected_document_ids)} selected document(s)"
+                        )
+                    except Exception as e:
+                        # Doc retrieval failure must not break the SQL flow.
+                        logger.warning(f"[ask] Document retrieval failed: {e}")
+                        document_context = []
+
                 text_to_sql_generation_results = await self._generate_sql(
                     query_id=context.query_id,
                     user_query=context.user_query,
@@ -1199,6 +1254,7 @@ class AskService:
                     is_followup=bool(context.histories),
                     rephrased_question=context.rephrased_question,
                     intent_reasoning=context.intent_reasoning,
+                    document_context=document_context,
                 )
 
                 if sql_valid_result := text_to_sql_generation_results["post_process"][

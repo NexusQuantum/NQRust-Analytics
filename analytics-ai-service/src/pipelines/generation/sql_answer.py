@@ -29,6 +29,34 @@ Transform SQL query results into natural language answers that are easy to under
 3. **Appropriate Detail Level**: Provide sufficient context without overwhelming with technical jargon
 4. **Language Consistency**: Match the user's specified language and communication style
 5. **Visual Clarity**: Use proper Markdown formatting for readability
+6. **Source Transparency**: ALWAYS attribute every claim to its source. The user must
+   know WHERE each piece of information comes from.
+
+### SOURCE ATTRIBUTION (MANDATORY) ###
+Every factual claim in your answer must end with a clear source tag:
+
+- **Database claim** — append the table name(s) you queried, formatted as
+  `(sumber: tabel <name>)` in Indonesian, or `(source: <name> table)` in English.
+  Use the table names visible in the SQL `FROM` and `JOIN` clauses (strip the
+  `public_` prefix when presenting to the user).
+
+  Example: "Plutzer Lebensmittelgroßmärkte AG memasok **5 produk**
+  (sumber: tabel products, suppliers)."
+
+- **Document claim** — append `[filename, hal. PAGE]` immediately after the
+  sentence. This citation format is required even for partial document
+  references.
+
+  Example: "Mereka termasuk Action list dengan composite score 64
+  [Supplier Quality Audit Q1 2026, hal. 3]."
+
+- **Mixed claim** (both DB + doc) — both attributions, comma-separated.
+
+- **Inferred / business interpretation** (not directly from a source) — prefix
+  with "*Interpretasi:*" or "*Catatan:*" so the user knows it's reasoning, not data.
+
+Never make a factual claim without attribution. If you don't know the source,
+either omit the claim or label it as interpretation.
 
 ### LANGUAGE REQUIREMENTS ###
 - **Response Language**: Always respond in the same language as the user's question
@@ -65,11 +93,46 @@ Transform the SQL query results into a clear, actionable answer that directly ad
 ### ANALYTICAL CONTEXT ###
 User's Question: {{ query }}
 SQL Query: {{ sql }}
-Query Results: 
+Query Results:
 - Columns: {{ sql_data.columns }}
 - Data: {{ sql_data.data }}
 Language: {{ language }}
 Current Time: {{ current_time }}
+
+{% if document_context %}
+### USER-ATTACHED DOCUMENT CONTEXT ###
+The user has attached the following document excerpts as additional context.
+**These often contain the answer the user is looking for** (e.g., targets,
+policies, decisions) when the SQL query result is empty or unrelated.
+
+{% for chunk in document_context %}
+[{{ chunk.filename }}, hal. {{ chunk.page }}]
+{{ chunk.text }}
+---
+{% endfor %}
+
+### CRITICAL INSTRUCTIONS ###
+1. If the SQL result is empty/null but the document excerpts contain the
+   answer, USE THE DOCUMENT to answer. Do NOT say "no data available".
+2. Cite document content inline using [filename, hal. PAGE].
+3. If both SQL data and documents are relevant, integrate both.
+4. Trust the document content as authoritative when the question is about
+   targets, strategy, or policy.
+{% endif %}
+
+### SOURCE ATTRIBUTION REQUIRED ###
+For EVERY factual statement in your answer, append the source. Use the table
+names from the SQL above (strip `public_` prefix). Examples:
+
+- DB-derived fact:
+  "Plutzer memasok 5 produk (sumber: tabel products, suppliers)."
+- Document-derived fact:
+  "Audit menemukan 4 keterlambatan pengiriman [Supplier Quality Audit Q1 2026, hal. 3]."
+- Both:
+  "Plutzer memiliki 5 produk (sumber: tabel products, suppliers) dan masuk
+  Action list audit [Supplier Quality Audit Q1 2026, hal. 3]."
+
+This is non-negotiable: a claim without attribution is unacceptable.
 
 ### RESPONSE GUIDELINES ###
 - **Direct Answer**: Start with a clear, direct answer to the user's question
@@ -102,6 +165,7 @@ def prompt(
     current_time: str,
     custom_instruction: str,
     prompt_builder: PromptBuilder,
+    document_context: list[dict] | None = None,
 ) -> dict:
     _prompt = prompt_builder.run(
         query=query,
@@ -110,6 +174,7 @@ def prompt(
         language=language,
         current_time=current_time,
         custom_instruction=custom_instruction,
+        document_context=document_context,
     )
     return {"prompt": clean_up_new_lines(_prompt.get("prompt"))}
 
@@ -194,6 +259,7 @@ class SQLAnswer(EnhancedBasicPipeline):
         current_time: str = Configuration().show_current_time(),
         query_id: Optional[str] = None,
         custom_instruction: Optional[str] = None,
+        document_context: Optional[list[dict]] = None,
     ) -> dict:
         logger.info("Sql_Answer Generation pipeline is running...")
         return await self._pipe.execute(
@@ -206,6 +272,7 @@ class SQLAnswer(EnhancedBasicPipeline):
                 "current_time": current_time,
                 "query_id": query_id,
                 "custom_instruction": custom_instruction or "",
+                "document_context": document_context,
                 **self._components,
             },
         )
@@ -219,6 +286,7 @@ class SQLAnswer(EnhancedBasicPipeline):
         current_time: str = Configuration().show_current_time(),
         query_id: Optional[str] = None,
         custom_instruction: Optional[str] = None,
+        document_context: Optional[list[dict]] = None,
     ) -> dict:
         return await self._execute(
             query=query,
@@ -228,6 +296,7 @@ class SQLAnswer(EnhancedBasicPipeline):
             current_time=current_time,
             query_id=query_id,
             custom_instruction=custom_instruction,
+            document_context=document_context,
         )
 
 

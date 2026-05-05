@@ -96,7 +96,18 @@ export class TextBasedAnswerBackgroundTracker {
             throw error;
           }
 
-          // request AI service
+          // request AI service — include selectedDocumentIds persisted on
+          // the threadResponse.answerDetail when the answer was triggered.
+          const persistedDocIds: number[] = Array.isArray(
+            (threadResponse.answerDetail as any)?.selectedDocumentIds,
+          )
+            ? (threadResponse.answerDetail as any).selectedDocumentIds
+            : [];
+          logger.info(
+            `[textAnswerTracker] tr.id=${threadResponse.id} ` +
+              `selectedDocumentIds=${JSON.stringify(persistedDocIds)} ` +
+              `answerDetail=${JSON.stringify(threadResponse.answerDetail)}`,
+          );
           const response = await this.analyticsAIAdaptor.createTextBasedAnswer({
             query: threadResponse.question,
             sql: threadResponse.sql,
@@ -105,6 +116,7 @@ export class TextBasedAnswerBackgroundTracker {
             configurations: {
               language: AnalyticsAILanguage[project.language] || AnalyticsAILanguage.EN,
             },
+            selectedDocumentIds: persistedDocIds,
           });
 
           // update the status to preprocessing

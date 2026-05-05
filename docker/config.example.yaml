@@ -154,6 +154,12 @@ pipes:
   - name: instructions_retrieval
     embedder: litellm_embedder.default
     document_store: qdrant
+  - name: documents_indexing
+    embedder: litellm_embedder.default
+    document_store: qdrant
+  - name: documents_retrieval
+    embedder: litellm_embedder.default
+    document_store: qdrant
   - name: sql_functions_retrieval
     engine: analytics_ibis
     document_store: qdrant

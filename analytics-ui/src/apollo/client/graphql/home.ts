@@ -358,8 +358,14 @@ export const GENERATE_THREAD_RECOMMENDATION_QUESTIONS = gql`
 `;
 
 export const GENERATE_THREAD_RESPONSE_ANSWER = gql`
-  mutation GenerateThreadResponseAnswer($responseId: Int!) {
-    generateThreadResponseAnswer(responseId: $responseId) {
+  mutation GenerateThreadResponseAnswer(
+    $responseId: Int!
+    $selectedDocumentIds: [Int!]
+  ) {
+    generateThreadResponseAnswer(
+      responseId: $responseId
+      selectedDocumentIds: $selectedDocumentIds
+    ) {
       ...CommonResponse
     }
   }

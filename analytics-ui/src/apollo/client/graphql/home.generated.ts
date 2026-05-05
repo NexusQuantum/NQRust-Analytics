@@ -176,6 +176,7 @@ export type GenerateThreadRecommendationQuestionsMutation = { __typename?: 'Muta
 
 export type GenerateThreadResponseAnswerMutationVariables = Types.Exact<{
   responseId: Types.Scalars['Int'];
+  selectedDocumentIds?: Types.InputMaybe<Array<Types.Scalars['Int']>>;
 }>;
 
 
@@ -1125,8 +1126,8 @@ export type GenerateThreadRecommendationQuestionsMutationHookResult = ReturnType
 export type GenerateThreadRecommendationQuestionsMutationResult = Apollo.MutationResult<GenerateThreadRecommendationQuestionsMutation>;
 export type GenerateThreadRecommendationQuestionsMutationOptions = Apollo.BaseMutationOptions<GenerateThreadRecommendationQuestionsMutation, GenerateThreadRecommendationQuestionsMutationVariables>;
 export const GenerateThreadResponseAnswerDocument = gql`
-    mutation GenerateThreadResponseAnswer($responseId: Int!) {
-  generateThreadResponseAnswer(responseId: $responseId) {
+    mutation GenerateThreadResponseAnswer($responseId: Int!, $selectedDocumentIds: [Int!]) {
+  generateThreadResponseAnswer(responseId: $responseId, selectedDocumentIds: $selectedDocumentIds) {
     ...CommonResponse
   }
 }

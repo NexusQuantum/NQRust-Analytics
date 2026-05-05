@@ -428,6 +428,33 @@ export class LicenseService implements ILicenseService {
   }
 
   public async checkLicense(): Promise<LicenseState> {
+    // Dev escape hatch — set DEV_BYPASS_LICENSE=true in env to skip all
+    // license enforcement. Never enable in production builds.
+    if (process.env.DEV_BYPASS_LICENSE === 'true') {
+      logger.warn(
+        'DEV_BYPASS_LICENSE=true — license check skipped (dev mode only)',
+      );
+      const expiresAt = new Date();
+      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      this.cachedState = {
+        isLicensed: true,
+        status: 'active',
+        isGracePeriod: false,
+        graceDaysRemaining: null,
+        customerName: 'Local Developer',
+        product: 'NexusQuantum Analytics (DEV)',
+        features: [],
+        expiresAt: expiresAt.toISOString(),
+        activations: null,
+        maxActivations: null,
+        verifiedAt: new Date().toISOString(),
+        licenseKey: 'DEV-BYPASS',
+        errorMessage: null,
+      };
+      this.lastCheckTime = Date.now();
+      return this.cachedState;
+    }
+
     const licenseKey = this.config.licenseKey;
 
     if (!licenseKey) {

@@ -69,6 +69,10 @@ class ServiceContainerBuilder:
             "sql_question_generation",
             "sql_tables_extraction",
             "chart_adjustment",
+            # documents (NotebookLM-style document RAG)
+            "documents_indexing",
+            "documents_retrieval",
+            "document_answer",
         ]
         missing = [k for k in required_keys if k not in (self.pipe_components or {})]
         if missing:
@@ -109,6 +113,12 @@ class ServiceContainerBuilder:
         _sql_executor_pipeline = retrieval.SQLExecutor(
             **pc["sql_executor"],
         )
+        _documents_indexing_pipeline = indexing.Documents(
+            **pc["documents_indexing"],
+        )
+        _documents_retrieval_pipeline = retrieval.DocumentsRetrieval(
+            **pc["documents_retrieval"],
+        )
 
         return {
             "db_schema_retrieval": _db_schema_retrieval_pipeline,
@@ -119,6 +129,8 @@ class ServiceContainerBuilder:
             "sql_correction": _sql_correction_pipeline,
             "sql_functions_retrieval": _sql_functions_retrieval_pipeline,
             "sql_executor": _sql_executor_pipeline,
+            "documents_indexing": _documents_indexing_pipeline,
+            "documents_retrieval": _documents_retrieval_pipeline,
         }
 
     def _create_services(self, shared: Dict[str, object]) -> services.ServiceContainer:
@@ -195,6 +207,7 @@ class ServiceContainerBuilder:
                         **pc["followup_sql_generation"],
                     ),
                     "sql_functions_retrieval": shared["sql_functions_retrieval"],
+                    "documents_retrieval": shared["documents_retrieval"],
                 },
                 allow_intent_classification=s.allow_intent_classification,
                 allow_sql_generation_reasoning=s.allow_sql_generation_reasoning,
@@ -244,6 +257,7 @@ class ServiceContainerBuilder:
                     "sql_answer": generation.SQLAnswer(
                         **pc["sql_answer"],
                     ),
+                    "documents_retrieval": shared["documents_retrieval"],
                 },
                 **query_cache,
             ),
@@ -298,6 +312,16 @@ class ServiceContainerBuilder:
                     ),
                     "db_schema_retrieval": shared["db_schema_retrieval"],
                     "sql_correction": shared["sql_correction"],
+                },
+                **query_cache,
+            ),
+            documents_service=services.DocumentsService(
+                pipelines={
+                    "documents_indexing": shared["documents_indexing"],
+                    "document_answer": generation.DocumentAnswer(
+                        **pc["document_answer"],
+                        documents_retrieval=shared["documents_retrieval"],
+                    ),
                 },
                 **query_cache,
             ),

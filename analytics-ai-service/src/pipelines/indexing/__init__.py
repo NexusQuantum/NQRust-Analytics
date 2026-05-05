@@ -239,6 +239,7 @@ def clean_display_name(display_name: str) -> str:
 
 # Put the pipelines imports here to avoid circular imports and make them accessible directly to the rest of packages
 from .db_schema import DBSchema  # noqa: E402
+from .documents import Documents  # noqa: E402
 from .historical_question import HistoricalQuestion  # noqa: E402
 from .instructions import Instructions  # noqa: E402
 from .project_meta import ProjectMeta  # noqa: E402
@@ -252,4 +253,5 @@ __all__ = [
     "SqlPairs",
     "Instructions",
     "ProjectMeta",
+    "Documents",
 ]

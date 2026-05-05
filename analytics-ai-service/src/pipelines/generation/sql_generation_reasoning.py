@@ -59,10 +59,26 @@ User's Question: {{ query }}
 Language: {{ language }}
 Current Time: {{ current_time }}
 
+### CRITICAL — DATE FILTER WARNING ###
+**The database may contain HISTORICAL data, not current-year data.**
+For example, the Northwind database only has records from 1996–1998.
+The current_time above is the SYSTEM clock date — it does NOT mean the database
+has records for that year.
+
+Rules you MUST follow in your reasoning plan:
+1. **Never plan a `WHERE year = <current_year>` filter** unless the user explicitly
+   requests "this year" AND you have confirmed the data contains that year.
+2. For questions like "top customer", "best category", "highest revenue" with no
+   explicit time constraint → plan to query ALL available records (no date filter).
+3. References to "2026" or the current year in the user's question or attached
+   documents are planning/strategy context, NOT database date filters.
+4. In your plan, explicitly state the date range you intend to use (e.g.,
+   "query all records — no date filter" or "filter 1996–1998 based on schema data").
+
 ### REASONING GUIDELINES ###
 - **Question Decomposition**: Identify key analytical components and requirements
 - **Data Mapping**: Connect question elements to appropriate database tables and columns
-- **Time Handling**: Distinguish between absolute dates (YYYY-MM-DD) and relative timeframes
+- **Time Handling**: Distinguish between absolute dates (YYYY-MM-DD) and relative timeframes; NEVER assume current year = valid DB year
 - **Ranking Logic**: Plan for top/bottom/first/last queries using DENSE_RANK() functions
 - **Instruction Integration**: Incorporate user-specific requirements and preferences
 - **Example Learning**: Apply patterns from provided SQL samples

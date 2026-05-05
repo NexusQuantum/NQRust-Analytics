@@ -74,6 +74,22 @@ export interface AskInput {
   deployId: string;
   histories?: ThreadResponse[];
   configurations?: ProjectConfigurations;
+  /** Document IDs the user has checked as additional context for this turn. */
+  selectedDocumentIds?: number[];
+}
+
+export interface IndexDocumentInput {
+  documentId: string;
+  notebookId: string;
+  projectId: string;
+  filename: string;
+  filePath: string;
+}
+
+export interface DocumentIndexStatus {
+  status: 'parsing' | 'embedding' | 'ready' | 'failed' | 'unknown';
+  chunksIndexed?: number;
+  error?: { code: string; message: string };
 }
 
 export interface AsyncQueryResponse {
@@ -187,6 +203,8 @@ export interface TextBasedAnswerInput {
   threadId?: string;
   userId?: string;
   configurations?: ProjectConfigurations;
+  /** Documents the user attached as additional context. */
+  selectedDocumentIds?: number[];
 }
 
 export enum TextBasedAnswerStatus {

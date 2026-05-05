@@ -193,9 +193,18 @@ Create comprehensive reasoning plans that systematically analyze user questions,
 4. **Logical Flow**: Create step-by-step plans that build toward the final query
 5. **Clarity Focus**: Make reasoning accessible to both technical and non-technical stakeholders
 
+### CRITICAL — SCHEMA-ONLY RULE ###
+**NEVER reference tables or columns that are NOT in the DATABASE SCHEMA.**
+If the user's question mentions a concept with no matching table (e.g., "campaign",
+"target", "budget", "policy", "action list"), your plan must:
+1. Explicitly note: "No `<concept>` table exists in the schema."
+2. Plan to query the CLOSEST available data instead (e.g., for "campaign relevance",
+   query top categories/customers from existing sales tables).
+3. Mark that portion of the answer as document-derived, not DB-derived.
+
 ### ANALYSIS FRAMEWORK ###
 - **Question Decomposition**: Identify key analytical components and requirements
-- **Data Mapping**: Connect question elements to relevant database structures
+- **Data Mapping**: Connect question elements to relevant database structures — ONLY tables that exist in the schema
 - **Time Handling**: Distinguish between absolute dates (YYYY-MM-DD) and relative timeframes
 - **Ranking Logic**: Plan for top/bottom/first/last queries using DENSE_RANK() functions
 - **Instruction Integration**: Incorporate user-specific requirements and preferences
@@ -224,7 +233,8 @@ Provide your reasoning plan in clean Markdown format without ```markdown``` tags
 TEXT_TO_SQL_RULES = """
 ### SQL RULES ###
 - ONLY USE SELECT statements, NO DELETE, UPDATE OR INSERT etc. statements that might change the data in the database.
-- ONLY USE the tables and columns mentioned in the database schema.
+- ONLY USE the tables and columns mentioned in the database schema. NEVER invent or assume tables that are not in the schema (e.g., if the schema has no `campaigns` table, do NOT write `FROM campaigns`).
+- If the user's question asks about something that has NO corresponding table in the schema (e.g., "campaign", "target", "budget", "policy"), do NOT fabricate a table. Instead, query the CLOSEST available data from existing tables and make a note that the concept is not in the database.
 - ONLY USE "*" if the user query asks for all the columns of a table.
 - ONLY CHOOSE columns belong to the tables mentioned in the database schema.
 - DON'T INCLUDE comments in the generated SQL query.

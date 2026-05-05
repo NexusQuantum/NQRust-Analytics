@@ -27,6 +27,7 @@ class ServiceContainer:
     sql_question_service: services.SqlQuestionService
     instructions_service: services.InstructionsService
     sql_correction_service: services.SqlCorrectionService
+    documents_service: services.DocumentsService
 
 
 @dataclass

@@ -194,14 +194,20 @@ export class AskingResolver {
 
   public async createAskingTask(
     _root: any,
-    args: { data: { question: string; threadId?: number } },
+    args: {
+      data: {
+        question: string;
+        threadId?: number;
+        selectedDocumentIds?: number[];
+      };
+    },
     ctx: IContext,
   ): Promise<Task> {
-    const { question, threadId } = args.data;
+    const { question, threadId, selectedDocumentIds } = args.data;
     const project = await ctx.projectService.getCurrentProject();
 
     const askingService = ctx.askingService;
-    const data = { question };
+    const data = { question, selectedDocumentIds };
     const task = await askingService.createAskingTask(data, {
       threadId,
       language: AnalyticsAILanguage[project.language] || AnalyticsAILanguage.EN,
@@ -603,15 +609,19 @@ export class AskingResolver {
 
   public async generateThreadResponseAnswer(
     _root: any,
-    args: { responseId: number },
+    args: { responseId: number; selectedDocumentIds?: number[] },
     ctx: IContext,
   ): Promise<ThreadResponse> {
-    const project = await ctx.projectService.getCurrentProject();
-    const { responseId } = args;
+    await ctx.projectService.getCurrentProject();
+    const { responseId, selectedDocumentIds } = args;
+    logger.info(
+      `[generateThreadResponseAnswer] responseId=${responseId} selectedDocumentIds=${JSON.stringify(selectedDocumentIds)}`,
+    );
     const askingService = ctx.askingService;
-    return askingService.generateThreadResponseAnswer(responseId, {
-      language: AnalyticsAILanguage[project.language] || AnalyticsAILanguage.EN,
-    });
+    return askingService.generateThreadResponseAnswer(
+      responseId,
+      selectedDocumentIds,
+    );
   }
 
   public async generateThreadResponseChart(

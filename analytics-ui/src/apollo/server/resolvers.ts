@@ -10,6 +10,7 @@ import { InstructionResolver } from './resolvers/instructionResolver';
 import { ApiHistoryResolver } from './resolvers/apiHistoryResolver';
 import { AuthResolver } from './resolvers/authResolver';
 import { LicenseResolver } from './resolvers/licenseResolver';
+import { NotebookResolver } from './resolvers/notebookResolver';
 import { convertColumnType } from '@server/utils';
 import { DialectSQLScalar } from './scalars';
 
@@ -24,6 +25,7 @@ const instructionResolver = new InstructionResolver();
 const apiHistoryResolver = new ApiHistoryResolver();
 const authResolver = new AuthResolver();
 const licenseResolver = new LicenseResolver();
+const notebookResolver = new NotebookResolver();
 const resolvers = {
   JSON: GraphQLJSON,
   DialectSQL: DialectSQLScalar,
@@ -94,6 +96,11 @@ const resolvers = {
 
     // License
     licenseStatus: licenseResolver.licenseStatus,
+
+    // Notebooks (NotebookLM-style document RAG)
+    notebooks: notebookResolver.listNotebooks,
+    notebook: notebookResolver.getNotebook,
+    documents: notebookResolver.listDocuments,
   },
   Mutation: {
     deploy: modelResolver.deploy,
@@ -210,6 +217,13 @@ const resolvers = {
     createInstruction: instructionResolver.createInstruction,
     updateInstruction: instructionResolver.updateInstruction,
     deleteInstruction: instructionResolver.deleteInstruction,
+
+    // Notebooks
+    createNotebook: notebookResolver.createNotebook,
+    renameNotebook: notebookResolver.renameNotebook,
+    deleteNotebook: notebookResolver.deleteNotebook,
+    deleteDocument: notebookResolver.deleteDocument,
+    toggleDocumentSelection: notebookResolver.toggleDocumentSelection,
 
     // Auth
     register: authResolver.register,

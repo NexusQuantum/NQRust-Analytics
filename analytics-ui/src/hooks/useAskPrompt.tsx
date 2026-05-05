@@ -22,6 +22,7 @@ import useAskingStreamTask from './useAskingStreamTask';
 import { THREAD } from '@/apollo/client/graphql/home';
 import { ApolloClient, NormalizedCacheObject } from '@apollo/client';
 import { nextTick } from '@/utils/time';
+import { useNotebookContext } from './useNotebookContext';
 
 export interface AskPromptData {
   originalQuestion: string;
@@ -160,6 +161,7 @@ const handleUpdateRerunAskingTaskCache = (
 export default function useAskPrompt(threadId?: number) {
   const [originalQuestion, setOriginalQuestion] = useState<string>('');
   const [threadQuestions, setThreadQuestions] = useState<string[]>([]);
+  const notebookCtx = useNotebookContext();
   // Handle errors via try/catch blocks rather than onError callback
   const [createAskingTask, createAskingTaskResult] =
     useCreateAskingTaskMutation();
@@ -299,8 +301,18 @@ export default function useAskPrompt(threadId?: number) {
     askingStreamTaskResult.reset();
     setOriginalQuestion(value);
     try {
+      // Pull current notebook selection at submit time so the user can change
+      // checkboxes between turns without remounting the chat page.
+      const { selectedDocumentIds } = notebookCtx.getSnapshot();
       const response = await createAskingTask({
-        variables: { data: { question: value, threadId } },
+        variables: {
+          data: {
+            question: value,
+            threadId,
+            selectedDocumentIds:
+              selectedDocumentIds.length > 0 ? selectedDocumentIds : undefined,
+          },
+        },
       });
       await fetchAskingTask({
         variables: { taskId: response.data.createAskingTask.id },

@@ -28,6 +28,9 @@ import {
   IThreadRepository,
   IThreadShareRepository,
   UserWithRoles,
+  INotebookRepository,
+  IDocumentRepository,
+  IDocumentSelectionRepository,
 } from '@server/repositories';
 import {
   IQueryService,
@@ -40,6 +43,8 @@ import {
   IInstructionService,
   ILicenseService,
   LicenseState,
+  INotebookService,
+  IDocumentService,
 } from '@server/services';
 import { ITelemetry } from '@server/telemetry/telemetry';
 import {
@@ -80,6 +85,8 @@ export interface IContext {
   sqlPairService: ISqlPairService;
   instructionService: IInstructionService;
   licenseService: ILicenseService;
+  notebookService: INotebookService;
+  documentService: IDocumentService;
 
   // license
   licenseState: LicenseState;
@@ -105,6 +112,9 @@ export interface IContext {
   apiHistoryRepository: IApiHistoryRepository;
   dashboardItemRefreshJobRepository: IDashboardItemRefreshJobRepository;
   userRepository: IUserRepository;
+  notebookRepository: INotebookRepository;
+  documentRepository: IDocumentRepository;
+  documentSelectionRepository: IDocumentSelectionRepository;
 
   // background trackers
   projectRecommendQuestionBackgroundTracker: ProjectRecommendQuestionBackgroundTracker;

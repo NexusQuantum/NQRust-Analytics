@@ -53,6 +53,9 @@ const bootstrapServer = async () => {
     instructionRepository,
     apiHistoryRepository,
     dashboardItemRefreshJobRepository,
+    notebookRepository,
+    documentRepository,
+    documentSelectionRepository,
     // adaptors
     analyticsEngineAdaptor,
     ibisAdaptor,
@@ -69,6 +72,8 @@ const bootstrapServer = async () => {
 
     instructionService,
     licenseService,
+    notebookService,
+    documentService,
     // background trackers
     projectRecommendQuestionBackgroundTracker,
     threadRecommendQuestionBackgroundTracker,
@@ -175,6 +180,8 @@ const bootstrapServer = async () => {
         sqlPairService,
         instructionService,
         licenseService,
+        notebookService,
+        documentService,
         licenseState: licenseService.getLicenseState(),
         // repository
         projectRepository,
@@ -197,6 +204,9 @@ const bootstrapServer = async () => {
         instructionRepository,
         apiHistoryRepository,
         dashboardItemRefreshJobRepository,
+        notebookRepository,
+        documentRepository,
+        documentSelectionRepository,
         // background trackers
         projectRecommendQuestionBackgroundTracker,
         threadRecommendQuestionBackgroundTracker,

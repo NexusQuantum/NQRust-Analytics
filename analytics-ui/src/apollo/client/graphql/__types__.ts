@@ -113,6 +113,8 @@ export type AskingTask = {
 export type AskingTaskInput = {
   question: Scalars['String'];
   threadId?: InputMaybe<Scalars['Int']>;
+  /** Documents the user has checked as additional context (NotebookLM-style). */
+  selectedDocumentIds?: InputMaybe<Array<Scalars['Int']>>;
 };
 
 export enum AskingTaskStatus {
@@ -999,6 +1001,7 @@ export type MutationGenerateThreadRecommendationQuestionsArgs = {
 
 export type MutationGenerateThreadResponseAnswerArgs = {
   responseId: Scalars['Int'];
+  selectedDocumentIds?: InputMaybe<Array<Scalars['Int']>>;
 };
 
 

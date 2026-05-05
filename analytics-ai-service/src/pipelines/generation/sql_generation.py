@@ -78,6 +78,82 @@ SQL:
 {% endfor %}
 {% endif %}
 
+{% if document_context %}
+### USER-SELECTED DOCUMENT CONTEXT ###
+The user has attached the following documents as additional context. They contain
+information that may NOT be present in the database (e.g., targets, policies,
+strategy notes, external benchmarks).
+
+**CRITICAL — DO NOT INVENT SCHEMA OR FILTERS**:
+
+1. The documents describe business concepts (e.g., "Action list", "Pass list",
+   "Watch list", "strategic accounts", "priority growth", "Tier A discount")
+   that **DO NOT EXIST** as columns or values in the database. NEVER add WHERE
+   clauses filtering on document terminology.
+
+2. Bad example you must NOT do:
+     WHERE category_name = 'Action list audit'  -- "Action list" is doc-only
+     WHERE company_name LIKE '%strategic%'      -- doc concept, not DB data
+     WHERE region = 'Western Europe'             -- doc grouping, not DB value
+
+3. **Use documents ONLY to extract specific entity names** (customer names,
+   supplier names, product names) for filtering. The document also tells you
+   WHICH TABLE the entity belongs to — use that signal:
+
+   - Document mentions "supplier", "vendor", "audit", "supply": entity is a
+     **supplier**. Filter via `suppliers.company_name`, then JOIN `products`
+     on `supplier_id`.
+   - Document mentions "customer", "client", "account", "buyer": entity is a
+     **customer**. Filter via `customers.company_name`, then JOIN `orders`
+     on `customer_id`.
+
+   Example: if Supplier Quality Audit doc says "Plutzer is on the Action
+   list", "Plutzer" is a **SUPPLIER** (the doc title says so). User asking
+   "berapa product Plutzer" means: products supplied BY Plutzer.
+       Correct:
+         SELECT COUNT(*) FROM products
+         WHERE supplier_id IN (
+           SELECT supplier_id FROM suppliers
+           WHERE LOWER(company_name) LIKE LOWER('%Plutzer%')
+         )
+       Wrong (treats Plutzer as a customer):
+         FROM customers WHERE company_name LIKE '%Plutzer%'
+
+   Do NOT add a second filter for "Action list" because that concept has no
+   DB column.
+
+4. If the user's question references a doc-only concept (target, policy,
+   audit category) that has no schema column, generate the simplest possible
+   query that returns the closest available data — don't try to filter on
+   the doc concept itself.
+
+5. **Trust the user's question, not your guess**: if the user asks "berapa
+   product dari Plutzer", that's `COUNT(*) FROM products WHERE supplier =
+   Plutzer` — full stop. Do not over-filter.
+
+6. **ALWAYS use LIKE with wildcards** (not exact `=`) when filtering on
+   entity names extracted from the user's question or document. The DB may
+   store names with diacritics, suffixes, or variant spelling that don't
+   match the user's typing exactly. Examples:
+
+     User says "Plutzer" → DB has "Plutzer Lebensmittelgroßmärkte AG"
+        Bad:  WHERE company_name = 'Plutzer'
+        Bad:  WHERE LOWER(company_name) = LOWER('Plutzer Lebensmittelgrossmaerkte')
+        Good: WHERE LOWER(company_name) LIKE LOWER('%Plutzer%')
+
+     User says "QUICK-Stop" → DB has "QUICK-Stop"
+        Good: WHERE LOWER(company_name) LIKE LOWER('%QUICK%')
+
+   Use the SHORTEST distinctive substring of the entity name as the LIKE
+   pattern, not the full name with potentially-mistyped characters.
+
+{% for chunk in document_context %}
+[{{ chunk.filename }}, hal. {{ chunk.page }}]
+{{ chunk.text }}
+---
+{% endfor %}
+{% endif %}
+
 ### ANALYTICAL QUESTION ###
 User's Question: {{ query }}
 
@@ -92,6 +168,32 @@ User's Question: {{ query }}
 - **Query Optimization**: Create efficient queries that leverage database capabilities
 - **Error Prevention**: Avoid common SQL pitfalls and syntax issues
 - **Result Verification**: Ensure the query will produce the intended analytical results
+
+### CRITICAL — DATE FILTER WARNING ###
+**NEVER assume the current year is the correct filter for date-range queries.**
+The database may contain historical data from a completely different time period
+(e.g., 1996–1998 for Northwind). References to "2026" or the current year in the
+user's question or in attached documents are about planning context, NOT about
+database records.
+
+Rules:
+1. **Do NOT add a `WHERE year = <current_year>` filter** unless the user explicitly
+   asks for "this year's data" AND the schema confirms records exist for that year.
+2. If the question asks for "top customer", "best category", or similar aggregations
+   **without a year constraint**, query ALL available records — no date filter.
+3. To check which years are in the database, use:
+   `SELECT DISTINCT EXTRACT(YEAR FROM order_date) FROM orders ORDER BY 1`
+   and adapt accordingly.
+4. If you must scope by time, use the years that actually exist in the data, not
+   the document's planning horizon.
+
+Bad (hallucinates 2026 filter):
+  WHERE EXTRACT(YEAR FROM order_date) = 2026   -- ❌ no rows, wrong year
+
+Good (all-time top customer):
+  SELECT customer_id, SUM(unit_price * quantity * (1 - discount)) AS revenue
+  FROM order_details JOIN orders USING (order_id)
+  GROUP BY customer_id ORDER BY revenue DESC LIMIT 1
 
 Let's think step by step.
 """
@@ -110,6 +212,7 @@ def prompt(
     has_metric: bool = False,
     has_json_field: bool = False,
     sql_functions: list[SqlFunction] | None = None,
+    document_context: list[dict] | None = None,
 ) -> dict:
     _prompt = prompt_builder.run(
         query=query,
@@ -125,6 +228,7 @@ def prompt(
         json_field_instructions=(json_field_instructions if has_json_field else ""),
         sql_samples=sql_samples,
         sql_functions=sql_functions,
+        document_context=document_context,
     )
     return {"prompt": clean_up_new_lines(_prompt.get("prompt"))}
 
@@ -206,6 +310,7 @@ class SQLGeneration(EnhancedBasicPipeline):
         use_dry_plan: bool = False,
         allow_dry_plan_fallback: bool = True,
         allow_data_preview: bool = False,
+        document_context: list[dict] | None = None,
     ):
         logger.info("SQL Generation pipeline is running...")
 
@@ -231,6 +336,7 @@ class SQLGeneration(EnhancedBasicPipeline):
                 "allow_dry_plan_fallback": allow_dry_plan_fallback,
                 "data_source": metadata.get("data_source", "local_file"),
                 "allow_data_preview": allow_data_preview,
+                "document_context": document_context,
                 **self._components,
             },
         )
@@ -250,6 +356,7 @@ class SQLGeneration(EnhancedBasicPipeline):
         use_dry_plan: bool = False,
         allow_dry_plan_fallback: bool = True,
         allow_data_preview: bool = False,
+        document_context: list[dict] | None = None,
     ):
         return await self._execute(
             query=query,
@@ -265,6 +372,7 @@ class SQLGeneration(EnhancedBasicPipeline):
             use_dry_plan=use_dry_plan,
             allow_dry_plan_fallback=allow_dry_plan_fallback,
             allow_data_preview=allow_data_preview,
+            document_context=document_context,
         )
 
 
