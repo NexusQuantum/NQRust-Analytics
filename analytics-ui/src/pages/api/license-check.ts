@@ -10,21 +10,18 @@ export default async function handler(
   }
 
   const { licenseService } = components;
-  const state = licenseService.getLicenseState();
+  let state = licenseService.getLicenseState();
+
+  // A new browser/client may hit this endpoint before the in-memory license
+  // cache has been hydrated. Confirm against the installation-level license
+  // state before reporting the app as unlicensed.
+  if (!state.isLicensed) {
+    state = await licenseService.checkLicense();
+  }
 
   if (state.isLicensed) {
-    // Set license status cookie — 24h expiry
-    res.setHeader(
-      'Set-Cookie',
-      `nqrust_license_status=valid; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400`,
-    );
     return res.status(200).json({ licensed: true, status: state.status });
   }
 
-  // Clear the cookie if unlicensed
-  res.setHeader(
-    'Set-Cookie',
-    `nqrust_license_status=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`,
-  );
   return res.status(200).json({ licensed: false, status: state.status });
 }

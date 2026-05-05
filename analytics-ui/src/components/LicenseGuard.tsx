@@ -15,35 +15,17 @@ export default function LicenseGuard({
   const router = useRouter();
   const { license, error, refetch } = useLicense();
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
-  const cookieSetRef = useRef(false);
 
   const isPublicPage = SKIP_PATHS.some((p) =>
     router.pathname.startsWith(p),
   );
-
-  // When license is valid, ensure the middleware cookie is set (and refreshed)
-  useEffect(() => {
-    if (license?.isLicensed) {
-      cookieSetRef.current = true;
-      fetch('/api/license-check').catch(() => {});
-    }
-    if (license && !license.isLicensed) {
-      cookieSetRef.current = false;
-    }
-  }, [license?.isLicensed, license?.verifiedAt]);
 
   // Redirect when license is definitively invalid (not on error/loading)
   useEffect(() => {
     if (isPublicPage || !license || error) return;
 
     if (!license.isLicensed) {
-      // Clear the cookie first, then wait a tick for the browser to commit it
-      fetch('/api/license-check').then(() => {
-        // Allow browser to process Set-Cookie header before navigating
-        setTimeout(() => router.replace(LICENSE_PAGE), 50);
-      }).catch(() => {
-        router.replace(LICENSE_PAGE);
-      });
+      router.replace(LICENSE_PAGE);
     }
   }, [license, error, isPublicPage, router]);
 

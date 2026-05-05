@@ -146,7 +146,7 @@ export default function LicenseSettings() {
         message.success('License activated successfully');
         form.resetFields();
         refetch();
-        // Refresh the license cookie
+        // Refresh installation-level license state used by the route guard.
         fetch('/api/license-check').catch(() => {});
       } else {
         setError(state?.errorMessage || 'License activation failed');

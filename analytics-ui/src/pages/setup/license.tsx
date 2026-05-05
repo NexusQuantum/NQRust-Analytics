@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { Form, Input, Button, Alert, Typography, Tag, Upload, Divider, Checkbox } from 'antd';
 import {
@@ -59,7 +58,6 @@ const ACTIVATE_LICENSE_MUTATION = gql`
 `;
 
 export default function LicensePage() {
-  const router = useRouter();
   const [form] = Form.useForm();
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -82,17 +80,19 @@ export default function LicensePage() {
 
   const licenseState = data?.licenseStatus;
 
-  // Set the license cookie and redirect on success
+  // Confirm installation license state and redirect on success
   const setLicenseCookieAndRedirect = useCallback(async () => {
     try {
       await fetch('/api/license-check');
-      router.push('/home');
+      setTimeout(() => {
+        window.location.assign('/home');
+      }, 75);
     } catch {
-      router.push('/home');
+      window.location.assign('/home');
     }
-  }, [router]);
+  }, []);
 
-  // If already licensed, set cookie and redirect
+  // If already licensed, confirm server state and redirect
   useEffect(() => {
     if (licenseState?.isLicensed && !licenseState?.isGracePeriod) {
       setLicenseCookieAndRedirect();

@@ -198,7 +198,29 @@ export class LicenseService implements ILicenseService {
         signal: controller.signal,
       });
 
-      return (await res.json()) as LicenseVerifyResponse;
+      // Match the portal behavior: temporary server/config failures should not
+      // revoke a previously active installation license.
+      if (res.status >= 500 || res.status === 401 || res.status === 429) {
+        throw new Error(`License server temporarily unavailable (${res.status})`);
+      }
+
+      let response: LicenseVerifyResponse;
+      try {
+        response = (await res.json()) as LicenseVerifyResponse;
+      } catch (err) {
+        throw new Error(`Invalid license server response: ${err}`);
+      }
+
+      if (!res.ok) {
+        return {
+          ...response,
+          valid: false,
+          error: response.error || `http_${res.status}`,
+          message: response.message || 'License verification failed',
+        };
+      }
+
+      return response;
     } finally {
       clearTimeout(timeout);
     }
@@ -282,13 +304,18 @@ export class LicenseService implements ILicenseService {
 
       const features = record.features || [];
       const gracePeriodDays = this.config.licenseGracePeriodDays || 7;
+      const now = new Date();
+      const expiresAt = record.expiresAt ? new Date(record.expiresAt) : null;
+      const isExpired = !!expiresAt && expiresAt < now;
+      const effectiveStatus: LicenseStatus = isExpired
+        ? 'expired'
+        : record.status;
 
       let isGracePeriod = false;
       let graceDaysRemaining: number | null = null;
 
-      if (record.verifiedAt && record.status !== 'invalid') {
+      if (record.verifiedAt && effectiveStatus !== 'invalid') {
         const verifiedDate = new Date(record.verifiedAt);
-        const now = new Date();
         const daysSinceVerification = Math.floor(
           (now.getTime() - verifiedDate.getTime()) / (1000 * 60 * 60 * 24),
         );
@@ -300,10 +327,10 @@ export class LicenseService implements ILicenseService {
       }
 
       return {
-        isLicensed: record.status === 'active' || isGracePeriod,
-        status: isGracePeriod && record.status !== 'active'
+        isLicensed: effectiveStatus === 'active' || isGracePeriod,
+        status: isGracePeriod && effectiveStatus !== 'active'
           ? 'grace_period'
-          : record.status,
+          : effectiveStatus,
         isGracePeriod,
         graceDaysRemaining,
         customerName: record.customerName,
@@ -428,7 +455,20 @@ export class LicenseService implements ILicenseService {
   }
 
   public async checkLicense(): Promise<LicenseState> {
-    const licenseKey = this.config.licenseKey;
+    let licenseKey = this.config.licenseKey;
+
+    if (!licenseKey) {
+      try {
+        const cachedRecord = await this.licenseRepository.getLatest();
+        if (cachedRecord?.licenseKey) {
+          logger.info('Loaded persisted license key from database');
+          this.config.licenseKey = cachedRecord.licenseKey;
+          licenseKey = cachedRecord.licenseKey;
+        }
+      } catch (err) {
+        logger.warn('Failed to load license key from database:', err);
+      }
+    }
 
     if (!licenseKey) {
       logger.info('No LICENSE_KEY configured — running in unlicensed mode');

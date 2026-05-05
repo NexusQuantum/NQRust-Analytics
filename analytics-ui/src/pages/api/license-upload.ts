@@ -37,14 +37,6 @@ export default async function handler(
     const { licenseService } = components;
     const state = await licenseService.activateOfflineFile(licFilePath);
 
-    // Set/clear license cookie
-    if (state.isLicensed) {
-      res.setHeader(
-        'Set-Cookie',
-        `nqrust_license_status=valid; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400`,
-      );
-    }
-
     return res.status(200).json(state);
   } catch (err: any) {
     return res

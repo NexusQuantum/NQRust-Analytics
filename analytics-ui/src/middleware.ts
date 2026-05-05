@@ -12,6 +12,10 @@ const PUBLIC_PATHS = [
 ];
 
 export function middleware(request: NextRequest) {
+  return handleMiddleware(request);
+}
+
+async function handleMiddleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public paths through
@@ -26,13 +30,28 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check license status cookie (only for full page loads)
-  const licenseCookie = request.cookies.get('nqrust_license_status');
-  if (!licenseCookie || licenseCookie.value !== 'valid') {
-    return NextResponse.redirect(new URL('/setup/license', request.url));
+  // Licensing is installation-scoped, so protected page loads confirm with the
+  // server instead of trusting a browser-scoped cookie.
+  try {
+    const checkUrl = new URL('/api/license-check', request.url);
+    const res = await fetch(checkUrl, {
+      method: 'GET',
+      headers: {
+        cookie: request.headers.get('cookie') || '',
+      },
+    });
+
+    if (res.ok) {
+      const body = await res.json();
+      if (body?.licensed) {
+        return NextResponse.next();
+      }
+    }
+  } catch {
+    // Fall through to redirect when license state cannot be confirmed.
   }
 
-  return NextResponse.next();
+  return NextResponse.redirect(new URL('/setup/license', request.url));
 }
 
 export const config = {
