@@ -311,6 +311,26 @@ export class LicenseService implements ILicenseService {
         ? 'expired'
         : record.status;
 
+      if (record.isOffline) {
+        return {
+          isLicensed: effectiveStatus === 'active',
+          status: effectiveStatus,
+          isGracePeriod: false,
+          graceDaysRemaining: null,
+          customerName: record.customerName,
+          product: record.product,
+          features,
+          expiresAt: record.expiresAt,
+          activations: record.activations,
+          maxActivations: record.maxActivations,
+          verifiedAt: record.verifiedAt,
+          licenseKey: record.licenseKey
+            ? record.licenseKey.slice(0, 4) + '-****-****-' + record.licenseKey.slice(-4)
+            : null,
+          errorMessage: effectiveStatus === 'expired' ? 'License has expired' : null,
+        };
+      }
+
       let isGracePeriod = false;
       let graceDaysRemaining: number | null = null;
 
