@@ -269,9 +269,9 @@ export class LicenseService implements ILicenseService {
 
       const signatureValid = crypto.verify(
         null,
-        Buffer.from(payloadJson),
+        new Uint8Array(Buffer.from(payloadJson)),
         publicKeyPem,
-        Buffer.from(sigMatch[1].trim(), 'base64'),
+        new Uint8Array(Buffer.from(sigMatch[1].trim(), 'base64')),
       );
 
       if (!signatureValid) {
