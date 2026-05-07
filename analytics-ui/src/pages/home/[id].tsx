@@ -14,7 +14,6 @@ import { Path } from '@/utils/enum';
 import useHomeSidebar from '@/hooks/useHomeSidebar';
 import SiderLayout from '@/components/layouts/SiderLayout';
 import Prompt from '@/components/pages/home/prompt';
-import SourcesPanel from '@/components/sources/SourcesPanel';
 import { useNotebookContext } from '@/hooks/useNotebookContext';
 import useAskPrompt, {
   getIsFinished,
@@ -85,7 +84,6 @@ export default function HomeThread() {
   const adjustReasoningStepsModal = useModalAction();
   const adjustSqlModal = useModalAction();
   const notebookCtxFull = useNotebookContext();
-  const { notebookId, setSelectedDocumentIds } = notebookCtxFull;
   // Mirror to ref so closure-captured callbacks read the *latest* selection
   // at trigger time, not at component mount time.
   const notebookCtxRef = useRef(notebookCtxFull);
@@ -366,19 +364,11 @@ export default function HomeThread() {
 
   return (
     <SiderLayout loading={false} sidebar={homeSidebar}>
-      <div style={{ display: 'flex', height: '100%' }}>
-        <SourcesPanel
-          notebookId={notebookId}
-          onSelectionChange={setSelectedDocumentIds}
-        />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <PromptThreadProvider value={providerValue}>
-            <PromptThread />
-          </PromptThreadProvider>
+      <PromptThreadProvider value={providerValue}>
+        <PromptThread />
+      </PromptThreadProvider>
 
-          <div style={{ padding: '64px' }} />
-        </div>
-      </div>
+      <div style={{ padding: '64px' }} />
       <Prompt
         ref={$prompt}
         {...askPrompt}

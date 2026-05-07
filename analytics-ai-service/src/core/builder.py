@@ -119,6 +119,10 @@ class ServiceContainerBuilder:
         _documents_retrieval_pipeline = retrieval.DocumentsRetrieval(
             **pc["documents_retrieval"],
         )
+        _document_answer_pipeline = generation.DocumentAnswer(
+            **pc["document_answer"],
+            documents_retrieval=_documents_retrieval_pipeline,
+        )
 
         return {
             "db_schema_retrieval": _db_schema_retrieval_pipeline,
@@ -131,6 +135,7 @@ class ServiceContainerBuilder:
             "sql_executor": _sql_executor_pipeline,
             "documents_indexing": _documents_indexing_pipeline,
             "documents_retrieval": _documents_retrieval_pipeline,
+            "document_answer": _document_answer_pipeline,
         }
 
     def _create_services(self, shared: Dict[str, object]) -> services.ServiceContainer:
@@ -208,6 +213,7 @@ class ServiceContainerBuilder:
                     ),
                     "sql_functions_retrieval": shared["sql_functions_retrieval"],
                     "documents_retrieval": shared["documents_retrieval"],
+                    "document_answer": shared["document_answer"],
                 },
                 allow_intent_classification=s.allow_intent_classification,
                 allow_sql_generation_reasoning=s.allow_sql_generation_reasoning,
@@ -318,10 +324,7 @@ class ServiceContainerBuilder:
             documents_service=services.DocumentsService(
                 pipelines={
                     "documents_indexing": shared["documents_indexing"],
-                    "document_answer": generation.DocumentAnswer(
-                        **pc["document_answer"],
-                        documents_retrieval=shared["documents_retrieval"],
-                    ),
+                    "document_answer": shared["document_answer"],
                 },
                 **query_cache,
             ),

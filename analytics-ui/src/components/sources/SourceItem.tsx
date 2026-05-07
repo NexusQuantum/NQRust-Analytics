@@ -1,7 +1,6 @@
 import React from 'react';
 import { Checkbox, Tooltip, Spin } from 'antd';
 import {
-  CheckCircleFilled,
   CloseCircleFilled,
   DeleteOutlined,
   FileTextOutlined,
@@ -48,6 +47,17 @@ const StatusIcon = styled.span`
   width: 16px;
   text-align: center;
   font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const ReadyDot = styled.span`
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #52c41a;
+  display: inline-block;
 `;
 
 function renderStatus(doc: SourceItemDoc) {
@@ -55,7 +65,7 @@ function renderStatus(doc: SourceItemDoc) {
     case 'ready':
       return (
         <Tooltip title="Ready">
-          <CheckCircleFilled style={{ color: '#52c41a' }} />
+          <ReadyDot />
         </Tooltip>
       );
     case 'failed':
@@ -73,7 +83,7 @@ function renderStatus(doc: SourceItemDoc) {
         </Tooltip>
       );
     default:
-      return <FileTextOutlined />;
+      return <FileTextOutlined style={{ color: '#bbb' }} />;
   }
 }
 

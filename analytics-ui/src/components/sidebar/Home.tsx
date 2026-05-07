@@ -32,6 +32,35 @@ export interface Props {
   onRename: (id: string, newName: string) => Promise<void>;
 }
 
+const HomeContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+`;
+
+const ScrollSection = styled.div<{ $flex?: number }>`
+  flex: ${(p) => p.$flex ?? 1} 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+
+  /* Pin group header (My Dashboards / History) so only the items scroll. */
+  .ant-tree-treenode:has(.adm-treeNode--group),
+  .ant-tree-treenode.adm-treeNode--group {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--gray-2);
+  }
+`;
+
+const SectionDivider = styled.div`
+  border-top: 1px solid var(--gray-4);
+  flex-shrink: 0;
+`;
+
 export const StyledSidebarTree = styled(SidebarTree)`
   .adm-treeNode {
     &.adm-treeNode__thread {
@@ -143,33 +172,39 @@ export default function Home(props: Props) {
   };
 
   return (
-    <>
-      {/* Dashboard Section */}
+    <HomeContainer>
+      {/* Dashboard Section — own scroll */}
       {user && (
-        <DashboardTree
-          dashboards={dashboards}
-          currentUserId={user.id}
-          selectedDashboardId={selectedDashboardId}
-          onSelect={handleDashboardSelect}
-          onCreateNew={() => dashboardModal.openModal()}
-          onEdit={(dashboard) => dashboardModal.openModal(dashboard)}
-          onDelete={handleDeleteDashboard}
-          onSetDefault={handleSetDefault}
-          onStar={handleStarDashboard}
-          onUnstar={handleUnstarDashboard}
-          onShare={(dashboard) => shareModal.openModal(dashboard)}
-        />
+        <ScrollSection $flex={1}>
+          <DashboardTree
+            dashboards={dashboards}
+            currentUserId={user.id}
+            selectedDashboardId={selectedDashboardId}
+            onSelect={handleDashboardSelect}
+            onCreateNew={() => dashboardModal.openModal()}
+            onEdit={(dashboard) => dashboardModal.openModal(dashboard)}
+            onDelete={handleDeleteDashboard}
+            onSetDefault={handleSetDefault}
+            onStar={handleStarDashboard}
+            onUnstar={handleUnstarDashboard}
+            onShare={(dashboard) => shareModal.openModal(dashboard)}
+          />
+        </ScrollSection>
       )}
 
-      {/* Thread Section */}
-      <ThreadTree
-        threads={threads}
-        selectedKeys={treeSelectedKeys}
-        onSelect={onTreeSelect}
-        onRename={onRename}
-        onDeleteThread={onDeleteThread}
-        onShareThread={handleShareThread}
-      />
+      <SectionDivider />
+
+      {/* Thread Section — own scroll */}
+      <ScrollSection $flex={2}>
+        <ThreadTree
+          threads={threads}
+          selectedKeys={treeSelectedKeys}
+          onSelect={onTreeSelect}
+          onRename={onRename}
+          onDeleteThread={onDeleteThread}
+          onShareThread={handleShareThread}
+        />
+      </ScrollSection>
 
       {/* Modals */}
       <DashboardModal
@@ -187,6 +222,6 @@ export default function Home(props: Props) {
         onClose={shareThreadModal.closeModal}
         defaultValue={shareThreadModal.state.defaultValue}
       />
-    </>
+    </HomeContainer>
   );
 }

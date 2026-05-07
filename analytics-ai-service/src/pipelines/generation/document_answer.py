@@ -8,6 +8,7 @@ answer with [filename, hal. PAGE] citations.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import sys
 from typing import Any, List, Optional
@@ -126,6 +127,7 @@ async def generate_answer(
     retrieved_chunks: List[dict],
     generator: Any,
     generator_name: str,
+    query_id: str = "",
 ) -> dict:
     if not retrieved_chunks:
         # No chunks retrieved — short-circuit instead of calling the LLM.
@@ -135,7 +137,10 @@ async def generate_answer(
             ],
             "meta": [{"finish_reason": "no_chunks"}],
         }, generator_name
-    return await generator(prompt=prompt.get("prompt")), generator_name
+    return await generator(
+        prompt=prompt.get("prompt"),
+        query_id=query_id,
+    ), generator_name
 
 
 # --- Pipeline class -----------------------------------------------------
@@ -148,9 +153,11 @@ class DocumentAnswer(EnhancedBasicPipeline):
         documents_retrieval: DocumentsRetrieval,
         **kwargs,
     ):
+        self._user_queues: dict = {}
         self._components = {
             "generator": llm_provider.get_generator(
                 system_prompt=document_answer_system_prompt,
+                streaming_callback=self._streaming_callback,
             ),
             "generator_name": llm_provider.get_model(),
             "prompt_builder": PromptBuilder(
@@ -163,34 +170,87 @@ class DocumentAnswer(EnhancedBasicPipeline):
             AsyncDriver({}, sys.modules[__name__], result_builder=base.DictResult())
         )
 
+    def _streaming_callback(self, chunk, query_id):
+        if not query_id:
+            return
+        if query_id not in self._user_queues:
+            self._user_queues[query_id] = asyncio.Queue()
+        asyncio.create_task(self._user_queues[query_id].put(chunk.content))
+        if chunk.meta.get("finish_reason"):
+            asyncio.create_task(self._user_queues[query_id].put("<DONE>"))
+
+    def _enqueue_synthetic_message(self, query_id: str, message: str) -> None:
+        """Push a non-LLM message (e.g. 'no chunks found') through the queue
+        so frontend streaming consumers see it the same way as a real reply."""
+        if not query_id:
+            return
+        if query_id not in self._user_queues:
+            self._user_queues[query_id] = asyncio.Queue()
+        asyncio.create_task(self._user_queues[query_id].put(message))
+        asyncio.create_task(self._user_queues[query_id].put("<DONE>"))
+
+    async def get_streaming_results(self, query_id):
+        async def _get(query_id):
+            return await self._user_queues[query_id].get()
+
+        if query_id not in self._user_queues:
+            self._user_queues[query_id] = asyncio.Queue()
+        while True:
+            try:
+                result = await asyncio.wait_for(_get(query_id), timeout=120)
+                if result == "<DONE>":
+                    del self._user_queues[query_id]
+                    break
+                if result:
+                    yield result
+            except TimeoutError:
+                break
+
     @observe(name="Document Answer")
     async def _execute(
         self,
         query: str,
         selected_document_ids: List[str],
         project_id: Optional[str] = None,
+        query_id: Optional[str] = None,
     ) -> dict:
         logger.info(
             f"[doc-answer] Running for project={project_id} docs={selected_document_ids}"
         )
-        return await self._pipe.execute(
+        result = await self._pipe.execute(
             ["generate_answer"],
             inputs={
                 "query": query,
                 "selected_document_ids": selected_document_ids,
                 "project_id": project_id or "",
+                "query_id": query_id or "",
                 **self._components,
             },
         )
+
+        # If short-circuited (no chunks), the streaming queue never received
+        # anything from the LLM — push the synthetic message ourselves so the
+        # frontend's poll loop terminates gracefully.
+        gen = result.get("generate_answer", {})
+        if isinstance(gen, tuple):
+            gen = gen[0]
+        finish = (gen.get("meta") or [{}])[0].get("finish_reason")
+        if finish == "no_chunks" and query_id:
+            self._enqueue_synthetic_message(
+                query_id, gen.get("replies", [""])[0]
+            )
+        return result
 
     async def run(
         self,
         query: str,
         selected_document_ids: List[str],
         project_id: Optional[str] = None,
+        query_id: Optional[str] = None,
     ) -> dict:
         return await self._execute(
             query=query,
             selected_document_ids=selected_document_ids,
             project_id=project_id,
+            query_id=query_id,
         )

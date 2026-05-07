@@ -50,6 +50,14 @@ async def ask(
         query_id = str(uuid.uuid4())
         ask_request.query_id = query_id
 
+        import logging as _logging
+        _logger = _logging.getLogger("analytics-service")
+        _logger.info(
+            f"[ask-endpoint] selected_document_ids="
+            f"{getattr(ask_request, 'selected_document_ids', None)} "
+            f"query={ask_request.query!r}"
+        )
+
         # Initialize status in cache
         service_container.ask_service._ask_results[query_id] = AskResultResponse(
             status="understanding",

@@ -61,7 +61,16 @@ const nextConfig = withLess({
     },
   },
   lessLoaderOptions: {
-    additionalData: `@import "@/styles/antd-variables.less";`,
+    additionalData: `@import "${path
+      .resolve(__dirname, 'src/styles/antd-variables.less')
+      .replace(/\\/g, '/')}";`,
+    lessOptions: {
+      javascriptEnabled: true,
+      paths: [
+        path.resolve(__dirname, 'node_modules'),
+        path.resolve(__dirname, 'src/styles'),
+      ],
+    },
   },
   webpack: (config) => {
     config.resolve.alias = {

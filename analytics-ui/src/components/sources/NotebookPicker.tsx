@@ -78,15 +78,21 @@ export default function NotebookPicker({
         footer={null}
         destroyOnClose
       >
-        <div style={{ marginBottom: 16 }}>
-          <Input.Search
+        <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
+          <Input
             placeholder="New notebook name…"
-            enterButton="Create"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            onSearch={submitCreate}
-            loading={creating}
+            onPressEnter={submitCreate}
           />
+          <Button
+            type="primary"
+            onClick={submitCreate}
+            loading={creating}
+            disabled={!newName.trim()}
+          >
+            Create
+          </Button>
         </div>
 
         <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>
@@ -108,9 +114,9 @@ export default function NotebookPicker({
                   padding: '8px 12px',
                   border:
                     nb.id === currentNotebookId
-                      ? '1px solid #1890ff'
+                      ? '1px solid var(--rust-orange-6)'
                       : '1px solid #eee',
-                  borderRadius: 4,
+                  borderRadius: 12,
                 }}
               >
                 <div>
@@ -122,32 +128,23 @@ export default function NotebookPicker({
                 <Button
                   size="small"
                   type={nb.id === currentNotebookId ? 'primary' : 'default'}
+                  danger={nb.id === currentNotebookId}
                   onClick={() => {
-                    onAttach(nb.id);
+                    if (nb.id === currentNotebookId) {
+                      onAttach(null);
+                    } else {
+                      onAttach(nb.id);
+                    }
                     setOpen(false);
                   }}
                 >
-                  {nb.id === currentNotebookId ? 'Attached' : 'Attach'}
+                  {nb.id === currentNotebookId ? 'Detach' : 'Attach'}
                 </Button>
               </div>
             ))}
           </Space>
         )}
 
-        {currentNotebookId && (
-          <div style={{ marginTop: 16, textAlign: 'right' }}>
-            <Button
-              danger
-              size="small"
-              onClick={() => {
-                onAttach(null);
-                setOpen(false);
-              }}
-            >
-              Detach current
-            </Button>
-          </div>
-        )}
       </Modal>
     </>
   );

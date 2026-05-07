@@ -11,6 +11,8 @@ import Knowledge from './Knowledge';
 import APIManagement from './APIManagement';
 import HeaderBar from '@/components/HeaderBar';
 import UserMenu from '@/components/UserMenu';
+import SourcesPanel from '@/components/sources/SourcesPanel';
+import { useNotebookContext } from '@/hooks/useNotebookContext';
 // import LearningSection from '@/components/learning';
 
 const Layout = styled.div`
@@ -18,15 +20,18 @@ const Layout = styled.div`
   height: 100%;
   background-color: var(--gray-2);
   color: var(--gray-8);
-  padding-bottom: 12px;
   overflow-x: hidden;
+  overflow-y: hidden;
 `;
 
-const Content = styled.div`
-  flex-grow: 1;
-  overflow-y: auto;
+const Content = styled.div<{ $noScroll?: boolean }>`
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: ${(p) => (p.$noScroll ? 'hidden' : 'auto')};
   padding-left: 8px;
   padding-right: 8px;
+  display: flex;
+  flex-direction: column;
 `;
 
 const StyledButton = styled(Button)`
@@ -75,7 +80,8 @@ const DynamicSidebar = (
     return null;
   };
 
-  return <Content>{getContent()}</Content>;
+  const isHome = pathname.startsWith(Path.Home);
+  return <Content $noScroll={isHome}>{getContent()}</Content>;
 };
 
 export default function Sidebar(props: Props) {
@@ -87,11 +93,21 @@ export default function Sidebar(props: Props) {
     event.target.blur();
   };
 
+  const isHome = router.pathname.startsWith(Path.Home);
+  const { notebookId, setSelectedDocumentIds } = useNotebookContext();
+
   return (
     <Layout className="d-flex flex-column border-r border-gray-4">
       <HeaderBar />
 
       <DynamicSidebar {...props} pathname={router.pathname} />
+      {isHome && (
+        <SourcesPanel
+          embedded
+          notebookId={notebookId}
+          onSelectionChange={setSelectedDocumentIds}
+        />
+      )}
       {/* <LearningSection /> */}
       <div className="border-t border-gray-4 p-2">
         <UserMenu />

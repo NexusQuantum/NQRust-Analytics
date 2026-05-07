@@ -11,7 +11,6 @@ import useAskPrompt from '@/hooks/useAskPrompt';
 import useRecommendedQuestionsInstruction from '@/hooks/useRecommendedQuestionsInstruction';
 import RecommendedQuestionsPrompt from '@/components/pages/home/prompt/RecommendedQuestionsPrompt';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import SourcesPanel from '@/components/sources/SourcesPanel';
 import { useNotebookContext } from '@/hooks/useNotebookContext';
 import {
   useSuggestedQuestionsQuery,
@@ -94,7 +93,8 @@ export default function Home() {
   const router = useRouter();
   const homeSidebar = useHomeSidebar();
   const askPrompt = useAskPrompt();
-  const { notebookId, setSelectedDocumentIds } = useNotebookContext();
+  // Notebook context is consumed by SourcesPanel inside the sidebar.
+  useNotebookContext();
 
   const { data: suggestedQuestionsData } = useSuggestedQuestionsQuery({
     fetchPolicy: 'cache-and-network',
@@ -138,26 +138,20 @@ export default function Home() {
   return (
     <ProtectedRoute>
       <SiderLayout loading={false} sidebar={homeSidebar}>
-        <div style={{ display: 'flex', minHeight: '100%' }}>
-          <SourcesPanel
-            notebookId={notebookId}
-            onSelectionChange={setSelectedDocumentIds}
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {isSampleDataset && (
-              <SampleQuestionsInstruction
-                sampleQuestions={sampleQuestions}
-                onSelect={onSelectQuestion}
-              />
-            )}
+        <div style={{ minHeight: '100%' }}>
+          {isSampleDataset && (
+            <SampleQuestionsInstruction
+              sampleQuestions={sampleQuestions}
+              onSelect={onSelectQuestion}
+            />
+          )}
 
-            {!isSampleDataset && (
-              <RecommendedQuestionsInstruction
-                onSelect={onCreateResponse}
-                loading={threadCreating}
-              />
-            )}
-          </div>
+          {!isSampleDataset && (
+            <RecommendedQuestionsInstruction
+              onSelect={onCreateResponse}
+              loading={threadCreating}
+            />
+          )}
         </div>
         <Prompt
           ref={$prompt}

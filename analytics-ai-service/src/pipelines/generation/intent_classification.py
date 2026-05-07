@@ -24,19 +24,32 @@ logger = logging.getLogger("analytics-service")
 
 intent_classification_system_prompt = """
 ### ROLE ###
-You are an expert intent classifier for Analytics AI, specializing in understanding user queries and determining their true intent based on database schema and conversation context.
+You are an expert intent classifier for Analytics AI, specializing in understanding user queries and determining their true intent based on database schema, attached documents, and conversation context.
 
 ### TASK ###
-Analyze user queries and classify them into one of four categories: `TEXT_TO_SQL`, `GENERAL`, `USER_GUIDE`, or `MISLEADING_QUERY`. Provide clear reasoning and rephrase questions when necessary.
+Analyze user queries and classify them into one of five categories: `TEXT_TO_SQL`, `DOCUMENT_QA`, `GENERAL`, `USER_GUIDE`, or `MISLEADING_QUERY`. Provide clear reasoning and rephrase questions when necessary.
 
 ### CLASSIFICATION LOGIC ###
 
 **TEXT_TO_SQL** - Use when:
 - Query requires SQL generation with complete information
-- References specific tables, columns, or data values
-- Includes complete filter criteria or clear context references
-- User wants to modify or build upon previous SQL queries
-- Examples: "Show total sales by region", "List top 10 customers by revenue"
+- References specific tables, columns, or data values present in the schema
+- Asks for aggregations/counts/lists/comparisons backed by structured DB data
+- Even if documents are attached, prefer this when the question is fundamentally
+  about quantitative data the DB can answer (the doc serves as context only)
+- Examples: "Show total sales by region", "List top 10 customers by revenue",
+  "Berapa product yang disupply Plutzer?"
+
+**DOCUMENT_QA** - Use ONLY when ALL of these are true:
+- `has_selected_documents` is true (user has attached documents)
+- The question asks about content, narrative, policy, decision, recommendation,
+  audit finding, strategy, target, or any qualitative information that lives in
+  the attached document and has NO direct mapping to DB tables/columns
+- Answering from the database alone would be impossible or meaningless
+- Examples (only when docs are attached):
+  "Apa rekomendasi dari audit?", "Sebutkan isi sales strategy 2026",
+  "Mengapa Plutzer ada di action list?", "Summarize the document",
+  "Apa target revenue tahun 2026 menurut dokumen?"
 
 **GENERAL** - Use when:
 - Query seeks general information about database capabilities
@@ -50,10 +63,19 @@ Analyze user queries and classify them into one of four categories: `TEXT_TO_SQL
 - Examples: "How do I create a chart?", "What can Analytics AI do?"
 
 **MISLEADING_QUERY** - Use when:
-- Query is irrelevant to database or Analytics AI
+- Query is irrelevant to database, attached documents, or Analytics AI
 - Contains SQL code or technical jargon inappropriately
 - Off-topic or casual conversation
 - Examples: "How's the weather?", "Tell me a joke"
+
+### IMPORTANT ROUTING RULES ###
+1. If `has_selected_documents` is FALSE, NEVER classify as DOCUMENT_QA — fall back
+   to TEXT_TO_SQL/GENERAL based on the question.
+2. If the question asks for quantitative DB facts (counts, sums, lists from tables)
+   classify as TEXT_TO_SQL even when documents are attached. The SQL pipeline will
+   weave document context into the final answer.
+3. Only choose DOCUMENT_QA when the question is about narrative/qualitative content
+   that ONLY exists in the attached documents.
 
 ### LANGUAGE REQUIREMENTS ###
 - **Response Language**: Always respond in the same language as the user's question
@@ -73,7 +95,7 @@ Analyze user queries and classify them into one of four categories: `TEXT_TO_SQL
 {
     "rephrased_question": "<standalone question with full context>",
     "reasoning": "<brief explanation of classification decision>",
-    "results": "TEXT_TO_SQL|GENERAL|USER_GUIDE|MISLEADING_QUERY"
+    "results": "TEXT_TO_SQL|DOCUMENT_QA|GENERAL|USER_GUIDE|MISLEADING_QUERY"
 }
 ```
 """
@@ -123,6 +145,7 @@ SQL:
 ### CURRENT QUERY ###
 User's current question: {{query}}
 Output Language: {{ language }}
+has_selected_documents: {{ has_selected_documents }}
 
 ### CLASSIFICATION GUIDELINES ###
 - **Context Integration**: Combine current question with previous conversation history
@@ -130,9 +153,12 @@ Output Language: {{ language }}
 - **Language Consistency**: Maintain user's specified language throughout
 - **Reasoning Clarity**: Provide concise reasoning (max 20 words) explaining classification
 - **Time Preservation**: Don't modify time-related information in questions
+- **Document Routing**: If `has_selected_documents` is true AND the question is about
+  narrative/qualitative content only in the documents, classify as DOCUMENT_QA.
 
 ### INTENT CATEGORIES ###
 - **TEXT_TO_SQL**: Complete queries with specific tables/columns that need SQL
+- **DOCUMENT_QA**: Question about content of attached documents (only if has_selected_documents=true)
 - **GENERAL**: Incomplete queries or general database questions
 - **USER_GUIDE**: Questions about Analytics AI features
 - **MISLEADING_QUERY**: Off-topic or irrelevant queries
@@ -255,6 +281,7 @@ def prompt(
     sql_samples: Optional[list[dict]] = None,
     instructions: Optional[list[dict]] = None,
     configuration: Configuration | dict | None = None,
+    has_selected_documents: bool = False,
 ) -> dict:
     # Handle configuration as dict or Configuration object
     if configuration is None:
@@ -273,6 +300,7 @@ def prompt(
             instructions=instructions,
         ),
         docs=analytics_docs,
+        has_selected_documents=has_selected_documents,
     )
     return {"prompt": clean_up_new_lines(_prompt.get("prompt"))}
 
@@ -307,7 +335,13 @@ def post_process(classify_intent: dict, construct_db_schemas: list[str]) -> dict
 
 class IntentClassificationResult(BaseModel):
     rephrased_question: str
-    results: Literal["MISLEADING_QUERY", "TEXT_TO_SQL", "GENERAL", "USER_GUIDE"]
+    results: Literal[
+        "MISLEADING_QUERY",
+        "TEXT_TO_SQL",
+        "GENERAL",
+        "USER_GUIDE",
+        "DOCUMENT_QA",
+    ]
     reasoning: str
 
 
@@ -370,6 +404,7 @@ class IntentClassification(EnhancedBasicPipeline):
         sql_samples: Optional[list[dict]] = None,
         instructions: Optional[list[dict]] = None,
         configuration: Configuration | dict = Configuration(),
+        has_selected_documents: bool = False,
     ):
         # Handle configuration as dict or Configuration object
         if isinstance(configuration, dict):
@@ -384,6 +419,7 @@ class IntentClassification(EnhancedBasicPipeline):
                 "sql_samples": sql_samples or [],
                 "instructions": instructions or [],
                 "configuration": configuration,
+                "has_selected_documents": has_selected_documents,
                 **self._components,
                 **self._configs,
             },
@@ -397,6 +433,7 @@ class IntentClassification(EnhancedBasicPipeline):
         sql_samples: Optional[list[dict]] = None,
         instructions: Optional[list[dict]] = None,
         configuration: Configuration | dict = Configuration(),
+        has_selected_documents: bool = False,
     ):
         return await self._execute(
             query=query,
@@ -405,6 +442,7 @@ class IntentClassification(EnhancedBasicPipeline):
             sql_samples=sql_samples,
             instructions=instructions,
             configuration=configuration,
+            has_selected_documents=has_selected_documents,
         )
 
 

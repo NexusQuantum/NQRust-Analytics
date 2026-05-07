@@ -111,7 +111,12 @@ class _AskResultResponse(BaseModel):
     trace_id: Optional[str] = None
     is_followup: bool = False
     general_type: Optional[
-        Literal["MISLEADING_QUERY", "DATA_ASSISTANCE", "USER_GUIDE"]
+        Literal[
+            "MISLEADING_QUERY",
+            "DATA_ASSISTANCE",
+            "USER_GUIDE",
+            "DOCUMENT_QA",
+        ]
     ] = None
 
 
@@ -120,7 +125,12 @@ class AskResultResponse(_AskResultResponse):
 
     is_followup: Optional[bool] = Field(False, exclude=True)
     general_type: Optional[
-        Literal["MISLEADING_QUERY", "DATA_ASSISTANCE", "USER_GUIDE"]
+        Literal[
+            "MISLEADING_QUERY",
+            "DATA_ASSISTANCE",
+            "USER_GUIDE",
+            "DOCUMENT_QA",
+        ]
     ] = Field(None, exclude=True)
 
 
@@ -315,6 +325,7 @@ class AskService:
         instructions: List[dict],
         project_id: str,
         configurations: Optional[dict],
+        has_selected_documents: bool = False,
     ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[List[dict]]]:
         """
         Classify the user's intent and return associated metadata.
@@ -326,11 +337,16 @@ class AskService:
             instructions: Retrieved instructions for SQL generation
             project_id: Project identifier
             configurations: Optional configurations from request
+            has_selected_documents: Whether the user has attached documents
 
         Returns:
             A tuple: (intent, rephrased_question, intent_reasoning, db_schemas)
         """
         try:
+            logger.info(
+                f"[intent-classify] has_selected_documents={has_selected_documents} "
+                f"query={user_query!r}"
+            )
             result = await self._pipelines["intent_classification"].run(
                 query=user_query,
                 histories=histories,
@@ -338,6 +354,10 @@ class AskService:
                 instructions=instructions,
                 project_id=project_id,
                 configuration=configurations,
+                has_selected_documents=has_selected_documents,
+            )
+            logger.info(
+                f"[intent-classify] result intent={result.get('post_process', {}).get('intent')}"
             )
 
             post_process = result.get("post_process", {})
@@ -452,6 +472,8 @@ class AskService:
         intent_reasoning: Optional[str],
         trace_id: Optional[str],
         is_followup: bool,
+        selected_document_ids: Optional[List[str]] = None,
+        project_id: Optional[str] = None,
     ) -> Optional[dict]:
         """
         Handle non TEXT_TO_SQL intents by dispatching assistance tasks and
@@ -531,6 +553,35 @@ class AskService:
                     general_type="USER_GUIDE",
                 )
                 return {"ask_result": {}, "metadata": {"type": "GENERAL"}}
+
+            if intent == "DOCUMENT_QA":
+                # Skip the SQL pipeline entirely; answer from attached docs.
+                if not selected_document_ids:
+                    logger.warning(
+                        "DOCUMENT_QA intent without selected_document_ids — "
+                        "falling back to TEXT_TO_SQL"
+                    )
+                else:
+                    asyncio.create_task(
+                        self._pipelines["document_answer"].run(
+                            query=user_query,
+                            selected_document_ids=selected_document_ids,
+                            project_id=project_id,
+                            query_id=query_id,
+                        )
+                    )
+
+                    self._update_status(
+                        query_id=query_id,
+                        status="finished",
+                        type="GENERAL",
+                        rephrased_question=rephrased_question,
+                        intent_reasoning=intent_reasoning,
+                        trace_id=trace_id,
+                        is_followup=is_followup,
+                        general_type="DOCUMENT_QA",
+                    )
+                    return {"ask_result": {}, "metadata": {"type": "DOCUMENT_QA"}}
 
             # Default: continue for TEXT_TO_SQL or unknown
             self._update_status(
@@ -1094,6 +1145,7 @@ class AskService:
             histories=ask_request.histories[: self._max_histories][::-1],
             configurations=ask_request.configurations or {},
             trace_id=trace_id,
+            selected_document_ids=ask_request.selected_document_ids or [],
         )
 
         # Initialize variables to avoid UnboundLocalError
@@ -1127,6 +1179,7 @@ class AskService:
                 context.instructions or [],
                 context.project_id,
                 context.configurations,
+                has_selected_documents=bool(context.selected_document_ids),
             )
             context.rephrased_question = intent_result[1]
             context.intent_reasoning = intent_result[2]
@@ -1147,6 +1200,8 @@ class AskService:
                     intent_reasoning=context.intent_reasoning,
                     trace_id=context.trace_id,
                     is_followup=bool(context.histories),
+                    selected_document_ids=context.selected_document_ids,
+                    project_id=context.project_id,
                 )
 
             # Step 5: Retrieve database schemas
@@ -1351,6 +1406,7 @@ class AskService:
                 context.instructions or [],
                 context.project_id,
                 context.configurations,
+                has_selected_documents=bool(context.selected_document_ids),
             )
             context.rephrased_question = intent_result[1]
             context.intent_reasoning = intent_result[2]
@@ -1374,6 +1430,8 @@ class AskService:
                     intent_reasoning=context.intent_reasoning,
                     trace_id=context.trace_id,
                     is_followup=bool(context.histories),
+                    selected_document_ids=context.selected_document_ids,
+                    project_id=context.project_id,
                 )
 
         return self._format_cached_response(

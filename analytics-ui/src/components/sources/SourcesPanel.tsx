@@ -18,21 +18,28 @@ import UploadDialog from './UploadDialog';
 import NotebookPicker from './NotebookPicker';
 import { useNotebookContext } from '@/hooks/useNotebookContext';
 
-const Panel = styled.div<{ $collapsed: boolean }>`
-  width: ${(p) => (p.$collapsed ? '40px' : '260px')};
-  border-right: 1px solid #eee;
-  background: #fafafa;
+const Panel = styled.div<{ $embedded?: boolean }>`
   display: flex;
   flex-direction: column;
-  /* Sticky to viewport top so it doesn't scroll with chat content.
-     Caller wrapper provides height; we fill it but stay pinned. */
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  align-self: flex-start;
-  transition: width 0.15s ease;
-  flex-shrink: 0;
-  z-index: 10;
+  background: #fafafa;
+  ${(p) =>
+    p.$embedded
+      ? `
+        width: 100%;
+        border-top: 1px solid #eee;
+        max-height: 320px;
+        flex-shrink: 0;
+      `
+      : `
+        width: 260px;
+        border-right: 1px solid #eee;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        align-self: flex-start;
+        flex-shrink: 0;
+        z-index: 10;
+      `}
 `;
 
 const Header = styled.div`
@@ -49,7 +56,8 @@ const Title = styled.div`
 `;
 
 const ListBody = styled.div`
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 6px 8px;
 `;
@@ -65,6 +73,8 @@ interface Props {
   notebookId: number | null;
   /** Number currently selected — also surfaced via prop so the chat can show "X docs active". */
   onSelectionChange?: (selectedIds: number[]) => void;
+  /** When true, render inline within the sidebar (no sticky, capped height). */
+  embedded?: boolean;
 }
 
 const MAX_SELECTED = 10;
@@ -72,9 +82,12 @@ const MAX_SELECTED = 10;
 export default function SourcesPanel({
   notebookId,
   onSelectionChange,
+  embedded = false,
 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  // Embedded mode never collapses (already part of sidebar layout).
+  const isCollapsed = embedded ? false : collapsed;
 
   const { data, loading, refetch } = useQuery(LIST_DOCUMENTS, {
     variables: { notebookId: String(notebookId) },
@@ -144,7 +157,7 @@ export default function SourcesPanel({
 
   if (!notebookId) {
     return (
-      <Panel $collapsed={false}>
+      <Panel $embedded={embedded}>
         <Header>
           <Title>Sources</Title>
         </Header>
@@ -161,11 +174,11 @@ export default function SourcesPanel({
   }
 
   return (
-    <Panel $collapsed={collapsed}>
+    <Panel $embedded={embedded}>
       <Header>
-        {!collapsed && <Title>Sources</Title>}
+        {!isCollapsed && <Title>Sources</Title>}
         <div style={{ display: 'flex', gap: 4 }}>
-          {!collapsed && (
+          {!isCollapsed && (
             <Tooltip title="Upload">
               <Button
                 size="small"
@@ -175,18 +188,20 @@ export default function SourcesPanel({
               />
             </Tooltip>
           )}
-          <Tooltip title={collapsed ? 'Expand' : 'Collapse'}>
-            <Button
-              size="small"
-              type="text"
-              icon={collapsed ? <RightOutlined /> : <LeftOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
-            />
-          </Tooltip>
+          {!embedded && (
+            <Tooltip title={isCollapsed ? 'Expand' : 'Collapse'}>
+              <Button
+                size="small"
+                type="text"
+                icon={isCollapsed ? <RightOutlined /> : <LeftOutlined />}
+                onClick={() => setCollapsed(!collapsed)}
+              />
+            </Tooltip>
+          )}
         </div>
       </Header>
 
-      {!collapsed && (
+      {!isCollapsed && (
         <div
           style={{
             padding: '6px 8px',
@@ -201,7 +216,7 @@ export default function SourcesPanel({
         </div>
       )}
 
-      {!collapsed && (
+      {!isCollapsed && (
         <>
           <ListBody>
             {loading && docs.length === 0 ? (
