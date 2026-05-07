@@ -7,7 +7,6 @@ import { getToken } from 'next-auth/jwt';
 import { getLogger } from '@server/utils';
 
 const logger = getLogger('DocumentAsk');
-logger.level = 'debug';
 
 interface AskBody {
   query: string;

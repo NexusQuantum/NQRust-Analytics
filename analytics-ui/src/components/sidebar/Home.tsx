@@ -3,9 +3,10 @@ import { useRouter } from 'next/router';
 import { useParams } from 'next/navigation';
 import styled from 'styled-components';
 import { useMutation, useQuery } from '@apollo/client';
-import { Modal as AntModal } from 'antd';
+import { Button, Modal as AntModal } from 'antd';
+import PlusOutlined from '@ant-design/icons/PlusOutlined';
 import { Path } from '@/utils/enum';
-import SidebarTree, {
+import {
   useSidebarTreeState,
 } from './SidebarTree';
 import ThreadTree, { ThreadData } from './home/ThreadTree';
@@ -39,21 +40,35 @@ const HomeContainer = styled.div`
   min-height: 0;
 `;
 
-const ScrollSection = styled.div<{ $flex?: number }>`
+const Section = styled.div<{ $flex?: number }>`
   flex: ${(p) => p.$flex ?? 1} 1 0;
   min-height: 0;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
+`;
 
-  /* Pin group header (My Dashboards / History) so only the items scroll. */
-  .ant-tree-treenode:has(.adm-treeNode--group),
-  .ant-tree-treenode.adm-treeNode--group {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background: var(--gray-2);
-  }
+const SectionHeader = styled.div`
+  flex-shrink: 0;
+  padding: 16px 16px 0;
+  background: var(--gray-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-8);
+`;
+
+const SectionHeaderCount = styled.span`
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 400;
+`;
+
+const ScrollContent = styled.div`
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
 `;
 
 const SectionDivider = styled.div`
@@ -61,23 +76,6 @@ const SectionDivider = styled.div`
   flex-shrink: 0;
 `;
 
-export const StyledSidebarTree = styled(SidebarTree)`
-  .adm-treeNode {
-    &.adm-treeNode__thread {
-      padding: 0px 16px 0px 4px !important;
-
-      .ant-tree-title {
-        flex-grow: 1;
-        display: inline-flex;
-        align-items: center;
-        span:first-child,
-        .adm-treeTitle__title {
-          flex-grow: 1;
-        }
-      }
-    }
-  }
-`;
 
 export default function Home(props: Props) {
   const { data, onSelect, onRename, onDelete } = props;
@@ -173,38 +171,65 @@ export default function Home(props: Props) {
 
   return (
     <HomeContainer>
-      {/* Dashboard Section — own scroll */}
+      {/* Dashboard Section — fixed header + scrollable list */}
       {user && (
-        <ScrollSection $flex={1}>
-          <DashboardTree
-            dashboards={dashboards}
-            currentUserId={user.id}
-            selectedDashboardId={selectedDashboardId}
-            onSelect={handleDashboardSelect}
-            onCreateNew={() => dashboardModal.openModal()}
-            onEdit={(dashboard) => dashboardModal.openModal(dashboard)}
-            onDelete={handleDeleteDashboard}
-            onSetDefault={handleSetDefault}
-            onStar={handleStarDashboard}
-            onUnstar={handleUnstarDashboard}
-            onShare={(dashboard) => shareModal.openModal(dashboard)}
-          />
-        </ScrollSection>
+        <Section $flex={1}>
+          <SectionHeader>
+            <span>
+              My Dashboards
+              <SectionHeaderCount>({dashboards.filter(d => d.createdBy === user.id).length})</SectionHeaderCount>
+            </span>
+            <Button
+              size="small"
+              type="text"
+              icon={<PlusOutlined />}
+              onClick={() => dashboardModal.openModal()}
+              style={{ fontSize: 12, height: 'auto', color: 'var(--gray-8)' }}
+            >
+              New
+            </Button>
+          </SectionHeader>
+          <ScrollContent>
+            <DashboardTree
+              dashboards={dashboards}
+              currentUserId={user.id}
+              selectedDashboardId={selectedDashboardId}
+              hideHeader
+              onSelect={handleDashboardSelect}
+              onCreateNew={() => dashboardModal.openModal()}
+              onEdit={(dashboard) => dashboardModal.openModal(dashboard)}
+              onDelete={handleDeleteDashboard}
+              onSetDefault={handleSetDefault}
+              onStar={handleStarDashboard}
+              onUnstar={handleUnstarDashboard}
+              onShare={(dashboard) => shareModal.openModal(dashboard)}
+            />
+          </ScrollContent>
+        </Section>
       )}
 
       <SectionDivider />
 
-      {/* Thread Section — own scroll */}
-      <ScrollSection $flex={2}>
-        <ThreadTree
-          threads={threads}
-          selectedKeys={treeSelectedKeys}
-          onSelect={onTreeSelect}
-          onRename={onRename}
-          onDeleteThread={onDeleteThread}
-          onShareThread={handleShareThread}
-        />
-      </ScrollSection>
+      {/* Thread Section — fixed header + scrollable list */}
+      <Section $flex={2}>
+        <SectionHeader>
+          <span>
+            History
+            <SectionHeaderCount>({threads.length})</SectionHeaderCount>
+          </span>
+        </SectionHeader>
+        <ScrollContent>
+          <ThreadTree
+            threads={threads}
+            selectedKeys={treeSelectedKeys}
+            hideHeader
+            onSelect={onTreeSelect}
+            onRename={onRename}
+            onDeleteThread={onDeleteThread}
+            onShareThread={handleShareThread}
+          />
+        </ScrollContent>
+      </Section>
 
       {/* Modals */}
       <DashboardModal

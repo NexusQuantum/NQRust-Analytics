@@ -374,6 +374,12 @@ export class AskingTaskTracker implements IAskingTaskTracker {
       const view = await this.viewRepository.findOneBy({
         id: response.viewId,
       });
+      if (!view) {
+        logger.warn(
+          `View ${response.viewId} not found for task ${task.queryId}; skipping thread response update`,
+        );
+        return;
+      }
       await this.threadResponseRepository.updateOne(task.threadResponseId, {
         sql: view.statement,
         viewId: response.viewId,

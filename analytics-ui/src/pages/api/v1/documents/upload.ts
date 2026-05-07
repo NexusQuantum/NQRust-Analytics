@@ -22,7 +22,6 @@ import { DOCUMENT_LIMITS } from '@server/services/documentService';
 import { getLogger } from '@server/utils';
 
 const logger = getLogger('DocumentUpload');
-logger.level = 'debug';
 
 // Disable Next.js body parsing so formidable can read the raw stream.
 export const config = {

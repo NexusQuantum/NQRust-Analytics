@@ -171,18 +171,20 @@ export default function useAskPrompt(threadId?: number) {
   const [rerunAskingTask] = useRerunAskingTaskMutation({
     onError: (error) => console.error(error),
   });
-  const [fetchAskingTask, askingTaskResult] = useAskingTaskLazyQuery({
-    pollInterval: 1000,
-  });
+  // Don't set pollInterval on the hook; lazy queries with a constructor-level
+  // pollInterval start polling immediately with undefined variables, producing
+  // a "Variable $taskId of required type String! was not provided" error every
+  // second until the first fetchAskingTask call lands. Pass pollInterval per
+  // call instead.
+  const [fetchAskingTask, askingTaskResult] = useAskingTaskLazyQuery();
   const [fetchAskingStreamTask, askingStreamTaskResult] = useAskingStreamTask();
   const [createInstantRecommendedQuestions] =
     useCreateInstantRecommendedQuestionsMutation({
       onError: (error) => console.error(error),
     });
+  // Same caveat as fetchAskingTask: pass pollInterval per call.
   const [fetchInstantRecommendedQuestions, instantRecommendedQuestionsResult] =
-    useInstantRecommendedQuestionsLazyQuery({
-      pollInterval: 1000,
-    });
+    useInstantRecommendedQuestionsLazyQuery();
 
   const askingTask = useMemo(
     () => askingTaskResult.data?.askingTask || null,
@@ -220,6 +222,7 @@ export default function useAskPrompt(threadId?: number) {
     });
     fetchInstantRecommendedQuestions({
       variables: { taskId: response.data.createInstantRecommendedQuestions.id },
+      pollInterval: 1000,
     });
   }, [originalQuestion]);
 
@@ -284,6 +287,7 @@ export default function useAskPrompt(threadId?: number) {
       });
       const { data } = await fetchAskingTask({
         variables: { taskId: response.data.rerunAskingTask.id },
+        pollInterval: 1000,
       });
       // update the asking task in cache manually
       handleUpdateRerunAskingTaskCache(
@@ -316,6 +320,7 @@ export default function useAskPrompt(threadId?: number) {
       });
       await fetchAskingTask({
         variables: { taskId: response.data.createAskingTask.id },
+        pollInterval: 1000,
       });
     } catch (error) {
       console.error(error);
@@ -325,6 +330,7 @@ export default function useAskPrompt(threadId?: number) {
   const onFetching = async (queryId: string) => {
     await fetchAskingTask({
       variables: { taskId: queryId },
+      pollInterval: 1000,
     });
   };
 

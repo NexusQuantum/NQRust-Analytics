@@ -70,10 +70,10 @@ export default function useAdjustAnswer(threadId?: number) {
     useAdjustThreadResponseMutation({
       onError: (error) => console.error(error),
     });
+  // Same caveat as fetchAskingTask in useAskPrompt: pollInterval on the
+  // hook starts polling immediately with undefined variables.
   const [fetchThreadResponse, threadResponseResult] =
-    useThreadResponseLazyQuery({
-      pollInterval: 1000,
-    });
+    useThreadResponseLazyQuery();
 
   const loading = adjustThreadResponseResult.loading;
 
@@ -110,6 +110,7 @@ export default function useAdjustAnswer(threadId?: number) {
     const nextThreadResponse = response.data?.adjustThreadResponse;
     await fetchThreadResponse({
       variables: { responseId: nextThreadResponse.id },
+      pollInterval: 1000,
     });
 
     // update new thread response to cache
@@ -151,7 +152,10 @@ export default function useAdjustAnswer(threadId?: number) {
   const onReRun = async (threadResponse: ThreadResponse) => {
     const responseId = threadResponse.id;
     await rerunAdjustmentTask({ variables: { responseId } });
-    await fetchThreadResponse({ variables: { responseId } });
+    await fetchThreadResponse({
+      variables: { responseId },
+      pollInterval: 1000,
+    });
   };
 
   return {

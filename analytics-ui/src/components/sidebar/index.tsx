@@ -103,7 +103,6 @@ export default function Sidebar(props: Props) {
       <DynamicSidebar {...props} pathname={router.pathname} />
       {isHome && (
         <SourcesPanel
-          embedded
           notebookId={notebookId}
           onSelectionChange={setSelectedDocumentIds}
         />

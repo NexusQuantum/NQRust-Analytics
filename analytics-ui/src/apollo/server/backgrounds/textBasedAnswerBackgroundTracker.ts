@@ -62,6 +62,21 @@ export class TextBasedAnswerBackgroundTracker {
           }
           this.runningJobs.add(threadResponse.id);
 
+          // Skip when there is no SQL to preview (e.g. DOCUMENT_QA / GENERAL
+          // intents answer narratively via the AI service streaming endpoint
+          // and never produce a SQL statement). Without this guard we send
+          // sql=null to Ibis and get a 422 validation error every poll.
+          if (!threadResponse.sql) {
+            await this.threadResponseRepository.updateOne(threadResponse.id, {
+              answerDetail: {
+                ...threadResponse.answerDetail,
+                status: ThreadResponseAnswerStatus.FINISHED,
+              },
+            });
+            this.runningJobs.delete(threadResponse.id);
+            return;
+          }
+
           // update the status to fetching data
           await this.threadResponseRepository.updateOne(threadResponse.id, {
             answerDetail: {
@@ -86,11 +101,21 @@ export class TextBasedAnswerBackgroundTracker {
             })) as PreviewDataResponse;
           } catch (error) {
             logger.error(`Error when query sql data: ${error}`);
+            // Normalize error shape; Ibis can return message as an object
+            // ({ detail: [...] }) which breaks the GraphQL String scalar.
+            const rawErr = error?.extensions || error || {};
+            const normalizedErr = {
+              ...rawErr,
+              message:
+                typeof rawErr.message === 'string'
+                  ? rawErr.message
+                  : JSON.stringify(rawErr.message ?? error?.message ?? error),
+            };
             await this.threadResponseRepository.updateOne(threadResponse.id, {
               answerDetail: {
                 ...threadResponse.answerDetail,
                 status: ThreadResponseAnswerStatus.FAILED,
-                error: error?.extensions || error,
+                error: normalizedErr,
               },
             });
             throw error;
@@ -98,16 +123,8 @@ export class TextBasedAnswerBackgroundTracker {
 
           // request AI service — include selectedDocumentIds persisted on
           // the threadResponse.answerDetail when the answer was triggered.
-          const persistedDocIds: number[] = Array.isArray(
-            (threadResponse.answerDetail as any)?.selectedDocumentIds,
-          )
-            ? (threadResponse.answerDetail as any).selectedDocumentIds
-            : [];
-          logger.info(
-            `[textAnswerTracker] tr.id=${threadResponse.id} ` +
-              `selectedDocumentIds=${JSON.stringify(persistedDocIds)} ` +
-              `answerDetail=${JSON.stringify(threadResponse.answerDetail)}`,
-          );
+          const persistedDocIds: number[] =
+            threadResponse.answerDetail?.selectedDocumentIds ?? [];
           const response = await this.analyticsAIAdaptor.createTextBasedAnswer({
             query: threadResponse.question,
             sql: threadResponse.sql,

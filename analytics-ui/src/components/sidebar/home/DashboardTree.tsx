@@ -83,6 +83,7 @@ interface Props {
     dashboards: DashboardData[];
     currentUserId: number;
     selectedDashboardId: number | null;
+    hideHeader?: boolean;
     onSelect: (dashboardId: number) => void;
     onCreateNew: () => void;
     onEdit: (dashboard: DashboardData) => void;
@@ -99,6 +100,7 @@ export default function DashboardTree(props: Props) {
         dashboards = [],
         currentUserId,
         selectedDashboardId,
+        hideHeader = false,
         onSelect,
         onCreateNew,
         onEdit,
@@ -251,8 +253,8 @@ export default function DashboardTree(props: Props) {
             );
         }
 
-        setTree(nodes);
-    }, [dashboards, currentUserId]);
+        setTree(hideHeader ? nodes.filter(n => n.className !== 'adm-treeNode--group') : nodes);
+    }, [dashboards, currentUserId, hideHeader]);
 
     const handleSelect = (selectedKeys: React.Key[]) => {
         if (selectedKeys.length === 0) return;

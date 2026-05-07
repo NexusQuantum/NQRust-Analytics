@@ -1,11 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
 import { Button, Empty, Tooltip, message } from 'antd';
-import {
-  PlusOutlined,
-  LeftOutlined,
-  RightOutlined,
-} from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 
 import {
@@ -18,28 +14,14 @@ import UploadDialog from './UploadDialog';
 import NotebookPicker from './NotebookPicker';
 import { useNotebookContext } from '@/hooks/useNotebookContext';
 
-const Panel = styled.div<{ $embedded?: boolean }>`
+const Panel = styled.div`
   display: flex;
   flex-direction: column;
   background: #fafafa;
-  ${(p) =>
-    p.$embedded
-      ? `
-        width: 100%;
-        border-top: 1px solid #eee;
-        max-height: 320px;
-        flex-shrink: 0;
-      `
-      : `
-        width: 260px;
-        border-right: 1px solid #eee;
-        position: sticky;
-        top: 0;
-        height: 100vh;
-        align-self: flex-start;
-        flex-shrink: 0;
-        z-index: 10;
-      `}
+  width: 100%;
+  border-top: 1px solid #eee;
+  max-height: 320px;
+  flex-shrink: 0;
 `;
 
 const Header = styled.div`
@@ -73,8 +55,6 @@ interface Props {
   notebookId: number | null;
   /** Number currently selected — also surfaced via prop so the chat can show "X docs active". */
   onSelectionChange?: (selectedIds: number[]) => void;
-  /** When true, render inline within the sidebar (no sticky, capped height). */
-  embedded?: boolean;
 }
 
 const MAX_SELECTED = 10;
@@ -82,12 +62,8 @@ const MAX_SELECTED = 10;
 export default function SourcesPanel({
   notebookId,
   onSelectionChange,
-  embedded = false,
 }: Props) {
-  const [collapsed, setCollapsed] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
-  // Embedded mode never collapses (already part of sidebar layout).
-  const isCollapsed = embedded ? false : collapsed;
 
   const { data, loading, refetch } = useQuery(LIST_DOCUMENTS, {
     variables: { notebookId: String(notebookId) },
@@ -111,10 +87,25 @@ export default function SourcesPanel({
     return () => clearInterval(t);
   }, [inFlight, notebookId, refetch]);
 
-  // Notify parent on selection changes.
+  // Notify parent on selection changes only when the selected-id set actually
+  // changes, not on every poll-driven refetch of the docs list.
+  const selectedIdsKey = useMemo(
+    () =>
+      docs
+        .filter((d) => d.selected)
+        .map((d) => d.id)
+        .sort((a, b) => a - b)
+        .join(','),
+    [docs],
+  );
+  const lastNotifiedKey = useRef<string | null>(null);
   useEffect(() => {
-    onSelectionChange?.(docs.filter((d) => d.selected).map((d) => d.id));
-  }, [docs, onSelectionChange]);
+    if (lastNotifiedKey.current === selectedIdsKey) return;
+    lastNotifiedKey.current = selectedIdsKey;
+    onSelectionChange?.(
+      selectedIdsKey ? selectedIdsKey.split(',').map(Number) : [],
+    );
+  }, [selectedIdsKey, onSelectionChange]);
 
   const [toggleSelection] = useMutation(TOGGLE_DOCUMENT_SELECTION, {
     refetchQueries: [
@@ -157,7 +148,7 @@ export default function SourcesPanel({
 
   if (!notebookId) {
     return (
-      <Panel $embedded={embedded}>
+      <Panel>
         <Header>
           <Title>Sources</Title>
         </Header>
@@ -174,81 +165,61 @@ export default function SourcesPanel({
   }
 
   return (
-    <Panel $embedded={embedded}>
+    <Panel>
       <Header>
-        {!isCollapsed && <Title>Sources</Title>}
-        <div style={{ display: 'flex', gap: 4 }}>
-          {!isCollapsed && (
-            <Tooltip title="Upload">
-              <Button
-                size="small"
-                type="text"
-                icon={<PlusOutlined />}
-                onClick={() => setUploadOpen(true)}
-              />
-            </Tooltip>
-          )}
-          {!embedded && (
-            <Tooltip title={isCollapsed ? 'Expand' : 'Collapse'}>
-              <Button
-                size="small"
-                type="text"
-                icon={isCollapsed ? <RightOutlined /> : <LeftOutlined />}
-                onClick={() => setCollapsed(!collapsed)}
-              />
-            </Tooltip>
-          )}
-        </div>
+        <Title>Sources</Title>
+        <Tooltip title="Upload">
+          <Button
+            size="small"
+            type="text"
+            icon={<PlusOutlined />}
+            onClick={() => setUploadOpen(true)}
+          />
+        </Tooltip>
       </Header>
 
-      {!isCollapsed && (
-        <div
-          style={{
-            padding: '6px 8px',
-            borderBottom: '1px solid #eee',
-            fontSize: 12,
-          }}
-        >
-          <NotebookPicker
-            currentNotebookId={notebookId}
-            onAttach={(id) => setNotebookId(id)}
-          />
-        </div>
-      )}
+      <div
+        style={{
+          padding: '6px 8px',
+          borderBottom: '1px solid #eee',
+          fontSize: 12,
+        }}
+      >
+        <NotebookPicker
+          currentNotebookId={notebookId}
+          onAttach={(id) => setNotebookId(id)}
+        />
+      </div>
 
-      {!isCollapsed && (
-        <>
-          <ListBody>
-            {loading && docs.length === 0 ? (
-              <div style={{ padding: 16, color: '#888', fontSize: 13 }}>
-                Loading…
-              </div>
-            ) : docs.length === 0 ? (
-              <Empty description="No sources yet">
-                <Button
-                  size="small"
-                  icon={<PlusOutlined />}
-                  onClick={() => setUploadOpen(true)}
-                >
-                  Add source
-                </Button>
-              </Empty>
-            ) : (
-              docs.map((d) => (
-                <SourceItem
-                  key={d.id}
-                  doc={d}
-                  onToggle={handleToggle}
-                  onDelete={handleDelete}
-                />
-              ))
-            )}
-          </ListBody>
-          <Footer>
-            {docs.filter((d) => d.selected).length} / {MAX_SELECTED} active
-          </Footer>
-        </>
-      )}
+      <ListBody>
+        {loading && docs.length === 0 ? (
+          <div style={{ padding: 16, color: '#888', fontSize: 13 }}>
+            Loading…
+          </div>
+        ) : docs.length === 0 ? (
+          <Empty description="No sources yet">
+            <Button
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => setUploadOpen(true)}
+            >
+              Add source
+            </Button>
+          </Empty>
+        ) : (
+          docs.map((d) => (
+            <SourceItem
+              key={d.id}
+              doc={d}
+              onToggle={handleToggle}
+              onDelete={handleDelete}
+            />
+          ))
+        )}
+      </ListBody>
+      <Footer>
+        {docs.filter((d) => d.selected).length} / {MAX_SELECTED} active
+      </Footer>
 
       <UploadDialog
         open={uploadOpen}

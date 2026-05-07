@@ -164,7 +164,7 @@ export interface IAskingService {
   ): Promise<ThreadResponse>;
   generateThreadResponseAnswer(
     threadResponseId: number,
-    configurations: { language: string },
+    selectedDocumentIds?: number[],
   ): Promise<ThreadResponse>;
   generateThreadResponseChart(
     threadResponseId: number,
@@ -847,7 +847,7 @@ export class AskingService implements IAskingService {
         answerDetail: {
           status: ThreadResponseAnswerStatus.NOT_STARTED,
           selectedDocumentIds: selectedDocumentIds || [],
-        } as any,
+        },
       },
     );
 

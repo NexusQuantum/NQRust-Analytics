@@ -11,7 +11,6 @@ import { components } from '@/common';
 import { getLogger } from '@server/utils';
 
 const logger = getLogger('DocumentStatus');
-logger.level = 'debug';
 
 export default async function handler(
   req: NextApiRequest,

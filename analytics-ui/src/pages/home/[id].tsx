@@ -160,12 +160,12 @@ export default function HomeThread() {
       onError: (error) => console.error(error),
     });
 
+  // pollInterval is moved to per-call to avoid polling with undefined
+  // variables (Apollo lazy-query gotcha).
   const [
     fetchThreadRecommendationQuestions,
     threadRecommendationQuestionsResult,
-  ] = useGetThreadRecommendationQuestionsLazyQuery({
-    pollInterval: 1000,
-  });
+  ] = useGetThreadRecommendationQuestionsLazyQuery();
 
   const [generateThreadResponseAnswer] =
     useGenerateThreadResponseAnswerMutation({
@@ -242,7 +242,7 @@ export default function HomeThread() {
 
   const onGenerateThreadRecommendedQuestions = async () => {
     await generateThreadRecommendationQuestions({ variables: { threadId } });
-    fetchThreadRecommendationQuestions({ variables: { threadId } });
+    fetchThreadRecommendationQuestions({ variables: { threadId }, pollInterval: 1000 });
   };
 
   const handleUnfinishedTasks = useCallback(
@@ -286,7 +286,7 @@ export default function HomeThread() {
   // stop all requests when change thread
   useEffect(() => {
     if (threadId !== null) {
-      fetchThreadRecommendationQuestions({ variables: { threadId } });
+      fetchThreadRecommendationQuestions({ variables: { threadId }, pollInterval: 1000 });
       setShowRecommendedQuestions(true);
     }
     return () => {

@@ -159,11 +159,11 @@ class SqlAnswerService:
                     or []
                 )
                 logger.info(
-                    f"[sql-answer] Retrieved {len(document_context)} doc chunks "
+                    f"Retrieved {len(document_context)} doc chunks "
                     f"from {len(context.selected_document_ids)} selected document(s)"
                 )
             except Exception as e:
-                logger.warning(f"[sql-answer] Doc retrieval failed: {e}")
+                logger.warning(f"Doc retrieval failed: {e}")
 
         await self._pipelines["sql_answer"].run(
             query=context.query,

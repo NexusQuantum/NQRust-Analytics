@@ -7,7 +7,6 @@ import {
 import { getLogger } from '@server/utils';
 
 const logger = getLogger('DocumentService');
-logger.level = 'debug';
 
 export const DOCUMENT_LIMITS = {
   MAX_FILE_BYTES: 30 * 1024 * 1024, // 30 MB

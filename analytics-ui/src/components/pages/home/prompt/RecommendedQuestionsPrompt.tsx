@@ -112,7 +112,6 @@ export default function RecommendedQuestionsPrompt(props: Props) {
 
   return (
     <div className="px-10 py-6">
-      <h2 className="text-center">What data would you like to explore?</h2>
       <Space style={{ width: 680 }} direction="vertical" size={[0, 16]}>
         <CategorySectionBlock>
           <Row gutter={[16, 16]}>

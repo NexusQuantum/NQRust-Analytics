@@ -13,8 +13,7 @@ import {
   LIST_NOTEBOOKS,
 } from '@/apollo/client/graphql/notebooks';
 
-// FIXME: project id is hardcoded to 1 for the MVP. Same scope as
-// pages/notebook/index.tsx — full integration moves it to active project.
+// FIXME: project id is hardcoded for the MVP. Full integration reads it from the active project context.
 const PROJECT_ID = '2';
 
 interface Props {

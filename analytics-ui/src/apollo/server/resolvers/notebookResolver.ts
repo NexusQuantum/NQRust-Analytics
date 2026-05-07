@@ -2,7 +2,6 @@ import { IContext } from '@server/types';
 import { getLogger } from '@server/utils';
 
 const logger = getLogger('NotebookResolver');
-logger.level = 'debug';
 
 export class NotebookResolver {
   constructor() {

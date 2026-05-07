@@ -6,7 +6,6 @@ import {
 import { getLogger } from '@server/utils';
 
 const logger = getLogger('NotebookService');
-logger.level = 'debug';
 
 export interface CreateNotebookInput {
   projectId: number;

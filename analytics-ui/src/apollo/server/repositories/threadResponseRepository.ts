@@ -27,6 +27,7 @@ export interface ThreadResponseAnswerDetail {
   error?: object;
   numRowsUsedInLLM?: number;
   content?: string;
+  selectedDocumentIds?: number[];
 }
 
 export interface ThreadResponseChartDetail {

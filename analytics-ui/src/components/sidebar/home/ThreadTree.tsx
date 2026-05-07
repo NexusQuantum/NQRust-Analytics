@@ -39,6 +39,7 @@ export interface ThreadData {
 interface Props {
   threads: ThreadData[];
   selectedKeys: React.Key[];
+  hideHeader?: boolean;
   onSelect: (selectKeys: React.Key[], info: any) => void;
   onRename: (id: string, newName: string) => Promise<void>;
   onDeleteThread: (id: string) => Promise<void>;
@@ -51,6 +52,7 @@ export default function ThreadTree(props: Props) {
   const {
     threads = [],
     selectedKeys,
+    hideHeader = false,
     onSelect,
     onRename,
     onDeleteThread,
@@ -79,31 +81,30 @@ export default function ThreadTree(props: Props) {
   const [tree, setTree] = useState<DataNode[]>(getThreadGroupNode());
 
   useEffect(() => {
-    setTree((_tree) =>
-      getThreadGroupNode({
-        quotaUsage: threads.length,
-        children: threads.map((thread) => {
-          const nodeKey = thread.id;
+    const nodes = getThreadGroupNode({
+      quotaUsage: threads.length,
+      children: threads.map((thread) => {
+        const nodeKey = thread.id;
 
-          return {
-            className: 'adm-treeNode adm-treeNode__thread',
-            id: nodeKey,
-            isLeaf: true,
-            key: nodeKey,
-            title: (
-              <TreeTitle
-                id={nodeKey}
-                title={thread.name}
-                onRename={onRename}
-                onDelete={onDeleteThread}
-                onShare={onShareThread}
-              />
-            ),
-          };
-        }),
+        return {
+          className: 'adm-treeNode adm-treeNode__thread',
+          id: nodeKey,
+          isLeaf: true,
+          key: nodeKey,
+          title: (
+            <TreeTitle
+              id={nodeKey}
+              title={thread.name}
+              onRename={onRename}
+              onDelete={onDeleteThread}
+              onShare={onShareThread}
+            />
+          ),
+        };
       }),
-    );
-  }, [params?.id, threads]);
+    });
+    setTree(hideHeader ? nodes.filter(n => n.className !== 'adm-treeNode--group') : nodes);
+  }, [params?.id, threads, hideHeader]);
 
   return (
     <StyledSidebarTree

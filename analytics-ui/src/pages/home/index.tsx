@@ -11,7 +11,6 @@ import useAskPrompt from '@/hooks/useAskPrompt';
 import useRecommendedQuestionsInstruction from '@/hooks/useRecommendedQuestionsInstruction';
 import RecommendedQuestionsPrompt from '@/components/pages/home/prompt/RecommendedQuestionsPrompt';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { useNotebookContext } from '@/hooks/useNotebookContext';
 import {
   useSuggestedQuestionsQuery,
   useCreateThreadMutation,
@@ -58,17 +57,13 @@ function RecommendedQuestionsInstruction(props) {
   } = useRecommendedQuestionsInstruction();
 
   return showRecommendedQuestionsPromptMode ? (
-    <div
-      className="d-flex align-center flex-column pt-10"
-      style={{ margin: 'auto' }}
-    >
+    <Wrapper>
       <RecommendedQuestionsPrompt
         recommendedQuestions={recommendedQuestions}
         onSelect={onSelect}
         loading={loading}
       />
-      <div className="py-12" />
-    </div>
+    </Wrapper>
   ) : (
     <Wrapper>
       <Button className="mt-6 d-flex align-center" {...buttonProps} />
@@ -93,8 +88,6 @@ export default function Home() {
   const router = useRouter();
   const homeSidebar = useHomeSidebar();
   const askPrompt = useAskPrompt();
-  // Notebook context is consumed by SourcesPanel inside the sidebar.
-  useNotebookContext();
 
   const { data: suggestedQuestionsData } = useSuggestedQuestionsQuery({
     fetchPolicy: 'cache-and-network',
@@ -138,7 +131,7 @@ export default function Home() {
   return (
     <ProtectedRoute>
       <SiderLayout loading={false} sidebar={homeSidebar}>
-        <div style={{ minHeight: '100%' }}>
+        <div style={{ height: '100%' }}>
           {isSampleDataset && (
             <SampleQuestionsInstruction
               sampleQuestions={sampleQuestions}

@@ -343,10 +343,6 @@ class AskService:
             A tuple: (intent, rephrased_question, intent_reasoning, db_schemas)
         """
         try:
-            logger.info(
-                f"[intent-classify] has_selected_documents={has_selected_documents} "
-                f"query={user_query!r}"
-            )
             result = await self._pipelines["intent_classification"].run(
                 query=user_query,
                 histories=histories,
@@ -356,10 +352,6 @@ class AskService:
                 configuration=configurations,
                 has_selected_documents=has_selected_documents,
             )
-            logger.info(
-                f"[intent-classify] result intent={result.get('post_process', {}).get('intent')}"
-            )
-
             post_process = result.get("post_process", {})
             intent = post_process.get("intent")
             rephrased_question = post_process.get("rephrased_question")
@@ -1185,7 +1177,7 @@ class AskService:
             context.intent_reasoning = intent_result[2]
 
             # Step 4: Handle general queries
-            if intent_result[0] in ["GENERAL", "MISLEADING_QUERY", "USER_GUIDE"]:
+            if intent_result[0] in ["GENERAL", "MISLEADING_QUERY", "USER_GUIDE", "DOCUMENT_QA"]:
                 return self._handle_general_query(
                     query_id=context.query_id,
                     intent=intent_result[0],
@@ -1282,12 +1274,12 @@ class AskService:
                             or []
                         )
                         logger.info(
-                            f"[ask] Retrieved {len(document_context)} document chunks "
+                            f"Retrieved {len(document_context)} document chunks "
                             f"from {len(ask_request.selected_document_ids)} selected document(s)"
                         )
                     except Exception as e:
                         # Doc retrieval failure must not break the SQL flow.
-                        logger.warning(f"[ask] Document retrieval failed: {e}")
+                        logger.warning(f"Document retrieval failed: {e}")
                         document_context = []
 
                 text_to_sql_generation_results = await self._generate_sql(
@@ -1415,7 +1407,7 @@ class AskService:
                 context.user_query = context.rephrased_question
 
             # Handle general queries
-            if intent_result[0] in ["GENERAL", "MISLEADING_QUERY", "USER_GUIDE"]:
+            if intent_result[0] in ["GENERAL", "MISLEADING_QUERY", "USER_GUIDE", "DOCUMENT_QA"]:
                 return self._handle_general_query(
                     query_id=context.query_id,
                     intent=intent_result[0],
@@ -1510,6 +1502,8 @@ class AskService:
                     _pipeline_name = "data_assistance"
                 elif result.general_type == "MISLEADING_QUERY":
                     _pipeline_name = "misleading_assistance"
+                elif result.general_type == "DOCUMENT_QA":
+                    _pipeline_name = "document_answer"
             elif result.status == "planning":
                 if result.is_followup:
                     _pipeline_name = "followup_sql_generation_reasoning"

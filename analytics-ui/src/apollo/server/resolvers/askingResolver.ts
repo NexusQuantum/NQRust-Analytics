@@ -612,13 +612,8 @@ export class AskingResolver {
     args: { responseId: number; selectedDocumentIds?: number[] },
     ctx: IContext,
   ): Promise<ThreadResponse> {
-    await ctx.projectService.getCurrentProject();
     const { responseId, selectedDocumentIds } = args;
-    logger.info(
-      `[generateThreadResponseAnswer] responseId=${responseId} selectedDocumentIds=${JSON.stringify(selectedDocumentIds)}`,
-    );
-    const askingService = ctx.askingService;
-    return askingService.generateThreadResponseAnswer(
+    return ctx.askingService.generateThreadResponseAnswer(
       responseId,
       selectedDocumentIds,
     );
