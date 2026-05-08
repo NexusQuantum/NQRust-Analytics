@@ -1,0 +1,28 @@
+# Dev image for analytics-ai-service.
+# Source code TIDAK di-COPY -- di-mount via docker-compose volume supaya edit di host
+# langsung ke-reflect di container (auto-reload via uvicorn --reload).
+FROM python:3.12.0-bookworm
+
+RUN pip install poetry==1.8.3
+
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:$PATH" \
+    QDRANT_HOST=qdrant \
+    ANALYTICS_AI_SERVICE_PORT=5555
+
+# Install netcat for the wait-for-qdrant check
+RUN apt-get update && apt-get install -y netcat-traditional && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install deps separately for cache (rebuild image hanya kalau pyproject berubah)
+COPY pyproject.toml poetry.lock* ./
+RUN poetry install --without eval --no-root && rm -rf $POETRY_CACHE_DIR
+
+# Source code akan di-mount via compose. Default command pakai --reload + workers=1.
+CMD ["sh", "-c", "while ! nc -z ${QDRANT_HOST} 6333; do echo 'waiting qdrant...'; sleep 1; done; uvicorn src.__main__:app --host 0.0.0.0 --port ${ANALYTICS_AI_SERVICE_PORT} --reload --reload-dir src --loop asyncio --http httptools"]

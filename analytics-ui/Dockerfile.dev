@@ -1,0 +1,27 @@
+# Dev image for analytics-ui.
+# Source code di-mount via compose -- yarn dev hot reload langsung dari edit di host.
+FROM node:18-bookworm-slim
+
+# Build tools untuk native addons (better-sqlite3, duckdb)
+RUN apt-get update && apt-get install -y curl python3 make g++ && rm -rf /var/lib/apt/lists/*
+
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NODE_ENV=development \
+    PORT=3000
+
+WORKDIR /app
+
+RUN corepack enable
+
+# Install deps separately for cache. Source di-mount, tapi node_modules akan
+# di-volume biar tidak ke-overwrite oleh bind mount source dari host.
+COPY .yarnrc.yml package.json yarn.lock ./
+COPY .yarn .yarn
+
+RUN corepack prepare yarn@4.5.3 --activate
+RUN yarn install --immutable
+
+EXPOSE 3000
+
+# Run migration sebelum dev server, lalu next dev (hot reload).
+CMD ["sh", "-c", "yarn knex migrate:latest && yarn dev -p 3000 -H 0.0.0.0"]

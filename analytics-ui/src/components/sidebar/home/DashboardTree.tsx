@@ -91,6 +91,7 @@ interface Props {
     onStar: (dashboardId: number) => Promise<void>;
     onUnstar: (dashboardId: number) => Promise<void>;
     onShare: (dashboard: DashboardData) => void;
+    hideHeader?: boolean;
 }
 
 export default function DashboardTree(props: Props) {
@@ -107,6 +108,7 @@ export default function DashboardTree(props: Props) {
         onStar,
         onUnstar,
         onShare,
+        hideHeader = false,
     } = props;
 
     // Separate owned vs shared dashboards
@@ -233,12 +235,13 @@ export default function DashboardTree(props: Props) {
 
         // Owned dashboards section
         if (ownedDashboards.length > 0 || true) { // Always show section
-            nodes.push(
-                ...getOwnedGroupNode({
-                    quotaUsage: ownedDashboards.length,
-                    children: ownedDashboards.map(d => createDashboardNode(d, false)),
-                })
-            );
+            const ownedNodes = getOwnedGroupNode({
+                quotaUsage: ownedDashboards.length,
+                children: ownedDashboards.map(d => createDashboardNode(d, false)),
+            });
+            // When hideHeader, drop the root group node (key: "owned-dashboards")
+            // so the section header is rendered by the parent layout instead.
+            nodes.push(...(hideHeader ? ownedNodes.filter((n) => n.key !== 'owned-dashboards') : ownedNodes));
         }
 
         // Shared dashboards section
@@ -252,7 +255,7 @@ export default function DashboardTree(props: Props) {
         }
 
         setTree(nodes);
-    }, [dashboards, currentUserId]);
+    }, [dashboards, currentUserId, hideHeader]);
 
     const handleSelect = (selectedKeys: React.Key[]) => {
         if (selectedKeys.length === 0) return;

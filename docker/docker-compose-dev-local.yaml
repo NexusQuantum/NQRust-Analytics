@@ -1,0 +1,148 @@
+# Full-stack dev compose dengan source code lokal di-mount untuk live edit.
+#
+# Semua service jalan di Docker (Linux), edit code di Windows langsung ke-reflect:
+#   - analytics-ai-service: uvicorn --reload, source di-mount dari ../analytics-ai-service/src
+#   - analytics-ui:         yarn dev (Next.js hot reload), source di-mount dari ../analytics-ui
+#   - analytics-engine, ibis-server, qdrant, northwind-db, bootstrap: image dari registry
+#
+# Run dari direktori docker/:
+#   docker compose -f docker-compose-dev-local.yaml --env-file .env.dev-local up -d --build
+#   docker compose -f docker-compose-dev-local.yaml --env-file .env.dev-local logs -f
+#   docker compose -f docker-compose-dev-local.yaml --env-file .env.dev-local down
+#
+# First-time setup ~5-10 menit (build image + install deps). Restart selanjutnya cepat.
+
+volumes:
+  data:
+  qdrant_data:
+  northwind_data:
+  ai_poetry_cache:
+  ui_node_modules:
+  ui_next_cache:
+
+networks:
+  analytics:
+    driver: bridge
+
+services:
+  bootstrap:
+    build:
+      context: ./bootstrap
+      dockerfile: Dockerfile
+    restart: on-failure
+    platform: linux/amd64
+    environment:
+      DATA_PATH: /app/data
+    volumes:
+      - data:/app/data
+    command: /bin/sh /app/init.sh
+
+  analytics-engine:
+    image: ghcr.io/nexusquantum/analytics-engine:latest
+    restart: on-failure
+    platform: ${PLATFORM}
+    env_file:
+      - .env.dev-local
+    ports:
+      - "${ANALYTICS_ENGINE_PORT}:${ANALYTICS_ENGINE_PORT}"
+    volumes:
+      - data:/usr/src/app/etc
+      - ../data:/usr/src/app/data
+    networks:
+      - analytics
+    depends_on:
+      - bootstrap
+
+  ibis-server:
+    image: ghcr.io/nexusquantum/analytics-engine-ibis:latest
+    restart: on-failure
+    platform: ${PLATFORM}
+    env_file:
+      - .env.dev-local
+    ports:
+      - "${IBIS_SERVER_PORT}:${IBIS_SERVER_PORT}"
+    volumes:
+      - ../data:/usr/src/app/data
+    networks:
+      - analytics
+    depends_on:
+      - analytics-engine
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.0
+    restart: on-failure
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - analytics
+
+  northwind-db:
+    image: postgres:15
+    restart: unless-stopped
+    env_file:
+      - .env.dev-local
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./northwind.sql:/docker-entrypoint-initdb.d/northwind.sql:ro
+      - northwind_data:/var/lib/postgresql/data
+    networks:
+      - analytics
+
+  analytics-ai-service:
+    build:
+      context: ../analytics-ai-service
+      dockerfile: docker/Dockerfile.dev
+    restart: on-failure
+    env_file:
+      - ../analytics-ai-service/.env.dev
+    environment:
+      QDRANT_HOST: qdrant
+      ANALYTICS_AI_SERVICE_PORT: 5555
+      DEVELOPMENT: "true"
+    ports:
+      - "5555:5555"
+    volumes:
+      # Live edit: source code dari host
+      - ../analytics-ai-service/src:/app/src
+      # Pakai config khusus docker (URL pakai service names, bukan localhost)
+      - ../analytics-ai-service/config.docker.yaml:/app/config.yaml:ro
+      # Persist poetry cache antar restart
+      - ai_poetry_cache:/tmp/poetry_cache
+    networks:
+      - analytics
+    depends_on:
+      - qdrant
+      - analytics-engine
+
+  analytics-ui:
+    build:
+      context: ../analytics-ui
+      dockerfile: Dockerfile.dev
+    restart: on-failure
+    # Load semua env user (NEXTAUTH_*, LICENSE_*, dll) dari analytics-ui/.env.local
+    env_file:
+      - ../analytics-ui/.env.local
+    environment:
+      NODE_ENV: development
+      # Service URLs harus di-override pakai DNS docker network (bukan localhost)
+      ANALYTICS_AI_ENDPOINT: http://analytics-ai-service:5555
+      ANALYTICS_ENGINE_ENDPOINT: http://analytics-engine:${ANALYTICS_ENGINE_PORT}
+      IBIS_SERVER_ENDPOINT: http://ibis-server:8000
+    ports:
+      - "13000:3000"
+    volumes:
+      # Live edit: mount whole repo TAPI exclude node_modules & .next
+      # supaya host (Windows) tidak overwrite container's deps yang di-build untuk Linux
+      - ../analytics-ui:/app
+      - ui_node_modules:/app/node_modules
+      - ui_next_cache:/app/.next
+    networks:
+      - analytics
+    depends_on:
+      - analytics-ai-service
+      - analytics-engine
+      - ibis-server

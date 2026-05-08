@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import LogoBar from '@/components/LogoBar';
 import { Path } from '@/utils/enum';
 import Deploy from '@/components/deploy/Deploy';
-import { ChartPie, Database, SquarePen } from 'lucide-react';
+import { BookOpen, Database, SquarePen } from 'lucide-react';
 
 const { Header } = Layout;
 
@@ -72,15 +72,6 @@ export default function HeaderBar() {
               </StyledButton>
               <StyledButton
                 type="text"
-                $isHighlight={pathname.startsWith(Path.HomeDashboard)}
-                onClick={() => router.push(Path.HomeDashboard)}
-                block
-              >
-                <ChartPie size={16} className="mr-1" />
-                Dashboard
-              </StyledButton>
-              <StyledButton
-                type="text"
                 $isHighlight={pathname.startsWith(Path.Modeling)}
                 onClick={() => router.push(Path.Modeling)}
                 block
@@ -94,6 +85,7 @@ export default function HeaderBar() {
                 onClick={() => router.push(Path.KnowledgeQuestionSQLPairs)}
                 block
               >
+                <BookOpen size={16} className="mr-1" />
                 Knowledge
               </StyledButton>
             </Space>

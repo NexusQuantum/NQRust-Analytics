@@ -18,15 +18,18 @@ const Layout = styled.div`
   height: 100%;
   background-color: var(--gray-2);
   color: var(--gray-8);
-  padding-bottom: 12px;
   overflow-x: hidden;
+  overflow-y: hidden;
 `;
 
-const Content = styled.div`
-  flex-grow: 1;
-  overflow-y: auto;
-  padding-left: 8px;
-  padding-right: 8px;
+const Content = styled.div<{ $noScroll?: boolean }>`
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: ${(p) => (p.$noScroll ? 'hidden' : 'auto')};
+  padding-left: ${(p) => (p.$noScroll ? '0' : '8px')};
+  padding-right: ${(p) => (p.$noScroll ? '0' : '8px')};
 `;
 
 const StyledButton = styled(Button)`
@@ -54,9 +57,10 @@ const DynamicSidebar = (
   },
 ) => {
   const { pathname, ...restProps } = props;
+  const isHome = pathname.startsWith(Path.Home);
 
   const getContent = () => {
-    if (pathname.startsWith(Path.Home)) {
+    if (isHome) {
       return <Home {...(restProps as HomeSidebarProps)} />;
     }
 
@@ -75,7 +79,7 @@ const DynamicSidebar = (
     return null;
   };
 
-  return <Content>{getContent()}</Content>;
+  return <Content $noScroll={isHome}>{getContent()}</Content>;
 };
 
 export default function Sidebar(props: Props) {

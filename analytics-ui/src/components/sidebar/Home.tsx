@@ -3,7 +3,8 @@ import { useRouter } from 'next/router';
 import { useParams } from 'next/navigation';
 import styled from 'styled-components';
 import { useMutation, useQuery } from '@apollo/client';
-import { Modal as AntModal } from 'antd';
+import { Modal as AntModal, Button } from 'antd';
+import PlusOutlined from '@ant-design/icons/PlusOutlined';
 import { Path } from '@/utils/enum';
 import SidebarTree, {
   useSidebarTreeState,
@@ -50,6 +51,79 @@ export const StyledSidebarTree = styled(SidebarTree)`
   }
 `;
 
+const HomeContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+`;
+
+const Section = styled.div<{ $flex: number }>`
+  display: flex;
+  flex-direction: column;
+  flex: ${(p) => p.$flex} 1 0;
+  min-height: 0;
+  border-bottom: 1px solid var(--gray-4);
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const SectionHeader = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-7);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+`;
+
+const SectionTitle = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  .count {
+    color: var(--gray-6);
+    font-weight: 400;
+  }
+`;
+
+const HeaderActionButton = styled(Button)`
+  font-size: 12px;
+  height: auto;
+  padding: 0 6px;
+  background: transparent;
+  color: var(--gray-8);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  &:hover {
+    background-color: transparent;
+    color: var(--gray-9);
+  }
+`;
+
+const ScrollContent = styled.div`
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 8px 8px;
+`;
+
+const EmptyState = styled.div`
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--gray-6);
+  font-style: italic;
+`;
+
 export default function Home(props: Props) {
   const { data, onSelect, onRename, onDelete } = props;
   const router = useRouter();
@@ -65,6 +139,9 @@ export default function Home(props: Props) {
   // Fetch dashboards
   const { data: dashboardsData } = useQuery(LIST_DASHBOARDS);
   const dashboards: DashboardData[] = dashboardsData?.dashboards || [];
+  const ownedDashboardCount = user
+    ? dashboards.filter((d) => d.createdBy === user.id).length
+    : 0;
 
   // Mutations
   const [deleteDashboard] = useMutation(DELETE_DASHBOARD, {
@@ -144,32 +221,72 @@ export default function Home(props: Props) {
 
   return (
     <>
-      {/* Dashboard Section */}
-      {user && (
-        <DashboardTree
-          dashboards={dashboards}
-          currentUserId={user.id}
-          selectedDashboardId={selectedDashboardId}
-          onSelect={handleDashboardSelect}
-          onCreateNew={() => dashboardModal.openModal()}
-          onEdit={(dashboard) => dashboardModal.openModal(dashboard)}
-          onDelete={handleDeleteDashboard}
-          onSetDefault={handleSetDefault}
-          onStar={handleStarDashboard}
-          onUnstar={handleUnstarDashboard}
-          onShare={(dashboard) => shareModal.openModal(dashboard)}
-        />
-      )}
+      <HomeContainer>
+        {/* My Dashboards */}
+        <Section $flex={1}>
+          <SectionHeader>
+            <SectionTitle>
+              My Dashboards <span className="count">({ownedDashboardCount})</span>
+            </SectionTitle>
+            <HeaderActionButton
+              type="text"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => dashboardModal.openModal()}
+            >
+              New
+            </HeaderActionButton>
+          </SectionHeader>
+          <ScrollContent>
+            {user && (
+              <DashboardTree
+                hideHeader
+                dashboards={dashboards}
+                currentUserId={user.id}
+                selectedDashboardId={selectedDashboardId}
+                onSelect={handleDashboardSelect}
+                onCreateNew={() => dashboardModal.openModal()}
+                onEdit={(dashboard) => dashboardModal.openModal(dashboard)}
+                onDelete={handleDeleteDashboard}
+                onSetDefault={handleSetDefault}
+                onStar={handleStarDashboard}
+                onUnstar={handleUnstarDashboard}
+                onShare={(dashboard) => shareModal.openModal(dashboard)}
+              />
+            )}
+          </ScrollContent>
+        </Section>
 
-      {/* Thread Section */}
-      <ThreadTree
-        threads={threads}
-        selectedKeys={treeSelectedKeys}
-        onSelect={onTreeSelect}
-        onRename={onRename}
-        onDeleteThread={onDeleteThread}
-        onShareThread={handleShareThread}
-      />
+        {/* History */}
+        <Section $flex={2}>
+          <SectionHeader>
+            <SectionTitle>
+              History <span className="count">({threads.length})</span>
+            </SectionTitle>
+          </SectionHeader>
+          <ScrollContent>
+            <ThreadTree
+              hideHeader
+              threads={threads}
+              selectedKeys={treeSelectedKeys}
+              onSelect={onTreeSelect}
+              onRename={onRename}
+              onDeleteThread={onDeleteThread}
+              onShareThread={handleShareThread}
+            />
+          </ScrollContent>
+        </Section>
+
+        {/* Sources (placeholder — Document RAG belum diimplementasi) */}
+        <Section $flex={1}>
+          <SectionHeader>
+            <SectionTitle>Sources</SectionTitle>
+          </SectionHeader>
+          <ScrollContent>
+            <EmptyState>Coming soon</EmptyState>
+          </ScrollContent>
+        </Section>
+      </HomeContainer>
 
       {/* Modals */}
       <DashboardModal

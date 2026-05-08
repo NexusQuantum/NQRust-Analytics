@@ -43,6 +43,7 @@ interface Props {
   onRename: (id: string, newName: string) => Promise<void>;
   onDeleteThread: (id: string) => Promise<void>;
   onShareThread?: (id: string, name: string) => void;
+  hideHeader?: boolean;
 }
 
 export default function ThreadTree(props: Props) {
@@ -55,6 +56,7 @@ export default function ThreadTree(props: Props) {
     onRename,
     onDeleteThread,
     onShareThread,
+    hideHeader = false,
   } = props;
 
   const getThreadGroupNode = createTreeGroupNode({
@@ -76,34 +78,37 @@ export default function ThreadTree(props: Props) {
     ],
   });
 
-  const [tree, setTree] = useState<DataNode[]>(getThreadGroupNode());
+  const buildTree = (): DataNode[] => {
+    const nodes = getThreadGroupNode({
+      quotaUsage: threads.length,
+      children: threads.map((thread) => {
+        const nodeKey = thread.id;
+
+        return {
+          className: 'adm-treeNode adm-treeNode__thread',
+          id: nodeKey,
+          isLeaf: true,
+          key: nodeKey,
+          title: (
+            <TreeTitle
+              id={nodeKey}
+              title={thread.name}
+              onRename={onRename}
+              onDelete={onDeleteThread}
+              onShare={onShareThread}
+            />
+          ),
+        } as DataNode;
+      }),
+    });
+    return hideHeader ? nodes.filter((n) => n.key !== 'threads') : nodes;
+  };
+
+  const [tree, setTree] = useState<DataNode[]>(buildTree);
 
   useEffect(() => {
-    setTree((_tree) =>
-      getThreadGroupNode({
-        quotaUsage: threads.length,
-        children: threads.map((thread) => {
-          const nodeKey = thread.id;
-
-          return {
-            className: 'adm-treeNode adm-treeNode__thread',
-            id: nodeKey,
-            isLeaf: true,
-            key: nodeKey,
-            title: (
-              <TreeTitle
-                id={nodeKey}
-                title={thread.name}
-                onRename={onRename}
-                onDelete={onDeleteThread}
-                onShare={onShareThread}
-              />
-            ),
-          };
-        }),
-      }),
-    );
-  }, [params?.id, threads]);
+    setTree(buildTree());
+  }, [params?.id, threads, hideHeader]);
 
   return (
     <StyledSidebarTree

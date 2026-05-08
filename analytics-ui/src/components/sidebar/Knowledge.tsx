@@ -8,10 +8,6 @@ import SidebarMenu from '@/components/sidebar/SidebarMenu';
 
 const Layout = styled.div`
   padding: 16px 0;
-  position: absolute;
-  z-index: 1;
-  left: 0;
-  top: 0;
   width: 100%;
   background-color: var(--gray-2);
   overflow: hidden;
