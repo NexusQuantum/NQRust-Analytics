@@ -10,6 +10,7 @@ import { InstructionResolver } from './resolvers/instructionResolver';
 import { ApiHistoryResolver } from './resolvers/apiHistoryResolver';
 import { AuthResolver } from './resolvers/authResolver';
 import { LicenseResolver } from './resolvers/licenseResolver';
+import { DocumentResolver } from './resolvers/documentResolver';
 import { convertColumnType } from '@server/utils';
 import { DialectSQLScalar } from './scalars';
 
@@ -24,6 +25,7 @@ const instructionResolver = new InstructionResolver();
 const apiHistoryResolver = new ApiHistoryResolver();
 const authResolver = new AuthResolver();
 const licenseResolver = new LicenseResolver();
+const documentResolver = new DocumentResolver();
 const resolvers = {
   JSON: GraphQLJSON,
   DialectSQL: DialectSQLScalar,
@@ -94,6 +96,11 @@ const resolvers = {
 
     // License
     licenseStatus: licenseResolver.licenseStatus,
+
+    // Documents
+    documents: documentResolver.getDocuments,
+    document: documentResolver.getDocument,
+    documentSelection: documentResolver.getDocumentSelection,
   },
   Mutation: {
     deploy: modelResolver.deploy,
@@ -234,6 +241,10 @@ const resolvers = {
     // License
     activateLicense: licenseResolver.activateLicense,
     refreshLicense: licenseResolver.refreshLicense,
+
+    // Documents
+    deleteDocument: documentResolver.deleteDocument,
+    setDocumentSelection: documentResolver.setDocumentSelection,
   },
   ThreadResponse: askingResolver.getThreadResponseNestedResolver(),
   DetailStep: askingResolver.getDetailStepNestedResolver(),

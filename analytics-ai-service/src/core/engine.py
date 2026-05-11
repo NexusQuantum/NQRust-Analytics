@@ -50,18 +50,23 @@ def remove_limit_statement(sql: str) -> str:
 
 
 def add_quotes(sql: str) -> Tuple[str, str]:
-    try:
-        sql = sql.replace("`", '"')
-        quoted_sql = sqlglot.transpile(
-            sql,
-            read=None,
-            identify=True,
-            error_level=sqlglot.ErrorLevel.RAISE,
-            unsupported_level=sqlglot.ErrorLevel.RAISE,
-        )[0]
-    except Exception as e:
-        logger.exception(f"Error in sqlglot.transpile to {sql}: {e}")
+    sql = sql.replace("`", '"')
+    # LLM generates PostgreSQL-flavored SQL (CTEs, to_char, etc). Tell sqlglot
+    # the input dialect so it parses idiomatic PG correctly; fall back to
+    # generic auto-detect if PG parse fails for any reason.
+    for read_dialect in ("postgres", None):
+        try:
+            quoted_sql = sqlglot.transpile(
+                sql,
+                read=read_dialect,
+                identify=True,
+                error_level=sqlglot.ErrorLevel.RAISE,
+                unsupported_level=sqlglot.ErrorLevel.RAISE,
+            )[0]
+            return quoted_sql, ""
+        except Exception as e:
+            last_error = e
+            continue
 
-        return "", str(e)
-
-    return quoted_sql, ""
+    logger.exception(f"Error in sqlglot.transpile to {sql}: {last_error}")
+    return "", str(last_error)

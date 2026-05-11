@@ -95,9 +95,26 @@ export enum ApiType {
   UPDATE_SQL_PAIR = 'UPDATE_SQL_PAIR'
 }
 
+export type DocumentCitation = {
+  __typename?: 'DocumentCitation';
+  documentId: Scalars['String'];
+  excerpt?: Maybe<Scalars['String']>;
+  filename?: Maybe<Scalars['String']>;
+  pageNumber?: Maybe<Scalars['Int']>;
+  sectionTitle?: Maybe<Scalars['String']>;
+};
+
+export type DocumentAnswerDetail = {
+  __typename?: 'DocumentAnswerDetail';
+  citations?: Maybe<Array<DocumentCitation>>;
+  content: Scalars['String'];
+  retrievedDocumentIds?: Maybe<Array<Scalars['String']>>;
+};
+
 export type AskingTask = {
   __typename?: 'AskingTask';
   candidates: Array<ResultCandidate>;
+  documentAnswer?: Maybe<DocumentAnswerDetail>;
   error?: Maybe<Error>;
   intentReasoning?: Maybe<Scalars['String']>;
   invalidSql?: Maybe<Scalars['String']>;
@@ -113,20 +130,24 @@ export type AskingTask = {
 export type AskingTaskInput = {
   question: Scalars['String'];
   threadId?: InputMaybe<Scalars['Int']>;
+  documentIds?: InputMaybe<Array<Scalars['String']>>;
 };
 
 export enum AskingTaskStatus {
+  CLASSIFYING = 'CLASSIFYING',
   CORRECTING = 'CORRECTING',
   FAILED = 'FAILED',
   FINISHED = 'FINISHED',
   GENERATING = 'GENERATING',
   PLANNING = 'PLANNING',
+  RETRIEVING = 'RETRIEVING',
   SEARCHING = 'SEARCHING',
   STOPPED = 'STOPPED',
   UNDERSTANDING = 'UNDERSTANDING'
 }
 
 export enum AskingTaskType {
+  DOCUMENT_BASED = 'DOCUMENT_BASED',
   GENERAL = 'GENERAL',
   MISLEADING_QUERY = 'MISLEADING_QUERY',
   TEXT_TO_SQL = 'TEXT_TO_SQL'
@@ -1716,6 +1737,7 @@ export type ThreadResponse = {
   askingTask?: Maybe<AskingTask>;
   breakdownDetail?: Maybe<ThreadResponseBreakdownDetail>;
   chartDetail?: Maybe<ThreadResponseChartDetail>;
+  documentAnswerDetail?: Maybe<DocumentAnswerDetail>;
   id: Scalars['Int'];
   question: Scalars['String'];
   sql?: Maybe<Scalars['String']>;

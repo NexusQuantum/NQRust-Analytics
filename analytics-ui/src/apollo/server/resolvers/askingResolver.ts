@@ -64,6 +64,17 @@ export interface AskingTask {
   invalidSql?: string;
   traceId?: string;
   queryId?: string;
+  documentAnswer?: {
+    content: string;
+    citations: Array<{
+      documentId: string;
+      filename?: string;
+      pageNumber?: number;
+      sectionTitle?: string;
+      excerpt?: string;
+    }>;
+    retrievedDocumentIds: string[];
+  };
 }
 
 // DetailedThread is a type that represents a detailed thread, which is a thread with responses.
@@ -194,14 +205,27 @@ export class AskingResolver {
 
   public async createAskingTask(
     _root: any,
-    args: { data: { question: string; threadId?: number } },
+    args: { data: { question: string; threadId?: number; documentIds?: string[] } },
     ctx: IContext,
   ): Promise<Task> {
-    const { question, threadId } = args.data;
+    const { question, threadId, documentIds } = args.data;
     const project = await ctx.projectService.getCurrentProject();
 
+    // Resolve document trees if documentIds provided
+    let documentTrees: Record<string, any> | undefined;
+    const resolvedDocumentIds = documentIds?.length ? documentIds : undefined;
+    if (resolvedDocumentIds?.length) {
+      const treeEntries = await Promise.all(
+        resolvedDocumentIds.map(async (id) => {
+          const tree = await ctx.documentService.getDocumentTree(id);
+          return [id, tree] as [string, any];
+        }),
+      );
+      documentTrees = Object.fromEntries(treeEntries.filter(([, t]) => t != null));
+    }
+
     const askingService = ctx.askingService;
-    const data = { question };
+    const data = { question, documentIds: resolvedDocumentIds, documentTrees };
     const task = await askingService.createAskingTask(data, {
       threadId,
       language: AnalyticsAILanguage[project.language] || AnalyticsAILanguage.EN,
@@ -345,6 +369,7 @@ export class AskingResolver {
           answerDetail: response.answerDetail,
           chartDetail: response.chartDetail,
           adjustment: response.adjustment,
+          documentAnswerDetail: response.documentAnswerDetail || null,
         });
 
         return acc;
@@ -741,6 +766,21 @@ export class AskingResolver {
       }
       return parent.sql ? safeFormatSQL(parent.sql) : null;
     },
+    documentAnswerDetail: async (
+      parent: ThreadResponse,
+      _args: any,
+      ctx: IContext,
+    ) => {
+      if (parent.documentAnswerDetail) return parent.documentAnswerDetail;
+      // Fallback: recover from asking_task.detail.documentAnswer for legacy
+      // responses where document_answer_detail wasn't persisted at finalize time.
+      if (!parent.askingTaskId) return null;
+      const askingTask = await ctx.askingService.getAskingTaskById(
+        parent.askingTaskId,
+      );
+      const detail: any = askingTask;
+      return detail?.documentAnswer || null;
+    },
     askingTask: async (parent: ThreadResponse, _args: any, ctx: IContext) => {
       if (parent.adjustment) {
         return null;
@@ -845,6 +885,7 @@ export class AskingResolver {
         ? safeFormatSQL(askingTask.invalidSql)
         : null,
       traceId: askingTask.traceId,
+      documentAnswer: askingTask.documentAnswer || null,
     };
   }
 

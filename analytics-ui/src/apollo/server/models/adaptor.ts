@@ -74,6 +74,8 @@ export interface AskInput {
   deployId: string;
   histories?: ThreadResponse[];
   configurations?: ProjectConfigurations;
+  documentIds?: string[];
+  documentTrees?: Record<string, any>;
 }
 
 export interface AsyncQueryResponse {
@@ -82,6 +84,8 @@ export interface AsyncQueryResponse {
 
 export enum AskResultStatus {
   UNDERSTANDING = 'UNDERSTANDING',
+  CLASSIFYING = 'CLASSIFYING',
+  RETRIEVING = 'RETRIEVING',
   SEARCHING = 'SEARCHING',
   PLANNING = 'PLANNING',
   GENERATING = 'GENERATING',
@@ -95,6 +99,7 @@ export enum AskResultType {
   GENERAL = 'GENERAL',
   TEXT_TO_SQL = 'TEXT_TO_SQL',
   MISLEADING_QUERY = 'MISLEADING_QUERY',
+  DOCUMENT_BASED = 'DOCUMENT_BASED',
 }
 
 // if it's view, viewId will be returned as well. It means the candidate is originally saved in mdl as a view.
@@ -127,6 +132,20 @@ export type AskDetailResult = AskResponse<
   AskResultStatus
 >;
 
+export interface DocumentCitation {
+  documentId: string;
+  filename?: string;
+  pageNumber?: number;
+  sectionTitle?: string;
+  excerpt?: string;
+}
+
+export interface DocumentAnswerDetail {
+  content: string;
+  citations: DocumentCitation[];
+  retrievedDocumentIds: string[];
+}
+
 export type AskResult = AskResponse<
   Array<{
     type: AskCandidateType;
@@ -142,6 +161,7 @@ export type AskResult = AskResponse<
   retrievedTables?: string[];
   invalidSql?: string;
   traceId?: string;
+  documentAnswer?: DocumentAnswerDetail;
 };
 
 export enum RecommendationQuestionStatus {

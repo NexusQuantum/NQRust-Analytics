@@ -24,3 +24,6 @@ export * from './apiHistoryRepository';
 export * from './dashboardItemRefreshJobRepository';
 export * from './userRepository';
 export * from './licenseRepository';
+export * from './documentRepository';
+export * from './documentTreeRepository';
+export * from './documentSelectionRepository';

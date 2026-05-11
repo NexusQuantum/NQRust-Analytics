@@ -68,6 +68,7 @@ const bootstrapServer = async () => {
     sqlPairService,
 
     instructionService,
+    documentService,
     licenseService,
     // background trackers
     projectRecommendQuestionBackgroundTracker,
@@ -174,6 +175,7 @@ const bootstrapServer = async () => {
         dashboardService,
         sqlPairService,
         instructionService,
+        documentService,
         licenseService,
         licenseState: licenseService.getLicenseState(),
         // repository

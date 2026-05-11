@@ -85,6 +85,17 @@ const COMMON_ASKING_TASK = gql`
     invalidSql
     traceId
     queryId
+    documentAnswer {
+      content
+      citations {
+        documentId
+        filename
+        pageNumber
+        sectionTitle
+        excerpt
+      }
+      retrievedDocumentIds
+    }
   }
   ${COMMON_ERROR}
 `;
@@ -126,6 +137,17 @@ const COMMON_RESPONSE = gql`
       sql
       traceId
       invalidSql
+    }
+    documentAnswerDetail {
+      content
+      citations {
+        documentId
+        filename
+        pageNumber
+        sectionTitle
+        excerpt
+      }
+      retrievedDocumentIds
     }
   }
 

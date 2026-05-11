@@ -6,6 +6,8 @@ from typing import Dict
 from src.config import Settings
 from src.core.pipeline import PipelineComponent
 from src.pipelines import generation, indexing, retrieval
+from src.pipelines.document import DocumentAnswer, DocumentClassifier, DocumentIndexing, DocumentRetrieval
+from src.web.v1.services.document import DocumentService
 from src.utils import fetch_analytics_docs
 from src.web.v1 import services
 
@@ -129,6 +131,19 @@ class ServiceContainerBuilder:
         query_cache = {"maxsize": s.query_cache_maxsize, "ttl": s.query_cache_ttl}
         analytics_docs = fetch_analytics_docs(s.doc_endpoint, s.is_oss)
 
+        # Build document pipelines shared with AskService
+        llm_provider = pc["sql_answer"]["llm_provider"]
+        document_pipelines_for_ask = {
+            "document_classifier": DocumentClassifier(llm_provider=llm_provider),
+            "document_retrieval": DocumentRetrieval(
+                api_key=s.pageindex_api_key,
+                workspace_dir=s.document_workspace_dir,
+                model=s.document_indexing_model,
+                top_k_pages=s.document_retrieval_top_k,
+            ),
+            "document_answer": DocumentAnswer(llm_provider=llm_provider),
+        }
+
         return ServiceContainer(
             semantics_description=services.SemanticsDescription(
                 pipelines={
@@ -196,6 +211,7 @@ class ServiceContainerBuilder:
                     ),
                     "sql_functions_retrieval": shared["sql_functions_retrieval"],
                 },
+                document_pipelines=document_pipelines_for_ask,
                 allow_intent_classification=s.allow_intent_classification,
                 allow_sql_generation_reasoning=s.allow_sql_generation_reasoning,
                 allow_sql_functions_retrieval=s.allow_sql_functions_retrieval,
@@ -301,4 +317,30 @@ class ServiceContainerBuilder:
                 },
                 **query_cache,
             ),
+            document_service=self._create_document_service(pc, s, query_cache),
         )
+
+    def _create_document_service(self, pc, s, query_cache) -> DocumentService:
+        # Borrow LLM provider from sql_answer (always present per _validate)
+        llm_provider = pc["sql_answer"]["llm_provider"]
+
+        document_indexing = DocumentIndexing(
+            api_key=s.pageindex_api_key,
+            workspace_dir=s.document_workspace_dir,
+            model=s.document_indexing_model,
+        )
+
+        document_retrieval = DocumentRetrieval(
+            api_key=s.pageindex_api_key,
+            workspace_dir=s.document_workspace_dir,
+            model=s.document_indexing_model,
+            top_k_pages=s.document_retrieval_top_k,
+        )
+
+        pipelines = {
+            "document_indexing": document_indexing,
+            "document_retrieval": document_retrieval,
+            "document_answer": DocumentAnswer(llm_provider=llm_provider),
+        }
+
+        return DocumentService(pipelines=pipelines, **query_cache)

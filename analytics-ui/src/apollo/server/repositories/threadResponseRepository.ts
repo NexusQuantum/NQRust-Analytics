@@ -62,6 +62,20 @@ export interface ThreadResponseAdjustment {
     ThreadResponseAdjustmentApplySqlPayload;
 }
 
+export interface ThreadResponseDocumentCitation {
+  documentId: string;
+  filename?: string;
+  pageNumber?: number;
+  sectionTitle?: string;
+  excerpt?: string;
+}
+
+export interface ThreadResponseDocumentAnswerDetail {
+  content: string;
+  citations: ThreadResponseDocumentCitation[];
+  retrievedDocumentIds: string[];
+}
+
 export interface ThreadResponse {
   id: number; // ID
   askingTaskId?: number; // Reference to asking_task.id
@@ -73,6 +87,7 @@ export interface ThreadResponse {
   breakdownDetail?: ThreadResponseBreakdownDetail; // Thread response breakdown detail
   chartDetail?: ThreadResponseChartDetail; // Thread response chart detail
   adjustment?: ThreadResponseAdjustment; // Thread response adjustment
+  documentAnswerDetail?: ThreadResponseDocumentAnswerDetail; // Document RAG answer detail
 }
 
 export interface IThreadResponseRepository
@@ -92,6 +107,7 @@ export class ThreadResponseRepository
     'breakdownDetail',
     'chartDetail',
     'adjustment',
+    'documentAnswerDetail',
   ];
 
   constructor(knexPg: Knex) {
@@ -131,12 +147,17 @@ export class ThreadResponseRepository
           res.adjustment && typeof res.adjustment === 'string'
             ? JSON.parse(res.adjustment)
             : res.adjustment;
+        const documentAnswerDetail =
+          res.documentAnswerDetail && typeof res.documentAnswerDetail === 'string'
+            ? JSON.parse(res.documentAnswerDetail)
+            : res.documentAnswerDetail;
         return {
           ...res,
           answerDetail: answerDetail || null,
           breakdownDetail: breakdownDetail || null,
           chartDetail: chartDetail || null,
           adjustment: adjustment || null,
+          documentAnswerDetail: documentAnswerDetail || null,
         };
       }) as ThreadResponse[];
   }
@@ -151,6 +172,7 @@ export class ThreadResponseRepository
       breakdownDetail: ThreadResponseBreakdownDetail;
       chartDetail: ThreadResponseChartDetail;
       adjustment: ThreadResponseAdjustment;
+      documentAnswerDetail: ThreadResponseDocumentAnswerDetail;
     }>,
     queryOptions?: IQueryOptions,
   ) {
@@ -168,6 +190,9 @@ export class ThreadResponseRepository
         ? JSON.stringify(data.chartDetail)
         : undefined,
       adjustment: data.adjustment ? JSON.stringify(data.adjustment) : undefined,
+      documentAnswerDetail: data.documentAnswerDetail
+        ? JSON.stringify(data.documentAnswerDetail)
+        : undefined,
     };
     const executer = queryOptions?.tx ? queryOptions.tx : this.knex;
     const [result] = await executer(this.tableName)

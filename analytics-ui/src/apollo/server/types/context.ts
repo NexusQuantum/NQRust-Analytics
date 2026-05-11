@@ -48,6 +48,7 @@ import {
   DashboardCacheBackgroundTracker,
 } from '@server/backgrounds';
 import { ISqlPairService } from '../services/sqlPairService';
+import { DocumentService } from '../services/documentService';
 
 export interface IContext {
   // HTTP request/response — available in all GraphQL resolvers
@@ -80,6 +81,7 @@ export interface IContext {
   sqlPairService: ISqlPairService;
   instructionService: IInstructionService;
   licenseService: ILicenseService;
+  documentService: DocumentService;
 
   // license
   licenseState: LicenseState;

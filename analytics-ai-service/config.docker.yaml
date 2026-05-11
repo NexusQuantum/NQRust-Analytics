@@ -161,3 +161,7 @@ settings:
   sql_pairs_retrieval_max_size: 10
   instructions_similarity_threshold: 0.7
   instructions_top_k: 10
+  document_workspace_dir: /app/pageindex_workspace
+  document_indexing_model: gpt-4o-mini
+  document_retrieval_top_k: 5
+  pageindex_api_key: ${PAGEINDEX_API_KEY}

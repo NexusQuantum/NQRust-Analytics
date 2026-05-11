@@ -20,6 +20,8 @@ export const convertAskingTaskToProcessState = (data: AskingTask) => {
 
   const processState = {
     [AskingTaskStatus.UNDERSTANDING]: PROCESS_STATE.UNDERSTANDING,
+    [AskingTaskStatus.CLASSIFYING]: PROCESS_STATE.UNDERSTANDING,
+    [AskingTaskStatus.RETRIEVING]: PROCESS_STATE.SEARCHING,
     [AskingTaskStatus.SEARCHING]: PROCESS_STATE.SEARCHING,
     [AskingTaskStatus.PLANNING]: PROCESS_STATE.PLANNING,
     [AskingTaskStatus.GENERATING]: PROCESS_STATE.GENERATING,

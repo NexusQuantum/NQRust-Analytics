@@ -58,6 +58,11 @@ export interface IConfig {
   licenseFilePath?: string;
   licenseGracePeriodDays: number;
   licensePublicKey?: string;
+
+  // document storage
+  documentStorageDir?: string;
+  documentMaxSizeMb?: number;
+  documentMaxPages?: number;
 }
 
 const defaultConfig = {
@@ -75,6 +80,11 @@ const defaultConfig = {
   sqliteFile: './db.sqlite3',
 
   persistCredentialDir: `${process.cwd()}/.tmp`,
+
+  // document storage
+  documentStorageDir: `${process.cwd()}/storage/documents`,
+  documentMaxSizeMb: 20,
+  documentMaxPages: 100,
 
   // analytics engine
   analyticsEngineEndpoint: 'http://localhost:8080',
@@ -181,6 +191,15 @@ const config = {
     ? parseInt(process.env.LICENSE_GRACE_PERIOD_DAYS)
     : undefined,
   licensePublicKey: process.env.LICENSE_PUBLIC_KEY?.replace(/\\n/g, '\n'),
+
+  // document storage
+  documentStorageDir: process.env.DOCUMENT_STORAGE_DIR,
+  documentMaxSizeMb: process.env.DOCUMENT_MAX_SIZE_MB
+    ? parseInt(process.env.DOCUMENT_MAX_SIZE_MB)
+    : undefined,
+  documentMaxPages: process.env.DOCUMENT_MAX_PAGES
+    ? parseInt(process.env.DOCUMENT_MAX_PAGES)
+    : undefined,
 };
 
 let _configWarned = false;

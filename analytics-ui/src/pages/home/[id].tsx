@@ -1,5 +1,4 @@
 import { useRouter } from 'next/router';
-import { useParams } from 'next/navigation';
 import {
   ComponentRef,
   useCallback,
@@ -43,6 +42,8 @@ import {
 import { useCreateViewMutation } from '@/apollo/client/graphql/view.generated';
 import {
   AdjustThreadResponseChartInput,
+  AskingTaskStatus,
+  AskingTaskType,
   CreateThreadResponseInput,
   ThreadResponse,
   CreateSqlPairInput,
@@ -73,9 +74,11 @@ const getThreadResponseIsFinished = (threadResponse: ThreadResponse) => {
 export default function HomeThread() {
   const $prompt = useRef<ComponentRef<typeof Prompt>>(null);
   const router = useRouter();
-  const params = useParams();
   const homeSidebar = useHomeSidebar();
-  const threadId = useMemo(() => Number(params?.id) || null, [params]);
+  const threadId = useMemo(
+    () => (router.isReady ? Number(router.query?.id) || null : null),
+    [router.isReady, router.query?.id],
+  );
   const askPrompt = useAskPrompt(threadId);
   const adjustAnswer = useAdjustAnswer(threadId);
   const saveAsViewModal = useModalAction();
@@ -94,8 +97,14 @@ export default function HomeThread() {
   const { data, updateQuery: updateThreadQuery } = useThreadQuery({
     variables: { threadId },
     fetchPolicy: 'cache-and-network',
+    pollInterval: 1000,
     skip: threadId === null,
-    onError: () => router.push(Path.Home),
+    onError: (error) => {
+      const isNotFound = error.graphQLErrors?.some(
+        (e) => e.extensions?.code === 'NOT_FOUND' || e.message?.includes('not found'),
+      );
+      if (isNotFound) router.push(Path.Home);
+    },
   });
   const [createThreadResponse] = useCreateThreadResponseMutation({
     onError: (error) => console.error(error),
@@ -228,11 +237,13 @@ export default function HomeThread() {
   const handleUnfinishedTasks = useCallback(
     (responses: ThreadResponse[]) => {
       // unfinished asking task
+      console.log('[handleUnfinishedTasks]', responses?.map(r => ({ id: r.id, askStatus: r.askingTask?.status, type: r.askingTask?.type, hasAnswer: !!r.answerDetail?.status, hasSql: !!r.sql })));
       const unfinishedAskingResponse = (responses || []).find(
         (response) =>
           response?.askingTask && !getIsFinished(response?.askingTask?.status),
       );
       if (unfinishedAskingResponse) {
+        console.log('[handleUnfinishedTasks] → onFetching askingTask', unfinishedAskingResponse.askingTask?.queryId);
         askPrompt.onFetching(unfinishedAskingResponse?.askingTask?.queryId);
         return;
       }
@@ -246,9 +257,12 @@ export default function HomeThread() {
         canFetchThreadResponse(unfinishedThreadResponse?.askingTask) &&
         unfinishedThreadResponse
       ) {
+        console.log('[handleUnfinishedTasks] → fetchThreadResponse for', unfinishedThreadResponse.id);
         fetchThreadResponse({
           variables: { responseId: unfinishedThreadResponse.id },
         });
+      } else {
+        console.log('[handleUnfinishedTasks] no action: hasResponse=', !!unfinishedThreadResponse, 'canFetch=', canFetchThreadResponse(unfinishedThreadResponse?.askingTask));
       }
     },
     [askPrompt, fetchThreadResponse],
@@ -283,6 +297,7 @@ export default function HomeThread() {
     handleUnfinishedTasks(responses);
     storeQuestionsToAskPrompt(responses);
   }, [responses]);
+
 
   useEffect(() => {
     if (isPollingResponseFinished) {

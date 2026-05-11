@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cloneDeep, uniq } from 'lodash';
+import { useDocuments } from './useDocuments';
 import {
   AdjustmentTask,
   AskingTask,
@@ -160,6 +161,12 @@ const handleUpdateRerunAskingTaskCache = (
 export default function useAskPrompt(threadId?: number) {
   const [originalQuestion, setOriginalQuestion] = useState<string>('');
   const [threadQuestions, setThreadQuestions] = useState<string[]>([]);
+  const { selectedIds, documents } = useDocuments();
+  // Only pass IDs of indexed (ready) documents
+  const indexedSelectedIds = useMemo(
+    () => selectedIds.filter((id) => documents.find((d) => d.id === id)?.status === 'indexed'),
+    [selectedIds, documents],
+  );
   // Handle errors via try/catch blocks rather than onError callback
   const [createAskingTask, createAskingTaskResult] =
     useCreateAskingTaskMutation();
@@ -241,6 +248,7 @@ export default function useAskPrompt(threadId?: number) {
         checkFetchAskingStreamTask(askingTask);
       }
     }
+
   }, [askingTask?.status, threadId, checkFetchAskingStreamTask]);
 
   useEffect(() => {
@@ -299,8 +307,34 @@ export default function useAskPrompt(threadId?: number) {
     askingStreamTaskResult.reset();
     setOriginalQuestion(value);
     try {
+      // Fetch fresh selection from server — local state may be stale if another
+      // component (SourcesPanel) updated the selection without our knowledge.
+      let freshDocumentIds: string[] = indexedSelectedIds;
+      try {
+        const [selRes, docsRes] = await Promise.all([
+          fetch('/api/v1/documents/selection'),
+          fetch('/api/v1/documents'),
+        ]);
+        if (selRes.ok && docsRes.ok) {
+          const selData = await selRes.json();
+          const docsData = await docsRes.json();
+          const allDocs: Array<{ id: string; status: string }> = docsData.documents || [];
+          freshDocumentIds = (selData.documentIds || []).filter(
+            (id: string) => allDocs.find((d) => d.id === id)?.status === 'indexed',
+          );
+        }
+      } catch {
+        // fall back to cached value
+      }
+
       const response = await createAskingTask({
-        variables: { data: { question: value, threadId } },
+        variables: {
+          data: {
+            question: value,
+            threadId,
+            ...(freshDocumentIds.length > 0 ? { documentIds: freshDocumentIds } : {}),
+          },
+        },
       });
       await fetchAskingTask({
         variables: { taskId: response.data.createAskingTask.id },
@@ -311,6 +345,12 @@ export default function useAskPrompt(threadId?: number) {
   };
 
   const onFetching = async (queryId: string) => {
+    if (!queryId) {
+      // Guard against polling firing with an undefined taskId, which would
+      // cause Apollo to spam GraphQLError("$taskId required") every second
+      // and (in some cases) put useThreadQuery into an error state.
+      return;
+    }
     await fetchAskingTask({
       variables: { taskId: queryId },
     });
@@ -336,6 +376,7 @@ export default function useAskPrompt(threadId?: number) {
     onStopStreaming,
     onStopRecommend,
     onStoreThreadQuestions,
+    activeDocumentIds: indexedSelectedIds,
     inputProps: {
       placeholder: threadId
         ? 'Ask follow-up questions to explore your data'

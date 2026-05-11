@@ -1,6 +1,7 @@
 volumes:
   data:
   northwind_data:
+  documents_storage:
 
 
 networks:
@@ -27,11 +28,13 @@ services:
       PYTHONUNBUFFERED: 1
       CONFIG_PATH: /app/config.yaml
       ANALYTICS_UI_ENDPOINT: http://analytics-ui:3000
+      PAGEINDEX_API_KEY: ${PAGEINDEX_API_KEY:-}
     env_file:
       - .env
     volumes:
       - ./config.yaml:/app/config.yaml:ro
       - ./data:/app/data:ro
+      - documents_storage:/app/storage/documents
     networks:
       - analytics
     depends_on:
@@ -103,6 +106,7 @@ services:
       ANALYTICS_AI_ENDPOINT: http://analytics-service:5555
       IBIS_SERVER_ENDPOINT: http://ibis-server:8000
       GENERATION_MODEL: gpt-4o-mini
+      CALLBACK_BASE_URL: http://analytics-ui:3000
       ANALYTICS_ENGINE_PORT: 8080
       ANALYTICS_AI_SERVICE_VERSION: 0.27.1
       ANALYTICS_UI_VERSION: 0.31.1
@@ -137,6 +141,7 @@ services:
       - "13000:3000"
     volumes:
       - data:/app/data
+      - documents_storage:/app/storage/documents
     networks:
       - analytics
     depends_on:

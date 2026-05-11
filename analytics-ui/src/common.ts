@@ -49,6 +49,12 @@ import {
   DashboardCacheBackgroundTracker,
 } from './apollo/server/backgrounds';
 import { SqlPairService } from './apollo/server/services/sqlPairService';
+import { DocumentService } from './apollo/server/services/documentService';
+import {
+  DocumentRepository,
+  DocumentTreeRepository,
+  DocumentSelectionRepository,
+} from '@server/repositories';
 
 export const serverConfig = getConfig();
 
@@ -86,6 +92,9 @@ export const initComponents = () => {
   const dashboardItemRefreshJobRepository =
     new DashboardItemRefreshJobRepository(knex);
   const licenseRepository = new LicenseRepository(knex);
+  const documentRepository = new DocumentRepository({ knexPg: knex });
+  const documentTreeRepository = new DocumentTreeRepository({ knexPg: knex });
+  const documentSelectionRepository = new DocumentSelectionRepository({ knexPg: knex });
 
   // license service
   const licenseService = new LicenseService(serverConfig, licenseRepository);
@@ -171,6 +180,14 @@ export const initComponents = () => {
     instructionRepository,
     analyticsAIAdaptor,
   });
+  const documentService = new DocumentService({
+    documentRepository,
+    documentTreeRepository,
+    documentSelectionRepository,
+    analyticsAIAdaptor,
+    config: serverConfig,
+    callbackBaseUrl: process.env.CALLBACK_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:13000',
+  });
 
   // background trackers
   const projectRecommendQuestionBackgroundTracker =
@@ -222,6 +239,9 @@ export const initComponents = () => {
     instructionRepository,
     dashboardItemRefreshJobRepository,
     licenseRepository,
+    documentRepository,
+    documentTreeRepository,
+    documentSelectionRepository,
 
     // adaptors
     analyticsEngineAdaptor,
@@ -238,6 +258,7 @@ export const initComponents = () => {
     dashboardService,
     sqlPairService,
     instructionService,
+    documentService,
     askingTaskTracker,
     licenseService,
 

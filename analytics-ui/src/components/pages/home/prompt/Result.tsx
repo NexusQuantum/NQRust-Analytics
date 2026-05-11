@@ -161,8 +161,10 @@ const IntentionFinished = (props: Props) => {
   const { type } = data;
 
   useEffect(() => {
-    // create an empty response first if this is a text to sql task
-    if (type === AskingTaskType.TEXT_TO_SQL) {
+    if (
+      type === AskingTaskType.TEXT_TO_SQL ||
+      type === AskingTaskType.DOCUMENT_BASED
+    ) {
       onIntentSQLAnswer && onIntentSQLAnswer();
     }
   }, [type]);
@@ -284,12 +286,28 @@ const getDefaultStateComponent = (state: PROCESS_STATE) => {
   );
 };
 
+const getDocumentBasedStateComponent = (state: PROCESS_STATE) => {
+  // For DOCUMENT_BASED, show processing states as Understanding,
+  // and on FINISHED trigger onIntentSQLAnswer to create the thread.
+  return (
+    {
+      [PROCESS_STATE.UNDERSTANDING]: Understanding,
+      [PROCESS_STATE.SEARCHING]: Understanding,
+      [PROCESS_STATE.GENERATING]: Understanding,
+      [PROCESS_STATE.FINISHED]: IntentionFinished,
+      [PROCESS_STATE.FAILED]: Failed,
+    }[state] || null
+  );
+};
+
 const makeProcessStateStrategy = (type: AskingTaskType) => {
   // note that the asking task type only has value when the asking status was finished
   // by default, we use the default state component (also the text to sql state component)
   if (type === AskingTaskType.GENERAL) return getGeneralAnswerStateComponent;
   if (type === AskingTaskType.MISLEADING_QUERY)
     return getMisleadingQueryStateComponent;
+  if (type === AskingTaskType.DOCUMENT_BASED)
+    return getDocumentBasedStateComponent;
   return getDefaultStateComponent;
 };
 

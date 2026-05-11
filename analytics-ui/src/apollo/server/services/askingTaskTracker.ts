@@ -64,6 +64,10 @@ export class AskingTaskTracker implements IAskingTaskTracker {
   private runningJobs = new Set<string>();
   private threadResponseRepository: IThreadResponseRepository;
   private viewRepository: IViewRepository;
+  // Optional callback fired after a TEXT_TO_SQL task is finalized & bound,
+  // so the askingService can auto-kick off text-based answer generation
+  // without waiting for the client to call the mutation.
+  private onTextToSqlFinalized?: (threadResponseId: number) => Promise<void>;
 
   constructor({
     analyticsAIAdaptor,
@@ -87,6 +91,12 @@ export class AskingTaskTracker implements IAskingTaskTracker {
     this.pollingInterval = pollingInterval;
     this.memoryRetentionTime = memoryRetentionTime;
     this.startPolling();
+  }
+
+  public setOnTextToSqlFinalized(
+    cb: (threadResponseId: number) => Promise<void>,
+  ): void {
+    this.onTextToSqlFinalized = cb;
   }
 
   public async createAskingTask(
@@ -212,6 +222,19 @@ export class AskingTaskTracker implements IAskingTaskTracker {
     // check if the task is finalized and has a sql
     if (task.isFinalized) {
       await this.updateThreadResponseWhenTaskFinalized(task);
+      // Auto-kick text-based answer generation for TEXT_TO_SQL responses so
+      // the client doesn't need to coordinate via useEffect race-prone path.
+      if (
+        task.result?.type === AskResultType.TEXT_TO_SQL &&
+        this.onTextToSqlFinalized &&
+        threadResponseId
+      ) {
+        this.onTextToSqlFinalized(threadResponseId).catch((err) =>
+          logger.error(
+            `Failed to auto-trigger text answer for response ${threadResponseId}: ${err}`,
+          ),
+        );
+      }
     }
   }
 
@@ -272,7 +295,21 @@ export class AskingTaskTracker implements IAskingTaskTracker {
               return;
             }
 
-            // if it's identified as GENERAL or MISLEADING_QUER
+            // if it's a document-based answer, finalize and persist to thread response
+            if (result.type === AskResultType.DOCUMENT_BASED && result.status === AskResultStatus.FINISHED) {
+              task.isFinalized = true;
+              // persist the final result to asking_task.detail so history loads correctly
+              await this.updateTaskInDatabase({ queryId }, task);
+              if (task.threadResponseId && result.documentAnswer) {
+                await this.threadResponseRepository.updateOne(task.threadResponseId, {
+                  documentAnswerDetail: result.documentAnswer as any,
+                });
+              }
+              this.runningJobs.delete(queryId);
+              return;
+            }
+
+            // if it's identified as GENERAL or MISLEADING_QUERY
             // we don't need to update the database and finalize the task
             if (
               result.type === AskResultType.GENERAL ||
@@ -321,6 +358,18 @@ export class AskingTaskTracker implements IAskingTaskTracker {
               // update thread response if threadResponseId is provided
               if (task.threadResponseId) {
                 await this.updateThreadResponseWhenTaskFinalized(task);
+                // Auto-kick text-based answer generation for TEXT_TO_SQL
+                if (
+                  result.type === AskResultType.TEXT_TO_SQL &&
+                  this.onTextToSqlFinalized
+                ) {
+                  this.onTextToSqlFinalized(task.threadResponseId).catch(
+                    (err) =>
+                      logger.error(
+                        `Failed to auto-trigger text answer for response ${task.threadResponseId}: ${err}`,
+                      ),
+                  );
+                }
               }
 
               logger.info(

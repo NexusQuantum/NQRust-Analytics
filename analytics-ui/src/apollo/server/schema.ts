@@ -711,10 +711,14 @@ export const typeDefs = gql`
     question: String!
     # Used for follow-up questions
     threadId: Int
+    # Document RAG: list of selected document IDs
+    documentIds: [String!]
   }
 
   enum AskingTaskStatus {
     UNDERSTANDING
+    CLASSIFYING
+    RETRIEVING
     SEARCHING
     PLANNING
     GENERATING
@@ -728,6 +732,21 @@ export const typeDefs = gql`
     GENERAL
     TEXT_TO_SQL
     MISLEADING_QUERY
+    DOCUMENT_BASED
+  }
+
+  type DocumentCitation {
+    documentId: String!
+    filename: String
+    pageNumber: Int
+    sectionTitle: String
+    excerpt: String
+  }
+
+  type DocumentAnswerDetail {
+    content: String!
+    citations: [DocumentCitation!]!
+    retrievedDocumentIds: [String!]!
   }
 
   enum ChartTaskStatus {
@@ -773,6 +792,7 @@ export const typeDefs = gql`
     invalidSql: String
     traceId: String
     queryId: String
+    documentAnswer: DocumentAnswerDetail
   }
 
   input InstantRecommendedQuestionsInput {
@@ -924,6 +944,7 @@ export const typeDefs = gql`
     askingTask: AskingTask
     adjustment: ThreadResponseAdjustment
     adjustmentTask: AdjustmentTask
+    documentAnswerDetail: DocumentAnswerDetail
   }
 
   # Thread only consists of basic information of a thread
@@ -1388,6 +1409,11 @@ export const typeDefs = gql`
 
     # License
     licenseStatus: LicenseState!
+
+    # ===== Document RAG Queries =====
+    documents: [Document!]!
+    document(id: String!): Document
+    documentSelection: [String!]!
   }
 
   type Mutation {
@@ -1602,5 +1628,33 @@ export const typeDefs = gql`
     # ===== License Mutations (Admin only) =====
     activateLicense(data: ActivateLicenseInput!): LicenseState!
     refreshLicense: LicenseState!
+
+    # ===== Document RAG Mutations =====
+    deleteDocument(id: String!): Boolean!
+    setDocumentSelection(documentIds: [String!]!): [String!]!
+  }
+
+  # ===== Document RAG Types =====
+
+  enum DocumentStatus {
+    pending
+    indexing
+    indexed
+    failed
+  }
+
+  type Document {
+    id: String!
+    filename: String!
+    originalFilename: String!
+    mimeType: String!
+    size: Int!
+    pageCount: Int
+    status: DocumentStatus!
+    errorMessage: String
+    indexedAt: String
+    createdAt: String!
+    updatedAt: String!
   }
 `;
+

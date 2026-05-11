@@ -129,6 +129,21 @@ export interface IAnalyticsAIAdaptor {
   createAskFeedback(input: AskFeedbackInput): Promise<AsyncQueryResponse>;
   getAskFeedbackResult(queryId: string): Promise<AskFeedbackResult>;
   cancelAskFeedback(queryId: string): Promise<void>;
+
+  /**
+   * Document RAG APIs
+   */
+  indexDocument(params: {
+    documentId: string;
+    filePath: string;
+    callbackUrl?: string;
+  }): Promise<void>;
+  deleteDocument(documentId: string): Promise<void>;
+  getDocumentIndexStatus(documentId: string): Promise<{
+    status: string;
+    pageCount?: number;
+    error?: string;
+  }>;
 }
 
 export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
@@ -239,12 +254,19 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
 
   public async ask(input: AskInput): Promise<AsyncQueryResponse> {
     try {
-      const res = await this.httpClient.post(`/v1/asks`, {
+      const body: Record<string, any> = {
         query: input.query,
         id: input.deployId,
         histories: this.transformHistoryInput(input.histories),
         configurations: input.configurations,
-      });
+      };
+      if (input.documentIds?.length) {
+        body.document_ids = input.documentIds;
+      }
+      if (input.documentTrees && Object.keys(input.documentTrees).length) {
+        body.document_trees = input.documentTrees;
+      }
+      const res = await this.httpClient.post(`/v1/asks`, body);
       return { queryId: res.data.query_id };
     } catch (err: any) {
       logger.debug(`Got error when asking analytics AI: ${getAIServiceError(err)}`);
@@ -827,6 +849,22 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
       sqlpairId: candidate?.sqlpairId ? Number(candidate.sqlpairId) : null,
     }));
 
+    let documentAnswer = undefined;
+    if (body?.document_answer) {
+      const da = body.document_answer;
+      documentAnswer = {
+        content: da.content || '',
+        citations: (da.citations || []).map((c: any) => ({
+          documentId: c.document_id,
+          filename: c.filename,
+          pageNumber: c.page_number,
+          sectionTitle: c.section_title,
+          excerpt: c.excerpt,
+        })),
+        retrievedDocumentIds: da.retrieved_document_ids || [],
+      };
+    }
+
     return {
       type: body?.type,
       status: status as AskResultStatus,
@@ -838,6 +876,7 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
       retrievedTables: body?.retrieved_tables,
       invalidSql: body?.invalid_sql,
       traceId: body?.trace_id,
+      documentAnswer,
     };
   }
 
@@ -926,6 +965,54 @@ export class AnalyticsAIAdaptor implements IAnalyticsAIAdaptor {
       status,
       error: formattedError,
     };
+  }
+
+  // -------------------------------------------------------------------------
+  // Document RAG APIs
+  // -------------------------------------------------------------------------
+
+  public async indexDocument(params: {
+    documentId: string;
+    filePath: string;
+    callbackUrl?: string;
+  }): Promise<void> {
+    try {
+      await this.httpClient.post('/v1/documents/index', {
+        document_id: params.documentId,
+        file_path: params.filePath,
+        callback_url: params.callbackUrl,
+      });
+    } catch (err: any) {
+      logger.debug(`indexDocument error: ${getAIServiceError(err)}`);
+      throw new Error(`Failed to start document indexing: ${getAIServiceError(err)}`);
+    }
+  }
+
+  public async deleteDocument(documentId: string): Promise<void> {
+    try {
+      await this.httpClient.delete(`/v1/documents/${documentId}`);
+    } catch (err: any) {
+      logger.debug(`deleteDocument error: ${getAIServiceError(err)}`);
+      // Non-fatal — document may not be indexed yet
+    }
+  }
+
+  public async getDocumentIndexStatus(documentId: string): Promise<{
+    status: string;
+    pageCount?: number;
+    error?: string;
+  }> {
+    try {
+      const res = await this.httpClient.get(`/v1/documents/${documentId}/status`);
+      return {
+        status: res.data.status,
+        pageCount: res.data.page_count,
+        error: res.data.error,
+      };
+    } catch (err: any) {
+      logger.debug(`getDocumentIndexStatus error: ${getAIServiceError(err)}`);
+      return { status: 'unknown' };
+    }
   }
 
   private transformHistoryInput(histories: ThreadResponse[]): AskHistory[] {

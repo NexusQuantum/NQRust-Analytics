@@ -62,6 +62,8 @@ export interface AskingPayload {
 
 export interface AskingTaskInput {
   question: string;
+  documentIds?: string[];
+  documentTrees?: Record<string, any>;
 }
 
 export interface AskingDetailTaskInput {
@@ -490,6 +492,27 @@ export class AskingService implements IAskingService {
     this.askingTaskRepository = askingTaskRepository;
     this.mdlService = mdlService;
     this.askingTaskTracker = askingTaskTracker;
+
+    // Wire the tracker → askingService callback so TEXT_TO_SQL responses
+    // automatically generate their text-based answer the moment the asking
+    // task finalizes server-side. Removes the dependency on the client
+    // useEffect path (which is race-prone and can miss the FINISHED event).
+    if (
+      'setOnTextToSqlFinalized' in askingTaskTracker &&
+      typeof (askingTaskTracker as any).setOnTextToSqlFinalized === 'function'
+    ) {
+      (askingTaskTracker as any).setOnTextToSqlFinalized(
+        async (threadResponseId: number) => {
+          try {
+            await this.generateThreadResponseAnswer(threadResponseId);
+          } catch (err) {
+            logger.error(
+              `Auto-generate text answer failed for response ${threadResponseId}: ${err}`,
+            );
+          }
+        },
+      );
+    }
   }
 
   public async getThreadRecommendationQuestions(
@@ -608,6 +631,8 @@ export class AskingService implements IAskingService {
       rerunFromCancelled,
       previousTaskId,
       threadResponseId,
+      documentIds: input.documentIds,
+      documentTrees: input.documentTrees,
     });
     return {
       id: response.queryId,

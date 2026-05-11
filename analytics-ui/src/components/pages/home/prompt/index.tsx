@@ -32,6 +32,7 @@ interface Props {
   inputProps: {
     placeholder: string;
   };
+  activeDocumentIds?: string[];
 }
 
 interface Attributes {
@@ -61,6 +62,7 @@ export default forwardRef<Attributes, Props>(function Prompt(props, ref) {
     onStopStreaming,
     onStopRecommend,
     inputProps,
+    activeDocumentIds,
   } = props;
   const askProcessState = useAskProcessState();
 

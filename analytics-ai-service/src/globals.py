@@ -8,6 +8,7 @@ from src.core.builder import ServiceContainerBuilder
 from src.core.pipeline import PipelineComponent
 from src.core.provider import EmbedderProvider, LLMProvider
 from src.web.v1 import services
+from src.web.v1.services.document import DocumentService
 
 logger = logging.getLogger("analytics-service")
 
@@ -27,6 +28,7 @@ class ServiceContainer:
     sql_question_service: services.SqlQuestionService
     instructions_service: services.InstructionsService
     sql_correction_service: services.SqlCorrectionService
+    document_service: DocumentService
 
 
 @dataclass

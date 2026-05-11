@@ -88,6 +88,7 @@ from .sql_answer import SqlAnswerService  # noqa: E402
 from .sql_corrections import SqlCorrectionService  # noqa: E402
 from .sql_pairs import SqlPairsService  # noqa: E402
 from .sql_question import SqlQuestionService  # noqa: E402
+from .document import DocumentService  # noqa: E402
 
 __all__ = [
     "AskService",
@@ -103,4 +104,5 @@ __all__ = [
     "SqlPairsService",
     "SqlQuestionService",
     "InstructionsService",
+    "DocumentService",
 ]

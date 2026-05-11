@@ -17,8 +17,10 @@ volumes:
   qdrant_data:
   northwind_data:
   ai_poetry_cache:
+  ai_pageindex:
   ui_node_modules:
   ui_next_cache:
+  documents_storage:
 
 networks:
   analytics:
@@ -103,6 +105,7 @@ services:
       QDRANT_HOST: qdrant
       ANALYTICS_AI_SERVICE_PORT: 5555
       DEVELOPMENT: "true"
+      PAGEINDEX_API_KEY: "97c06a6a6de94749b902d2b28d739e92"
     ports:
       - "5555:5555"
     volumes:
@@ -112,6 +115,10 @@ services:
       - ../analytics-ai-service/config.docker.yaml:/app/config.yaml:ro
       # Persist poetry cache antar restart
       - ai_poetry_cache:/tmp/poetry_cache
+      # Persist PageIndex workspace (built document trees) across restarts
+      - ai_pageindex:/app/pageindex_workspace
+      # Shared volume dengan analytics-ui agar AI service bisa baca PDF yang diupload
+      - documents_storage:/app/documents_storage
     networks:
       - analytics
     depends_on:
@@ -132,6 +139,11 @@ services:
       ANALYTICS_AI_ENDPOINT: http://analytics-ai-service:5555
       ANALYTICS_ENGINE_ENDPOINT: http://analytics-engine:${ANALYTICS_ENGINE_PORT}
       IBIS_SERVER_ENDPOINT: http://ibis-server:8000
+      # Callback URL yang dipakai AI service untuk POST hasil indexing kembali ke UI.
+      # Harus pakai docker service name (bukan localhost) karena dipanggil dari dalam container.
+      CALLBACK_BASE_URL: http://analytics-ui:3000
+      # Shared storage dir untuk PDF uploads — path ini sama di kedua container
+      DOCUMENT_STORAGE_DIR: /app/documents_storage
     ports:
       - "13000:3000"
     volumes:
@@ -140,6 +152,8 @@ services:
       - ../analytics-ui:/app
       - ui_node_modules:/app/node_modules
       - ui_next_cache:/app/.next
+      # Shared volume dengan analytics-ai-service agar PDF bisa diakses saat indexing
+      - documents_storage:/app/documents_storage
     networks:
       - analytics
     depends_on:

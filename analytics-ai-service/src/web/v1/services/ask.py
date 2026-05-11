@@ -45,6 +45,9 @@ class AskRequest(BaseRequest):
     use_dry_plan: bool = False
     allow_dry_plan_fallback: bool = True
     custom_instruction: Optional[str] = None
+    # Document RAG fields
+    document_ids: Optional[List[str]] = Field(default_factory=list)
+    document_trees: Optional[Dict[str, dict]] = None
 
 
 class AskResponse(BaseModel):
@@ -86,9 +89,28 @@ class AskResultRequest(BaseModel):
     query_id: str
 
 
+class DocumentCitation(BaseModel):
+    """A single citation from a document passage"""
+
+    document_id: str
+    page_number: Optional[int] = None
+    section_title: Optional[str] = None
+    excerpt: Optional[str] = None
+
+
+class DocumentAnswerDetail(BaseModel):
+    """Full document-based answer payload"""
+
+    content: str
+    citations: List[DocumentCitation] = Field(default_factory=list)
+    retrieved_document_ids: List[str] = Field(default_factory=list)
+
+
 class _AskResultResponse(BaseModel):
     status: Literal[
         "understanding",
+        "classifying",
+        "retrieving",
         "searching",
         "planning",
         "generating",
@@ -100,7 +122,7 @@ class _AskResultResponse(BaseModel):
     rephrased_question: Optional[str] = None
     intent_reasoning: Optional[str] = None
     sql_generation_reasoning: Optional[str] = None
-    type: Optional[Literal["GENERAL", "TEXT_TO_SQL"]] = None
+    type: Optional[Literal["GENERAL", "TEXT_TO_SQL", "DOCUMENT_BASED"]] = None
     retrieved_tables: Optional[List[str]] = None
     response: Optional[List[AskResult]] = None
     invalid_sql: Optional[str] = None
@@ -110,6 +132,9 @@ class _AskResultResponse(BaseModel):
     general_type: Optional[
         Literal["MISLEADING_QUERY", "DATA_ASSISTANCE", "USER_GUIDE"]
     ] = None
+    # Document RAG fields
+    classifier_route: Optional[str] = None
+    document_answer: Optional[DocumentAnswerDetail] = None
 
 
 class AskResultResponse(_AskResultResponse):
@@ -158,8 +183,10 @@ class AskService:
         max_histories: int = 5,
         maxsize: int = 1_000_000,
         ttl: int = 120,
+        document_pipelines: Optional[Dict[str, BasicPipeline]] = None,
     ):
         self._pipelines = pipelines
+        self._document_pipelines = document_pipelines or {}
         self._ask_results: Dict[str, AskResultResponse] = TTLCache(
             maxsize=maxsize, ttl=ttl
         )
@@ -1047,6 +1074,130 @@ class AskService:
             request_from=request_from,
         )
 
+    async def _classify_document_route(
+        self,
+        query: str,
+        document_ids: List[str],
+        histories: List[AskHistory],
+    ) -> str:
+        """Classify whether query should route to doc_only, sql_only, or hybrid."""
+        try:
+            result = await self._document_pipelines["document_classifier"].run(
+                query=query,
+                document_ids=document_ids,
+                histories=histories,
+            )
+            return result.get("post_process_route", {}).get("route", "sql_only")
+        except Exception as e:
+            logger.error(f"Document classifier error: {e}")
+            return "sql_only"
+
+    async def _handle_document_query(
+        self,
+        query_id: str,
+        query: str,
+        document_ids: List[str],
+        document_trees: Optional[Dict[str, dict]],
+        histories: List[AskHistory],
+        classifier_route: str,
+        language: str,
+        trace_id: Optional[str],
+    ) -> dict:
+        """Retrieve passages from selected documents and generate a document-based answer."""
+        try:
+            # Step: retrieve passages
+            self._update_status(
+                query_id=query_id,
+                status="retrieving",
+                type="DOCUMENT_BASED",
+                classifier_route=classifier_route,
+                trace_id=trace_id,
+            )
+
+            retrieval_result = await self._document_pipelines["document_retrieval"].run(
+                question=query,
+                document_ids=document_ids,
+                trees=document_trees,
+            )
+            passages = retrieval_result.get("passages", [])
+
+            if not passages:
+                self._update_status(
+                    query_id=query_id,
+                    status="finished",
+                    type="DOCUMENT_BASED",
+                    classifier_route=classifier_route,
+                    trace_id=trace_id,
+                    document_answer=DocumentAnswerDetail(
+                        content="The documents don't contain sufficient information to answer this question. Try rephrasing or selecting different documents.",
+                        citations=[],
+                        retrieved_document_ids=document_ids,
+                    ),
+                )
+                return {"ask_result": {}, "metadata": {"type": "DOCUMENT_BASED"}}
+
+            # Step: generate answer
+            self._update_status(
+                query_id=query_id,
+                status="generating",
+                type="DOCUMENT_BASED",
+                classifier_route=classifier_route,
+                trace_id=trace_id,
+            )
+
+            answer_result = await self._document_pipelines["document_answer"].run(
+                query=query,
+                passages=passages,
+                language=language,
+            )
+
+            content = ""
+            gen_output = answer_result.get("generate_document_answer", {})
+            # gen_output is a tuple (result_dict, model_name) from @trace_cost decorator
+            if isinstance(gen_output, tuple):
+                gen_output = gen_output[0]
+            if replies := (gen_output or {}).get("replies"):
+                content = replies[0] if replies else ""
+
+            citations = [
+                DocumentCitation(
+                    document_id=p.get("document_id", ""),
+                    page_number=p.get("page_number"),
+                    section_title=p.get("section_title"),
+                    excerpt=p.get("excerpt"),
+                )
+                for p in passages
+            ]
+
+            doc_answer = DocumentAnswerDetail(
+                content=content,
+                citations=citations,
+                retrieved_document_ids=list({p.get("document_id") for p in passages if p.get("document_id")}),
+            )
+
+            self._update_status(
+                query_id=query_id,
+                status="finished",
+                type="DOCUMENT_BASED",
+                classifier_route=classifier_route,
+                trace_id=trace_id,
+                document_answer=doc_answer,
+            )
+
+            return {"ask_result": {}, "metadata": {"type": "DOCUMENT_BASED"}}
+
+        except Exception as e:
+            logger.error(f"Document query handling error: {e}")
+            self._update_status(
+                query_id=query_id,
+                status="failed",
+                type="DOCUMENT_BASED",
+                classifier_route=classifier_route,
+                trace_id=trace_id,
+                error=AskError(code="OTHERS", message=str(e)),
+            )
+            return {"ask_result": {}, "metadata": {"type": "DOCUMENT_BASED", "error_message": str(e)}}
+
     @observe(name="Ask Question")
     @trace_metadata
     async def ask(
@@ -1091,6 +1242,39 @@ class AskService:
                     trace_id=trace_id,
                     is_followup=bool(context.histories),
                 )
+
+            # Step 1.5: Document routing (if documents selected and doc pipelines available)
+            document_ids = ask_request.document_ids or []
+            if document_ids and self._document_pipelines:
+                self._update_status(
+                    query_id=query_id,
+                    status="classifying",
+                    type="DOCUMENT_BASED",
+                    trace_id=trace_id,
+                    is_followup=bool(context.histories),
+                )
+                classifier_route = await self._classify_document_route(
+                    query=context.user_query,
+                    document_ids=document_ids,
+                    histories=context.histories,
+                )
+                language = (
+                    context.configurations.model_dump().get("language", "en")
+                    if hasattr(context.configurations, "model_dump")
+                    else context.configurations.get("language", "en")
+                )
+                if classifier_route == "doc_only":
+                    return await self._handle_document_query(
+                        query_id=query_id,
+                        query=context.user_query,
+                        document_ids=document_ids,
+                        document_trees=ask_request.document_trees,
+                        histories=context.histories,
+                        classifier_route=classifier_route,
+                        language=language,
+                        trace_id=trace_id,
+                    )
+                # hybrid or sql_only → fall through to SQL generation
 
             # Step 2: Check historical question (cache)
             cached_result = await self._check_historical_question(

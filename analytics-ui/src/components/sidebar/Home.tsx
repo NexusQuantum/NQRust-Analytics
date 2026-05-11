@@ -11,6 +11,7 @@ import SidebarTree, {
 } from './SidebarTree';
 import ThreadTree, { ThreadData } from './home/ThreadTree';
 import DashboardTree, { DashboardData } from './home/DashboardTree';
+import SourcesPanel from './home/SourcesPanel';
 import DashboardModal from '@/components/modals/DashboardModal';
 import ShareDashboardModal from '@/components/modals/ShareDashboardModal';
 import ShareThreadModal from '@/components/modals/ShareThreadModal';
@@ -117,13 +118,6 @@ const ScrollContent = styled.div`
   padding: 0 8px 8px;
 `;
 
-const EmptyState = styled.div`
-  padding: 8px 12px;
-  font-size: 12px;
-  color: var(--gray-6);
-  font-style: italic;
-`;
-
 export default function Home(props: Props) {
   const { data, onSelect, onRename, onDelete } = props;
   const router = useRouter();
@@ -161,6 +155,7 @@ export default function Home(props: Props) {
   const dashboardModal = useModalAction();
   const shareModal = useModalAction();
   const shareThreadModal = useModalAction();
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   useEffect(() => {
     params?.id && setTreeSelectedKeys([params.id] as string[]);
@@ -277,13 +272,24 @@ export default function Home(props: Props) {
           </ScrollContent>
         </Section>
 
-        {/* Sources (placeholder — Document RAG belum diimplementasi) */}
+        {/* Sources */}
         <Section $flex={1}>
           <SectionHeader>
             <SectionTitle>Sources</SectionTitle>
+            <HeaderActionButton
+              type="text"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => setUploadOpen(true)}
+            >
+              Add
+            </HeaderActionButton>
           </SectionHeader>
           <ScrollContent>
-            <EmptyState>Coming soon</EmptyState>
+            <SourcesPanel
+              uploadOpen={uploadOpen}
+              onUploadClose={() => setUploadOpen(false)}
+            />
           </ScrollContent>
         </Section>
       </HomeContainer>

@@ -75,11 +75,25 @@ class Settings(BaseSettings):
 
     sql_pairs_path: str = Field(default="sql_pairs.json")
 
+    # document RAG config
+    document_workspace_dir: str = Field(default="/tmp/pageindex_workspace")
+    document_indexing_model: str = Field(default="gpt-4o-mini")
+    document_retrieval_top_k: int = Field(default=5)
+    pageindex_api_key: str = Field(default="")
+
     def __init__(self):
+        import os, re
         load_dotenv(".env.dev", override=True)
         super().__init__()
         raw = self.config_loader()
         self.override(raw)
+        # Resolve ${VAR} placeholders that YAML doesn't interpolate natively
+        for attr in vars(self):
+            val = getattr(self, attr, None)
+            if isinstance(val, str):
+                expanded = re.sub(r'\$\{(\w+)\}', lambda m: os.environ.get(m.group(1), ''), val)
+                if expanded != val:
+                    setattr(self, attr, expanded)
         self._components = [
             component for component in raw if "settings" not in component
         ]

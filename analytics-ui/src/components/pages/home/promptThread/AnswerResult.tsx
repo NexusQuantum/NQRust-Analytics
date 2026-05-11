@@ -23,12 +23,14 @@ import ChartAnswer from '@/components/pages/home/promptThread/ChartAnswer';
 import Preparation from '@/components/pages/home/preparation';
 import {
   AskingTaskStatus,
+  AskingTaskType,
   ThreadResponse,
   ThreadResponseAnswerDetail,
   ThreadResponseAnswerStatus,
   ThreadResponseAdjustment,
   ThreadResponseAdjustmentType,
 } from '@/apollo/client/graphql/__types__';
+import DocumentBasedAnswer from '@/components/pages/home/promptThread/DocumentBasedAnswer';
 
 const { Text } = Typography;
 
@@ -184,7 +186,9 @@ const isNeedGenerateAnswer = (answerDetail: ThreadResponseAnswerDetail) => {
     ThreadResponseAnswerStatus.PREPROCESSING,
     ThreadResponseAnswerStatus.FETCHING_DATA,
   ].includes(answerDetail?.status);
-  return answerDetail?.queryId === null && !isFinished && !isProcessing;
+  // Treat both null and undefined queryId as "no answer yet" — Apollo cache
+  // can return the field as undefined even when server returned null.
+  return !answerDetail?.queryId && !isFinished && !isProcessing;
 };
 
 export default function AnswerResult(props: Props) {
@@ -229,9 +233,16 @@ export default function AnswerResult(props: Props) {
     return answerDetail === null && !isEmpty(breakdownDetail);
   }, [answerDetail, breakdownDetail]);
 
-  // initialize generate answer
+  const isDocumentBased =
+    askingTask?.type === AskingTaskType.DOCUMENT_BASED ||
+    !!threadResponse.documentAnswerDetail;
+
+  // initialize generate answer (only for non-document-based responses;
+  // server-side now auto-triggers TEXT_TO_SQL responses, but this remains
+  // as a safety net for older responses)
   useEffect(() => {
     if (isBreakdownOnly) return;
+    if (isDocumentBased) return;
     if (
       canGenerateAnswer(askingTask, adjustmentTask) &&
       isNeedGenerateAnswer(answerDetail)
@@ -252,6 +263,7 @@ export default function AnswerResult(props: Props) {
     }
   }, [
     isBreakdownOnly,
+    isDocumentBased,
     askingTask?.status,
     adjustmentTask?.status,
     answerDetail?.status,
@@ -264,20 +276,26 @@ export default function AnswerResult(props: Props) {
   };
 
   const showAnswerTabs =
-    askingTask?.status === AskingTaskStatus.FINISHED ||
-    isAnswerPrepared ||
-    isBreakdownOnly;
+    !isDocumentBased &&
+    (askingTask?.status === AskingTaskStatus.FINISHED ||
+      isAnswerPrepared ||
+      isBreakdownOnly);
 
   return (
     <div style={resultStyle} data-jsid="answerResult">
       {isAdjustment && <AdjustmentInformation adjustment={adjustment} />}
       <QuestionTitle className="mb-4" question={question} />
-      <Preparation
-        className="mb-3"
-        {...preparation}
-        data={threadResponse}
-        minimized={isAnswerPrepared}
-      />
+      {!isDocumentBased && (
+        <Preparation
+          className="mb-3"
+          {...preparation}
+          data={threadResponse}
+          minimized={isAnswerPrepared}
+        />
+      )}
+      {isDocumentBased && (
+        <DocumentBasedAnswer threadResponse={threadResponse} />
+      )}
       {showAnswerTabs && (
         <>
           <StyledTabs size="small" onTabClick={onTabClick}>
