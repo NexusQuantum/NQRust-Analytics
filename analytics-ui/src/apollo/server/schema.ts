@@ -1315,6 +1315,11 @@ export const typeDefs = gql`
     verifiedAt: String
     licenseKey: String
     errorMessage: String
+    # Last check outcome — null means "not yet checked" (cold start),
+    # 'valid'/'invalid' are definitive, 'unreachable' means the verify
+    # server could not be reached so the client should not treat the
+    # state as definitive (avoid redirecting to setup on transient errors).
+    lastCheckResult: String
   }
 
   input ActivateLicenseInput {

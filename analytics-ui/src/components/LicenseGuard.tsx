@@ -20,11 +20,17 @@ export default function LicenseGuard({
     router.pathname.startsWith(p),
   );
 
-  // Redirect when license is definitively invalid (not on error/loading)
+  // Redirect only when the license is *definitively* invalid. Transient
+  // states ('unreachable' or 'null' = not yet checked) keep the user on
+  // their current page — mirrors the portal's pattern of trusting the
+  // server-side grace handling rather than nagging the user on network
+  // hiccups. No toast, no flash.
   useEffect(() => {
     if (isPublicPage || !license || error) return;
 
-    if (!license.isLicensed) {
+    const definitivelyInvalid =
+      !license.isLicensed && license.lastCheckResult === 'invalid';
+    if (definitivelyInvalid) {
       router.replace(LICENSE_PAGE);
     }
   }, [license, error, isPublicPage, router]);

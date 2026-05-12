@@ -57,9 +57,11 @@ class DocumentRetrieval(BasicPipeline):
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         passages = []
+        errors: list[str] = []
         for doc_id, result in zip(document_ids, results):
             if isinstance(result, Exception):
                 logger.error(f"Retrieval failed for document {doc_id}: {result}")
+                errors.append(str(result))
                 continue
             for p in result.passages:
                 passages.append({
@@ -69,7 +71,30 @@ class DocumentRetrieval(BasicPipeline):
                     "excerpt": p.excerpt,
                 })
 
-        return {"passages": passages}
+        # Surface infrastructure errors (e.g. PageIndex credit exhaustion) so
+        # the caller can show a useful message instead of the generic
+        # "documents don't contain sufficient information" — that wording
+        # blames the documents/question when the real issue is upstream.
+        error_message: str | None = None
+        if not passages and errors:
+            combined = " ".join(errors).lower()
+            if "insufficient credits" in combined or "insufficientcredits" in combined:
+                error_message = (
+                    "Document retrieval service has insufficient credits. "
+                    "Please top up your PageIndex subscription to continue."
+                )
+            elif "not found" in combined:
+                error_message = (
+                    "Document not found in the retrieval index. "
+                    "Try re-indexing the affected documents."
+                )
+            else:
+                error_message = (
+                    "Document retrieval failed. Check the analytics-ai-service "
+                    "logs for details."
+                )
+
+        return {"passages": passages, "error_message": error_message}
 
     async def _retrieve_one(
         self, question: str, doc_id: str, tree: dict | None

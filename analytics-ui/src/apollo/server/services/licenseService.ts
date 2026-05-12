@@ -58,6 +58,10 @@ export interface LicenseState {
   verifiedAt: string | null;
   licenseKey: string | null;
   errorMessage: string | null;
+  // Last check outcome — distinguishes "never checked / still loading"
+  // (null) from "definitively invalid" so the client can avoid redirecting
+  // on transient cold-start states. Mirrors the portal's three-state result.
+  lastCheckResult: 'valid' | 'invalid' | 'unreachable' | null;
 }
 
 export interface ILicenseService {
@@ -82,6 +86,7 @@ const UNLICENSED_STATE: LicenseState = {
   verifiedAt: null,
   licenseKey: null,
   errorMessage: null,
+  lastCheckResult: null,
 };
 
 const RE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -328,6 +333,7 @@ export class LicenseService implements ILicenseService {
             ? record.licenseKey.slice(0, 4) + '-****-****-' + record.licenseKey.slice(-4)
             : null,
           errorMessage: effectiveStatus === 'expired' ? 'License has expired' : null,
+          lastCheckResult: effectiveStatus === 'active' ? 'valid' : 'invalid',
         };
       }
 
@@ -364,6 +370,16 @@ export class LicenseService implements ILicenseService {
           ? record.licenseKey.slice(0, 4) + '-****-****-' + record.licenseKey.slice(-4)
           : null,
         errorMessage: null,
+        // Cached DB state reflects the last *successful* verify or a grace
+        // continuation. Treat grace specifically as unreachable (we haven't
+        // re-verified online yet) so the client can show a warning without
+        // kicking the user out.
+        lastCheckResult:
+          effectiveStatus === 'active'
+            ? 'valid'
+            : isGracePeriod
+              ? 'unreachable'
+              : 'invalid',
       };
     } catch (err) {
       logger.warn('Failed to load cached license state:', err);
@@ -431,6 +447,7 @@ export class LicenseService implements ILicenseService {
         verifiedAt: new Date().toISOString(),
         licenseKey: licenseKey.slice(0, 4) + '-****-****-' + licenseKey.slice(-4),
         errorMessage: null,
+        lastCheckResult: 'valid',
       };
     }
 
@@ -448,6 +465,7 @@ export class LicenseService implements ILicenseService {
       verifiedAt: null,
       licenseKey: licenseKey.slice(0, 4) + '-****-****-' + licenseKey.slice(-4),
       errorMessage: response.message || response.error || 'License verification failed',
+      lastCheckResult: 'invalid',
     };
   }
 
@@ -471,6 +489,7 @@ export class LicenseService implements ILicenseService {
         ? payload.licenseId.slice(0, 4) + '-****-****-' + payload.licenseId.slice(-4)
         : null,
       errorMessage: expired ? 'License has expired' : null,
+      lastCheckResult: expired ? 'invalid' : 'valid',
     };
   }
 
@@ -492,7 +511,10 @@ export class LicenseService implements ILicenseService {
 
     if (!licenseKey) {
       logger.info('No LICENSE_KEY configured — running in unlicensed mode');
-      this.cachedState = { ...UNLICENSED_STATE };
+      // No key configured anywhere is a definitive "not licensed" state
+      // (not a transient error), so mark it as invalid to allow the client
+      // to redirect to /setup/license.
+      this.cachedState = { ...UNLICENSED_STATE, lastCheckResult: 'invalid' };
       this.lastCheckTime = Date.now();
       return this.cachedState;
     }
@@ -592,18 +614,24 @@ export class LicenseService implements ILicenseService {
         isLicensed: false,
         isGracePeriod: false,
         errorMessage: 'License server unreachable and grace period expired',
+        // Grace expired counts as definitive — we can no longer trust the
+        // cached license without a fresh verify.
+        lastCheckResult: 'invalid',
       };
       this.lastCheckTime = Date.now();
       return this.cachedState;
     }
 
-    // All fallbacks failed
+    // All fallbacks failed — but the server was unreachable, not a definitive
+    // invalid response. Keep `lastCheckResult: 'unreachable'` so the client
+    // doesn't redirect the user to /setup/license on transient outages.
     logger.warn('All license verification methods failed — unlicensed');
     this.cachedState = {
       ...UNLICENSED_STATE,
       licenseKey: licenseKey.slice(0, 4) + '-****-****-' + licenseKey.slice(-4),
       errorMessage:
         'License verification failed — server unreachable and no cached verification',
+      lastCheckResult: 'unreachable',
     };
     this.lastCheckTime = Date.now();
     return this.cachedState;

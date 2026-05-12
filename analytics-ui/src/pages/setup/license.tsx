@@ -33,6 +33,7 @@ const LICENSE_STATUS_QUERY = gql`
       verifiedAt
       licenseKey
       errorMessage
+      lastCheckResult
     }
   }
 `;
@@ -92,9 +93,12 @@ export default function LicensePage() {
     }
   }, []);
 
-  // If already licensed, confirm server state and redirect
+  // If already licensed, confirm server state and redirect — including the
+  // grace period case. Mirrors the portal: a user who lands on the license
+  // activation page with a valid (even unreachable-but-cached) license
+  // shouldn't be made to re-activate; we send them straight to the app.
   useEffect(() => {
-    if (licenseState?.isLicensed && !licenseState?.isGracePeriod) {
+    if (licenseState?.isLicensed) {
       setLicenseCookieAndRedirect();
     }
   }, [licenseState, setLicenseCookieAndRedirect]);

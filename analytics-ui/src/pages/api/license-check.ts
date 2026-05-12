@@ -15,13 +15,18 @@ export default async function handler(
   // A new browser/client may hit this endpoint before the in-memory license
   // cache has been hydrated. Confirm against the installation-level license
   // state before reporting the app as unlicensed.
-  if (!state.isLicensed) {
+  if (state.lastCheckResult === null) {
     state = await licenseService.checkLicense();
   }
 
-  if (state.isLicensed) {
-    return res.status(200).json({ licensed: true, status: state.status });
-  }
-
-  return res.status(200).json({ licensed: false, status: state.status });
+  // Three-state shape (mirrors portal): expose lastCheckResult so callers
+  // can distinguish "definitively invalid" from "server unreachable" and
+  // avoid redirecting on transient outages.
+  return res.status(200).json({
+    licensed: state.isLicensed,
+    status: state.status,
+    lastCheckResult: state.lastCheckResult,
+    isGracePeriod: state.isGracePeriod,
+    graceDaysRemaining: state.graceDaysRemaining,
+  });
 }

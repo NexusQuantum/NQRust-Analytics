@@ -1120,8 +1120,16 @@ class AskService:
                 trees=document_trees,
             )
             passages = retrieval_result.get("passages", [])
+            retrieval_error: str | None = retrieval_result.get("error_message")
 
             if not passages:
+                # Prefer the specific upstream error (credit exhaustion,
+                # document missing) over the generic "no info" message —
+                # the latter misleadingly blames the document/question.
+                fallback_message = (
+                    retrieval_error
+                    or "The documents don't contain sufficient information to answer this question. Try rephrasing or selecting different documents."
+                )
                 self._update_status(
                     query_id=query_id,
                     status="finished",
@@ -1129,7 +1137,7 @@ class AskService:
                     classifier_route=classifier_route,
                     trace_id=trace_id,
                     document_answer=DocumentAnswerDetail(
-                        content="The documents don't contain sufficient information to answer this question. Try rephrasing or selecting different documents.",
+                        content=fallback_message,
                         citations=[],
                         retrieved_document_ids=document_ids,
                     ),

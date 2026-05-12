@@ -16,9 +16,12 @@ const LICENSE_STATUS_QUERY = gql`
       verifiedAt
       licenseKey
       errorMessage
+      lastCheckResult
     }
   }
 `;
+
+export type LicenseCheckResult = 'valid' | 'invalid' | 'unreachable' | null;
 
 export interface LicenseState {
   isLicensed: boolean;
@@ -34,6 +37,9 @@ export interface LicenseState {
   verifiedAt: string | null;
   licenseKey: string | null;
   errorMessage: string | null;
+  // null = not yet checked (cold start), 'valid'/'invalid' definitive,
+  // 'unreachable' = transient (don't redirect)
+  lastCheckResult: LicenseCheckResult;
 }
 
 export function useLicense() {

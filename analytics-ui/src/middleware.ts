@@ -32,6 +32,13 @@ async function handleMiddleware(request: NextRequest) {
 
   // Licensing is installation-scoped, so protected page loads confirm with the
   // server instead of trusting a browser-scoped cookie.
+  //
+  // Three-state model (mirrors portal):
+  //   - `licensed: true`               → allow
+  //   - `lastCheckResult: 'invalid'`   → definitively unlicensed → redirect
+  //   - `lastCheckResult: 'unreachable'` or fetch error → don't redirect.
+  //     Trust the cached/grace state and let the user keep working. The
+  //     /setup/license page surfaces a warning if the user lands there.
   try {
     const checkUrl = new URL('/api/license-check', request.url);
     const res = await fetch(checkUrl, {
@@ -46,12 +53,19 @@ async function handleMiddleware(request: NextRequest) {
       if (body?.licensed) {
         return NextResponse.next();
       }
+      // Only redirect on a definitive invalid result. `unreachable` (server
+      // down, timeout, transient 5xx) keeps the user on their current page.
+      if (body?.lastCheckResult === 'invalid') {
+        return NextResponse.redirect(new URL('/setup/license', request.url));
+      }
     }
   } catch {
-    // Fall through to redirect when license state cannot be confirmed.
+    // Fetch errors are transient — never redirect on them.
   }
 
-  return NextResponse.redirect(new URL('/setup/license', request.url));
+  // Default to allowing the request through when we couldn't get a definitive
+  // answer. The client-side LicenseGuard provides a second line of defence.
+  return NextResponse.next();
 }
 
 export const config = {
