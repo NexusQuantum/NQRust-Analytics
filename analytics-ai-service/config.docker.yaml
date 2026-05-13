@@ -161,7 +161,12 @@ settings:
   sql_pairs_retrieval_max_size: 10
   instructions_similarity_threshold: 0.7
   instructions_top_k: 10
+  # Local PageIndex engine workspace (per-document parsed page cache).
+  # Must be writable. Mounted from `pageindex_workspace` named volume in
+  # the production compose; dev-local uses `ai_pageindex`.
   document_workspace_dir: /app/pageindex_workspace
-  document_indexing_model: gpt-4o-mini
+  # Leave `document_indexing_model` unset to reuse the LLM the user
+  # selected in the installer (same model used by sql_answer). Override
+  # only when you explicitly want a cheaper model for indexing.
+  document_indexing_model: ""
   document_retrieval_top_k: 5
-  pageindex_api_key: ${PAGEINDEX_API_KEY}

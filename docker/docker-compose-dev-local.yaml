@@ -105,7 +105,6 @@ services:
       QDRANT_HOST: qdrant
       ANALYTICS_AI_SERVICE_PORT: 5555
       DEVELOPMENT: "true"
-      PAGEINDEX_API_KEY: "97c06a6a6de94749b902d2b28d739e92"
     ports:
       - "5555:5555"
     volumes:

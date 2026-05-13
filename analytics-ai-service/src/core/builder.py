@@ -131,14 +131,21 @@ class ServiceContainerBuilder:
         query_cache = {"maxsize": s.query_cache_maxsize, "ttl": s.query_cache_ttl}
         analytics_docs = fetch_analytics_docs(s.doc_endpoint, s.is_oss)
 
-        # Build document pipelines shared with AskService
+        # Build document pipelines shared with AskService. The vendored
+        # PageIndex engine runs locally with the project's LLM credentials —
+        # no external API key required. The indexing/retrieval model defaults
+        # to whatever LLM is wired to sql_answer (the same model the user
+        # picked in the installer / config.yaml), but can be overridden via
+        # `document_indexing_model` for cheaper indexing if desired.
         llm_provider = pc["sql_answer"]["llm_provider"]
+        document_model = s.document_indexing_model or getattr(
+            llm_provider, "model", None
+        )
         document_pipelines_for_ask = {
             "document_classifier": DocumentClassifier(llm_provider=llm_provider),
             "document_retrieval": DocumentRetrieval(
-                api_key=s.pageindex_api_key,
                 workspace_dir=s.document_workspace_dir,
-                model=s.document_indexing_model,
+                model=document_model,
                 top_k_pages=s.document_retrieval_top_k,
             ),
             "document_answer": DocumentAnswer(llm_provider=llm_provider),
@@ -321,19 +328,22 @@ class ServiceContainerBuilder:
         )
 
     def _create_document_service(self, pc, s, query_cache) -> DocumentService:
-        # Borrow LLM provider from sql_answer (always present per _validate)
+        # Borrow LLM provider from sql_answer (always present per _validate).
+        # The local PageIndex engine reuses the user-selected model unless
+        # `document_indexing_model` is explicitly set in settings.
         llm_provider = pc["sql_answer"]["llm_provider"]
+        document_model = s.document_indexing_model or getattr(
+            llm_provider, "model", None
+        )
 
         document_indexing = DocumentIndexing(
-            api_key=s.pageindex_api_key,
             workspace_dir=s.document_workspace_dir,
-            model=s.document_indexing_model,
+            model=document_model,
         )
 
         document_retrieval = DocumentRetrieval(
-            api_key=s.pageindex_api_key,
             workspace_dir=s.document_workspace_dir,
-            model=s.document_indexing_model,
+            model=document_model,
             top_k_pages=s.document_retrieval_top_k,
         )
 

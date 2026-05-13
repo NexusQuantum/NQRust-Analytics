@@ -59,6 +59,16 @@ class LitellmLLMProvider(LLMProvider):
         )
         self._enable_fallback_testing = fallback_testing and self._has_fallbacks
 
+    @property
+    def model(self) -> str:
+        """Public read access to the configured model id (LiteLLM format).
+
+        Used by helpers that need to call LiteLLM directly (e.g. the local
+        PageIndex engine) so they pick up the same model the user selected
+        in the installer / config.yaml instead of hard-coding one.
+        """
+        return self._model
+
     def get_generator(
         self,
         system_prompt: Optional[str] = None,

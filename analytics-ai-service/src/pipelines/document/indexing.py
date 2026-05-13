@@ -22,13 +22,16 @@ class DocumentIndexing(BasicPipeline):
 
     def __init__(
         self,
-        api_key: str,
-        workspace_dir: str | Path,
-        model: str = "gpt-4o-mini",
+        workspace_dir: str | Path = "/app/pageindex_workspace",
+        model: str = "gpt-5-mini",
         on_complete: Optional[Callable[[str, dict, int], Any]] = None,
         **kwargs,
     ):
-        self._adapter = PageIndexAdapter(api_key=api_key, workspace_dir=workspace_dir)
+        self._adapter = PageIndexAdapter(
+            workspace_dir=workspace_dir,
+            indexing_model=model,
+            retrieval_model=model,
+        )
         self._on_complete = on_complete
         super().__init__(pipe=None)  # type: ignore[arg-type]
 

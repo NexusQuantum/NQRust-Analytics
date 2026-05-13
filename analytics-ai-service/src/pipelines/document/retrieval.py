@@ -19,13 +19,17 @@ class DocumentRetrieval(BasicPipeline):
 
     def __init__(
         self,
-        api_key: str,
-        workspace_dir: str | Path,
-        model: str = "gpt-4o-mini",
+        workspace_dir: str | Path = "/app/pageindex_workspace",
+        model: str = "gpt-5-mini",
         top_k_pages: int = 5,
         **kwargs,
     ):
-        self._adapter = PageIndexAdapter(api_key=api_key, workspace_dir=workspace_dir)
+        self._adapter = PageIndexAdapter(
+            workspace_dir=workspace_dir,
+            indexing_model=model,
+            retrieval_model=model,
+            retrieval_top_k=top_k_pages,
+        )
         self._top_k = top_k_pages
         super().__init__(pipe=None)  # type: ignore[arg-type]
 
@@ -71,22 +75,26 @@ class DocumentRetrieval(BasicPipeline):
                     "excerpt": p.excerpt,
                 })
 
-        # Surface infrastructure errors (e.g. PageIndex credit exhaustion) so
-        # the caller can show a useful message instead of the generic
-        # "documents don't contain sufficient information" — that wording
-        # blames the documents/question when the real issue is upstream.
+        # Surface infrastructure errors so the caller can show a useful
+        # message instead of the generic "documents don't contain sufficient
+        # information" — that wording blames the documents/question when the
+        # real issue is upstream (missing index, LLM API failure, etc.).
         error_message: str | None = None
         if not passages and errors:
             combined = " ".join(errors).lower()
-            if "insufficient credits" in combined or "insufficientcredits" in combined:
+            if "not found" in combined or "no pageindex doc id" in combined:
                 error_message = (
-                    "Document retrieval service has insufficient credits. "
-                    "Please top up your PageIndex subscription to continue."
+                    "Document index missing. Re-upload the affected document "
+                    "to rebuild its index."
                 )
-            elif "not found" in combined:
+            elif (
+                "rate limit" in combined
+                or "429" in combined
+                or "quota" in combined
+            ):
                 error_message = (
-                    "Document not found in the retrieval index. "
-                    "Try re-indexing the affected documents."
+                    "LLM rate limit reached while retrieving document context. "
+                    "Wait a moment and try again."
                 )
             else:
                 error_message = (

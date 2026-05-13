@@ -1,0 +1,13 @@
+# Defaults for the vendored PageIndex engine.
+# Override per environment via PageIndex options when calling page_index_main.
+model: "gpt-5-mini"
+retrieve_model: "gpt-5-mini"  # defaults to `model` if not set
+toc_check_page_num: 20
+max_page_num_each_node: 10
+max_token_num_each_node: 20000
+if_add_node_id: "yes"
+if_add_node_summary: "yes"
+if_add_doc_description: "no"
+# Keep node text in the tree so retrieval can return raw page content
+# without re-opening the PDF every time.
+if_add_node_text: "yes"

@@ -75,11 +75,14 @@ class Settings(BaseSettings):
 
     sql_pairs_path: str = Field(default="sql_pairs.json")
 
-    # document RAG config
-    document_workspace_dir: str = Field(default="/tmp/pageindex_workspace")
-    document_indexing_model: str = Field(default="gpt-4o-mini")
+    # document RAG config (local vendored PageIndex engine).
+    # `document_indexing_model` is optional — when empty, the engine uses
+    # whatever model the user wired to sql_answer (i.e. the model selected
+    # in the installer / config.yaml). Override only if you want to use a
+    # cheaper model specifically for the indexing step.
+    document_workspace_dir: str = Field(default="/app/pageindex_workspace")
+    document_indexing_model: str = Field(default="")
     document_retrieval_top_k: int = Field(default=5)
-    pageindex_api_key: str = Field(default="")
 
     def __init__(self):
         import os, re

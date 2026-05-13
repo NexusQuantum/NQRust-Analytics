@@ -143,7 +143,6 @@ pipes:
 settings:
   doc_endpoint: https://docs.getanalytics.ai
   is_oss: true
-  pageindex_api_key: ${PAGEINDEX_API_KEY}
   engine_timeout: 30
   column_indexing_batch_size: 50
   table_retrieval_size: 10

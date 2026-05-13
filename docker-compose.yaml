@@ -28,7 +28,6 @@ services:
       PYTHONUNBUFFERED: 1
       CONFIG_PATH: /app/config.yaml
       ANALYTICS_UI_ENDPOINT: http://analytics-ui:3000
-      PAGEINDEX_API_KEY: ${PAGEINDEX_API_KEY:-}
     env_file:
       - .env
     volumes:
