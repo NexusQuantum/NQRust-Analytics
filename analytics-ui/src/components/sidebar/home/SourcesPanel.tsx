@@ -33,7 +33,7 @@ interface Props {
 }
 
 export default function SourcesPanel({ uploadOpen = false, onUploadClose }: Props) {
-  const { documents, selectedIds, loading, error, refetch, uploadDocument, deleteDocument, toggleSelection } =
+  const { documents, selectedIds, loading, error, refetch, uploadDocuments, deleteDocument, toggleSelection } =
     useDocuments();
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -99,7 +99,7 @@ export default function SourcesPanel({ uploadOpen = false, onUploadClose }: Prop
         visible={uploadOpen}
         uploading={loading}
         onClose={onUploadClose || (() => {})}
-        onUpload={uploadDocument}
+        onUpload={uploadDocuments}
       />
     </>
   );

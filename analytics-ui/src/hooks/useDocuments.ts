@@ -20,6 +20,9 @@ interface UseDocumentsReturn {
   error: string | null;
   refetch: () => Promise<void>;
   uploadDocument: (file: File) => Promise<void>;
+  uploadDocuments: (
+    files: File[],
+  ) => Promise<{ file: string; error: string }[]>;
   deleteDocument: (id: string) => Promise<void>;
   toggleSelection: (id: string) => Promise<void>;
 }
@@ -80,6 +83,47 @@ export function useDocuments(): UseDocumentsReturn {
     }
   }, [fetchDocuments]);
 
+  const uploadDocuments = useCallback(
+    async (files: File[]): Promise<{ file: string; error: string }[]> => {
+      if (files.length === 0) return [];
+      setLoading(true);
+      setError(null);
+      const failures: { file: string; error: string }[] = [];
+      try {
+        const results = await Promise.allSettled(
+          files.map(async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch('/api/v1/documents/upload', {
+              method: 'POST',
+              body: formData,
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data.error || `Upload failed (${res.status})`);
+            }
+          }),
+        );
+        results.forEach((r, idx) => {
+          if (r.status === 'rejected') {
+            failures.push({
+              file: files[idx].name,
+              error: r.reason?.message || 'Upload failed',
+            });
+          }
+        });
+        if (failures.length === files.length) {
+          setError(failures[0].error);
+        }
+        await fetchDocuments();
+        return failures;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchDocuments],
+  );
+
   const deleteDocument = useCallback(async (id: string) => {
     try {
       const res = await fetch(`/api/v1/documents/${id}`, { method: 'DELETE' });
@@ -124,6 +168,7 @@ export function useDocuments(): UseDocumentsReturn {
     error,
     refetch: fetchDocuments,
     uploadDocument,
+    uploadDocuments,
     deleteDocument,
     toggleSelection,
   };
