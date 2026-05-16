@@ -180,13 +180,28 @@ export const initComponents = () => {
     instructionRepository,
     analyticsAIAdaptor,
   });
+  // The AI service POSTs document indexing results back to this URL, so it
+  // must be reachable *from inside the analytics-service container*. The
+  // safest default is the docker service name; falling back to NEXTAUTH_URL
+  // is risky because NEXTAUTH_URL is typically a public/host address that
+  // containers cannot reach (silent callback failures → docs stuck
+  // "indexing"). Log a warning when an explicit value isn't set.
+  const explicitCallbackUrl = process.env.CALLBACK_BASE_URL;
+  if (!explicitCallbackUrl) {
+    console.warn(
+      '[document-rag] CALLBACK_BASE_URL is not set — defaulting to ' +
+        'http://analytics-ui:3000. If your analytics-ui service is named ' +
+        'differently or runs on another port, set CALLBACK_BASE_URL in .env ' +
+        'or document indexing callbacks will silently fail.',
+    );
+  }
   const documentService = new DocumentService({
     documentRepository,
     documentTreeRepository,
     documentSelectionRepository,
     analyticsAIAdaptor,
     config: serverConfig,
-    callbackBaseUrl: process.env.CALLBACK_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:13000',
+    callbackBaseUrl: explicitCallbackUrl || 'http://analytics-ui:3000',
   });
 
   // background trackers

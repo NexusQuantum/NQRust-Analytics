@@ -118,20 +118,46 @@ class DocumentIndexing(BasicPipeline):
         if tree and not error:
             payload["tree_json"] = json.dumps(tree)
 
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    callback_url,
-                    json=payload,
-                    timeout=aiohttp.ClientTimeout(total=30),
-                ) as resp:
-                    if resp.status >= 400:
-                        text = await resp.text()
-                        logger.warning(f"Callback to {callback_url} returned {resp.status}: {text}")
-                    else:
-                        logger.info(f"Callback to {callback_url} succeeded")
-        except Exception as e:
-            logger.error(f"Callback POST to {callback_url} failed: {e}")
+        # Retry on transient network failures. Without this, a single DNS
+        # hiccup or a misconfigured CALLBACK_BASE_URL leaves the UI stuck on
+        # "indexing" even though the server-side work succeeded.
+        last_error: str | None = None
+        for attempt in range(1, 4):  # 3 attempts total
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        callback_url,
+                        json=payload,
+                        timeout=aiohttp.ClientTimeout(total=30),
+                    ) as resp:
+                        if resp.status >= 400:
+                            text = await resp.text()
+                            logger.warning(
+                                f"Callback to {callback_url} returned "
+                                f"{resp.status}: {text} (attempt {attempt}/3)"
+                            )
+                            last_error = f"HTTP {resp.status}: {text}"
+                        else:
+                            logger.info(f"Callback to {callback_url} succeeded")
+                            return
+            except Exception as e:
+                # repr(e) ensures the exception class is logged even when
+                # __str__ returns an empty string (common for some aiohttp
+                # connection errors, which led to misleading "failed: " logs).
+                last_error = repr(e)
+                logger.warning(
+                    f"Callback POST to {callback_url} failed "
+                    f"(attempt {attempt}/3): {last_error}"
+                )
+            if attempt < 3:
+                await asyncio.sleep(2 * attempt)  # 2s, 4s backoff
+
+        logger.error(
+            f"Callback POST to {callback_url} gave up after 3 attempts; "
+            f"last error: {last_error}. UI may show document stuck at "
+            f"'indexing' — verify CALLBACK_BASE_URL is reachable from the "
+            f"analytics-service container."
+        )
 
     def _count_pages(self, tree: dict) -> int:
         """Best-effort page count from tree metadata."""
