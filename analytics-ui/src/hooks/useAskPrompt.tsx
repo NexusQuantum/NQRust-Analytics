@@ -223,8 +223,13 @@ export default function useAskPrompt(threadId?: number) {
     const response = await createInstantRecommendedQuestions({
       variables: { data: { previousQuestions } },
     });
+    const irqTaskId = response.data?.createInstantRecommendedQuestions?.id;
+    if (!irqTaskId) {
+      console.error('createInstantRecommendedQuestions returned no id', response);
+      return;
+    }
     fetchInstantRecommendedQuestions({
-      variables: { taskId: response.data.createInstantRecommendedQuestions.id },
+      variables: { taskId: irqTaskId },
     });
   }, [originalQuestion]);
 
@@ -270,7 +275,13 @@ export default function useAskPrompt(threadId?: number) {
   useEffect(() => {
     if (isRecommendedFinished(recommendedQuestions?.status))
       instantRecommendedQuestionsResult.stopPolling();
-  }, [recommendedQuestions]);
+    // Same defensive guard as askingTaskResult above — if the poll query
+    // itself errors (e.g. missing/stale $taskId), stop the 1s loop so we
+    // don't spam /api/graphql until the page is closed.
+    if (instantRecommendedQuestionsResult.error) {
+      instantRecommendedQuestionsResult.stopPolling();
+    }
+  }, [recommendedQuestions, instantRecommendedQuestionsResult.error]);
 
   useEffect(() => {
     const taskId = createAskingTaskResult.data?.createAskingTask.id;
@@ -297,8 +308,13 @@ export default function useAskPrompt(threadId?: number) {
       const response = await rerunAskingTask({
         variables: { responseId: threadResponse.id },
       });
+      const rerunTaskId = response.data?.rerunAskingTask?.id;
+      if (!rerunTaskId) {
+        console.error('rerunAskingTask returned no id, skipping poll', response);
+        return;
+      }
       const { data } = await fetchAskingTask({
-        variables: { taskId: response.data.rerunAskingTask.id },
+        variables: { taskId: rerunTaskId },
       });
       // update the asking task in cache manually
       handleUpdateRerunAskingTaskCache(
@@ -345,8 +361,15 @@ export default function useAskPrompt(threadId?: number) {
           },
         },
       });
+      const newTaskId = response.data?.createAskingTask?.id;
+      if (!newTaskId) {
+        // Don't start polling on an undefined taskId — Apollo would
+        // spam GraphQLError("$taskId required") at 1Hz until close.
+        console.error('createAskingTask returned no id, skipping poll', response);
+        return;
+      }
       await fetchAskingTask({
-        variables: { taskId: response.data.createAskingTask.id },
+        variables: { taskId: newTaskId },
       });
     } catch (error) {
       console.error(error);
