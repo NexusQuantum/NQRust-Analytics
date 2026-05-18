@@ -17,6 +17,39 @@ import { getLogger } from '@server/utils';
 const logger = getLogger('TextBasedAnswerBackgroundTracker');
 logger.level = 'debug';
 
+// Coerce arbitrary thrown values (Axios errors, GraphQLError, plain
+// objects, strings) into the shape declared by the GraphQL Error type
+// (code, shortMessage, message, stacktrace). Writing the raw value
+// trashes the row: Apollo can't serialize fields like `config` /
+// nested `originalError` against a String-typed schema, and the entire
+// thread fetch fails when that row is touched.
+function normalizeAnswerError(raw: any): {
+  code: string | null;
+  shortMessage: string | null;
+  message: string;
+  stacktrace: string[];
+} | null {
+  if (raw == null) return null;
+  // Unwrap a common wrapper: some callers re-throw as { originalError }.
+  const e = raw.originalError ?? raw;
+  const stack = typeof e?.stack === 'string'
+    ? e.stack.split('\n').map((s: string) => s.trim()).slice(0, 12)
+    : Array.isArray(e?.stacktrace)
+      ? e.stacktrace.filter((s: any) => typeof s === 'string')
+      : [];
+  return {
+    code: typeof e?.code === 'string' ? e.code : null,
+    shortMessage: typeof e?.shortMessage === 'string' ? e.shortMessage : null,
+    message:
+      typeof e?.message === 'string' && e.message
+        ? e.message
+        : typeof raw === 'string'
+          ? raw
+          : 'Unknown error',
+    stacktrace: stack,
+  };
+}
+
 export class TextBasedAnswerBackgroundTracker {
   // tasks is a kv pair of task id and thread response
   private tasks: Record<number, ThreadResponse> = {};
@@ -90,7 +123,7 @@ export class TextBasedAnswerBackgroundTracker {
               answerDetail: {
                 ...threadResponse.answerDetail,
                 status: ThreadResponseAnswerStatus.FAILED,
-                error: error?.extensions || error,
+                error: normalizeAnswerError(error?.extensions || error),
               },
             });
             throw error;
@@ -134,7 +167,7 @@ export class TextBasedAnswerBackgroundTracker {
                 ? ThreadResponseAnswerStatus.STREAMING
                 : ThreadResponseAnswerStatus.FAILED,
             numRowsUsedInLLM: result.numRowsUsedInLLM,
-            error: result.error,
+            error: normalizeAnswerError(result.error),
           };
           await this.threadResponseRepository.updateOne(threadResponse.id, {
             answerDetail: updatedAnswerDetail,
