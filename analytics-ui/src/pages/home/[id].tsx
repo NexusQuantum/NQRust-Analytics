@@ -51,7 +51,25 @@ import {
 import { useCreateSqlPairMutation } from '@/apollo/client/graphql/sqlPairs.generated';
 
 const getThreadResponseIsFinished = (threadResponse: ThreadResponse) => {
-  const { answerDetail, breakdownDetail, chartDetail } = threadResponse || {};
+  const { answerDetail, breakdownDetail, chartDetail, documentAnswerDetail, askingTask } =
+    threadResponse || {};
+
+  // Document RAG (DOCUMENT_BASED) responses don't use answerDetail /
+  // chartDetail at all — the answer lives in documentAnswerDetail and
+  // the asking task itself reports terminal state. Without this check
+  // the polling loop never sees a finished signal for RAG turns and
+  // keeps hitting /api/graphql every second forever.
+  if (
+    askingTask?.type === AskingTaskType.DOCUMENT_BASED ||
+    documentAnswerDetail
+  ) {
+    return (
+      askingTask?.status === AskingTaskStatus.FINISHED ||
+      askingTask?.status === AskingTaskStatus.FAILED ||
+      askingTask?.status === AskingTaskStatus.STOPPED
+    );
+  }
+
   // it means it's the old data before support text based answer
   const isBreakdownOnly = answerDetail === null && !isEmpty(breakdownDetail);
 
