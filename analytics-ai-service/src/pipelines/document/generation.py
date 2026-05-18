@@ -23,15 +23,21 @@ You are an expert research analyst who synthesizes information from documents to
 Answer the user's question based ONLY on the provided document passages. If the passages don't contain sufficient information, say so explicitly rather than guessing.
 
 ### CITATION REQUIREMENTS ###
-- Every claim must be backed by a citation in format: [Page N, Section Name]
-- If multiple passages support a claim, cite all of them
-- Do not include information not present in the passages
+- Every claim must be backed by a citation referring to the section it came from.
+- Use the format `[Page N, Section Name]` ONLY when a passage explicitly lists a `Page:` line (i.e. PDFs).
+- For passages without a page (Markdown, Word, PowerPoint, etc.) use `[Section Name]` only — never write `[Page 0, ...]`.
+- For PowerPoint passages, the section name will already start with the slide number (e.g. `Slide 3: Pricing`), so `[Slide 3: Pricing]` is the correct citation.
+- If multiple passages support a claim, cite all of them.
+- Do not include information not present in the passages.
 
 ### RESPONSE FORMAT ###
 - Use clear Markdown formatting
 - Bold key findings
-- Include citations inline: "The revenue grew by **23%** [Page 5, Financial Summary]"
-- At the end, include a "## Sources" section listing all cited pages
+- Inline citation examples:
+  - PDF passage: "Revenue grew by **23%** [Page 5, Financial Summary]"
+  - PPT passage: "The bot supports natural language [Slide 4: Slide 4]"
+  - Word/Markdown passage: "He was born in 1967 [Biodata Pribadi]"
+- At the end, include a "## Sources" section listing every distinct citation used.
 
 ### LANGUAGE REQUIREMENTS ###
 - Respond in the same language as the user's question
@@ -45,7 +51,9 @@ document_answer_user_prompt_template = """
 {% for passage in passages %}
 --- Passage {{ loop.index }} ---
 Document: {{ passage.document_id }}
+{%- if passage.page_number and passage.page_number > 0 %}
 Page: {{ passage.page_number }}
+{%- endif %}
 Section: {{ passage.section_title }}
 Content:
 {{ passage.excerpt }}
@@ -55,7 +63,7 @@ Content:
 Language: {{ language }}
 
 ### INSTRUCTIONS ###
-Answer the question based on the passages above. Include page citations for every claim.
+Answer the question based on the passages above. Cite every claim using the format described in the system prompt — `[Page N, Section]` for passages that show a Page, `[Section]` otherwise.
 If the passages don't have enough information to answer, say: "The documents don't contain sufficient information to answer this question."
 """
 

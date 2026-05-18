@@ -97,7 +97,13 @@ export default function CitationCard({ citations }: Props) {
             <CardBody>
               <Tooltip title={c.sectionTitle}>
                 <PageRef>
-                  p.{c.pageNumber} — {c.sectionTitle}
+                  {/* pageNumber is 0 for markdown-derived docs (md/docx/pptx)
+                      because those have line numbers instead of pages.
+                      Hide the "p.X" prefix in that case — the section title
+                      (e.g. "Slide 3: ...", "Biodata Pribadi") is enough. */}
+                  {c.pageNumber > 0
+                    ? `p.${c.pageNumber} — ${c.sectionTitle}`
+                    : c.sectionTitle}
                 </PageRef>
               </Tooltip>
               <Tooltip title={c.filename}>

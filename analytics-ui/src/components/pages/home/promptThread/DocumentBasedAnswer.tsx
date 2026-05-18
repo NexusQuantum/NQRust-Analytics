@@ -118,7 +118,9 @@ export default function DocumentBasedAnswer({ threadResponse }: DocumentBasedAns
                       <Text className="text-sm text-semi-bold gray-8">
                         {citation.filename || `Document ${citation.documentId.slice(0, 8)}`}
                       </Text>
-                      {citation.pageNumber != null && (
+                      {/* pageNumber is 0 for markdown-derived docs (md/docx/pptx);
+                          only show the page badge for real PDF pages. */}
+                      {citation.pageNumber != null && citation.pageNumber > 0 && (
                         <Text className="text-sm gray-6">· p.{citation.pageNumber}</Text>
                       )}
                       {citation.sectionTitle && (
