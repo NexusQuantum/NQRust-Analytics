@@ -1,7 +1,18 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Checkbox, Tooltip } from 'antd';
-import { LoadingOutlined, CheckCircleOutlined, WarningOutlined, ClockCircleOutlined, DeleteOutlined } from '@ant-design/icons';
+import {
+  LoadingOutlined,
+  CheckCircleOutlined,
+  WarningOutlined,
+  ClockCircleOutlined,
+  DeleteOutlined,
+  FilePdfOutlined,
+  FileWordOutlined,
+  FilePptOutlined,
+  FileMarkdownOutlined,
+  FileTextOutlined,
+} from '@ant-design/icons';
 import { DocumentItem } from '@/hooks/useDocuments';
 
 interface Props {
@@ -73,6 +84,23 @@ const DeleteButton = styled.button`
   }
 `;
 
+function FileTypeIcon({ filename, mimeType }: { filename: string; mimeType: string }) {
+  const lower = filename.toLowerCase();
+  if (lower.endsWith('.pdf') || mimeType === 'application/pdf') {
+    return <FilePdfOutlined style={{ color: 'var(--red-5)', fontSize: 13 }} />;
+  }
+  if (lower.endsWith('.docx') || mimeType.includes('wordprocessingml')) {
+    return <FileWordOutlined style={{ color: 'var(--blue-6)', fontSize: 13 }} />;
+  }
+  if (lower.endsWith('.pptx') || mimeType.includes('presentationml')) {
+    return <FilePptOutlined style={{ color: 'var(--orange-6)', fontSize: 13 }} />;
+  }
+  if (lower.endsWith('.md') || lower.endsWith('.markdown') || mimeType.includes('markdown')) {
+    return <FileMarkdownOutlined style={{ color: 'var(--gray-7)', fontSize: 13 }} />;
+  }
+  return <FileTextOutlined style={{ color: 'var(--gray-6)', fontSize: 13 }} />;
+}
+
 function StatusBadge({ status }: { status: DocumentItem['status'] }) {
   switch (status) {
     case 'indexing':
@@ -135,15 +163,19 @@ export default function SourceItem({ document, isSelected, selectionDisabled, on
         />
       </Tooltip>
 
+      <FileTypeIcon filename={document.originalFilename || document.filename} mimeType={document.mimeType} />
+
       <FileInfo>
         <Tooltip title={label} placement="right">
           <FileName>{label}</FileName>
         </Tooltip>
         <StatusLine>
           <StatusBadge status={document.status} />
-          {document.pageCount && document.status === 'indexed' && (
+          {/* pageCount is 0/null for markdown-derived docs (mammoth/pptx route)
+              — only show it when the document actually has pages (PDFs). */}
+          {document.pageCount ? (
             <span>· {document.pageCount}p</span>
-          )}
+          ) : null}
         </StatusLine>
       </FileInfo>
 

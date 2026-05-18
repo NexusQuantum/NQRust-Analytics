@@ -12,7 +12,23 @@ import { IAnalyticsAIAdaptor } from '@server/adaptors';
 
 const logger = getLogger('DocumentService');
 
-const ALLOWED_MIME_TYPES = ['application/pdf'];
+// Whitelist mirrors the AI service routing in page_index_adapter.py:
+//   .pdf   → native PageIndex (PyPDF2 + pymupdf)
+//   .md    → md_to_tree direct
+//   .docx  → mammoth → md_to_tree
+//   .pptx  → python-pptx → md_to_tree
+// Legacy formats (.doc, .ppt) and tabular data (.xls/.xlsx) are NOT
+// supported on purpose — the engine can't index them well.
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'text/markdown',
+  'text/x-markdown',
+  // Some browsers / OSes send .md files as text/plain or octet-stream;
+  // we fall back to the extension check below for those.
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+];
+const ALLOWED_EXTS = ['.pdf', '.md', '.markdown', '.docx', '.pptx'];
 const MAX_FILENAME_LENGTH = 255;
 
 export class DocumentService {
@@ -187,8 +203,17 @@ export class DocumentService {
       throw new Error(`File too large: ${sizeMb.toFixed(1)}MB (max ${this.maxSizeMb}MB)`);
     }
 
-    if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
-      throw new Error(`Unsupported file type: ${mimeType}. Only PDF files are supported.`);
+    // Accept by mime OR extension — browsers are unreliable about the
+    // mime they send for .md (often text/plain or octet-stream) and
+    // sometimes mis-detect .docx/.pptx as octet-stream too.
+    const ext = filename.toLowerCase().slice(filename.lastIndexOf('.'));
+    const mimeOk = ALLOWED_MIME_TYPES.includes(mimeType);
+    const extOk = ALLOWED_EXTS.includes(ext);
+    if (!mimeOk && !extOk) {
+      throw new Error(
+        `Unsupported file type: ${mimeType || ext || 'unknown'}. ` +
+          `Supported: PDF, Markdown, Word (.docx), PowerPoint (.pptx).`,
+      );
     }
 
     if (filename.length > MAX_FILENAME_LENGTH) {

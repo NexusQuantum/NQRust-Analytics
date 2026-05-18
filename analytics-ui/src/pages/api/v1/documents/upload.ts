@@ -11,6 +11,28 @@ export const config = {
 
 const { documentService } = components;
 
+// Keep this list in sync with documentService.ts and UploadDialog.tsx.
+// We accept by mime OR extension because browsers are unreliable about
+// the mime they send for .md / .docx / .pptx.
+const ALLOWED_MIME_TYPES = new Set([
+  'application/pdf',
+  'text/markdown',
+  'text/x-markdown',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+]);
+const ALLOWED_EXTS = new Set(['.pdf', '.md', '.markdown', '.docx', '.pptx']);
+
+function isAllowed(mimetype: string | null, originalFilename: string | null): boolean {
+  if (mimetype && ALLOWED_MIME_TYPES.has(mimetype)) return true;
+  if (originalFilename) {
+    const lower = originalFilename.toLowerCase();
+    const ext = lower.slice(lower.lastIndexOf('.'));
+    if (ALLOWED_EXTS.has(ext)) return true;
+  }
+  return false;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -21,7 +43,7 @@ export default async function handler(
 
   const form = formidable({
     maxFileSize: 20 * 1024 * 1024, // 20MB
-    filter: ({ mimetype }) => mimetype === 'application/pdf',
+    filter: ({ mimetype, originalFilename }) => isAllowed(mimetype, originalFilename),
   });
 
   try {
@@ -33,8 +55,10 @@ export default async function handler(
     }
 
     const buffer = fs.readFileSync(file.filepath);
-    const mimeType = file.mimetype || 'application/pdf';
-    const originalFilename = file.originalFilename || 'document.pdf';
+    const originalFilename = file.originalFilename || 'document';
+    // Trust the extension when no mime is provided (some browsers send
+    // octet-stream for .md/.docx/.pptx).
+    const mimeType = file.mimetype || 'application/octet-stream';
 
     const doc = await documentService.uploadDocument(buffer, originalFilename, mimeType);
 

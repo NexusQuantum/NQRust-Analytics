@@ -2,6 +2,10 @@ import React, { useCallback, useState } from 'react';
 import { Modal, Alert, Button } from 'antd';
 import {
   InboxOutlined,
+  FilePdfOutlined,
+  FileWordOutlined,
+  FilePptOutlined,
+  FileMarkdownOutlined,
   FileTextOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
@@ -111,7 +115,21 @@ const Footer = styled.div`
 `;
 
 const MAX_SIZE_MB = 20;
-const ACCEPTED_MIME = 'application/pdf';
+
+// Keep these in sync with documentService.ts + upload.ts on the server.
+const ACCEPTED_EXTS = ['.pdf', '.md', '.markdown', '.docx', '.pptx'];
+const ACCEPTED_MIMES = new Set([
+  'application/pdf',
+  'text/markdown',
+  'text/x-markdown',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+]);
+
+// The `accept` attribute on <input type="file">. Lists both extensions
+// (works on Windows / Linux where mime is often missing) and mime types
+// (works on macOS / mobile).
+const ACCEPT_ATTR = [...ACCEPTED_EXTS, ...ACCEPTED_MIMES].join(',');
 
 function humanSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -119,17 +137,38 @@ function humanSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function extOf(name: string): string {
+  const i = name.lastIndexOf('.');
+  return i >= 0 ? name.slice(i).toLowerCase() : '';
+}
+
 function validate(file: File): string | undefined {
-  if (
-    file.type !== ACCEPTED_MIME &&
-    !file.name.toLowerCase().endsWith('.pdf')
-  ) {
-    return 'Only PDF files are supported.';
+  const ext = extOf(file.name);
+  // Browsers send unreliable mimes for .md / .docx / .pptx; accept by
+  // either mime OR extension, matching the server-side check.
+  if (!ACCEPTED_MIMES.has(file.type) && !ACCEPTED_EXTS.includes(ext)) {
+    return 'Unsupported format. Allowed: PDF, Markdown, Word (.docx), PowerPoint (.pptx).';
   }
   if (file.size > MAX_SIZE_MB * 1024 * 1024) {
     return `Must be smaller than ${MAX_SIZE_MB} MB.`;
   }
   return undefined;
+}
+
+function iconFor(name: string): React.ReactNode {
+  switch (extOf(name)) {
+    case '.pdf':
+      return <FilePdfOutlined style={{ color: 'var(--red-5)' }} />;
+    case '.docx':
+      return <FileWordOutlined style={{ color: 'var(--blue-6)' }} />;
+    case '.pptx':
+      return <FilePptOutlined style={{ color: 'var(--orange-6)' }} />;
+    case '.md':
+    case '.markdown':
+      return <FileMarkdownOutlined style={{ color: 'var(--gray-7)' }} />;
+    default:
+      return <FileTextOutlined style={{ color: 'var(--blue-5)' }} />;
+  }
 }
 
 export default function UploadDialog({
@@ -263,15 +302,17 @@ export default function UploadDialog({
         <DropText>
           {uploading
             ? 'Uploading…'
-            : 'Click or drag PDF files here (multiple allowed)'}
+            : 'Click or drag files here (multiple allowed)'}
         </DropText>
-        <DropHint>PDF only · max {MAX_SIZE_MB} MB each · max 100 pages</DropHint>
+        <DropHint>
+          PDF · Markdown · Word (.docx) · PowerPoint (.pptx) · max {MAX_SIZE_MB} MB each
+        </DropHint>
       </DropZone>
 
       <HiddenInput
         ref={inputRef}
         type="file"
-        accept=".pdf,application/pdf"
+        accept={ACCEPT_ATTR}
         multiple
         onChange={handleChange}
       />
@@ -282,7 +323,7 @@ export default function UploadDialog({
             const err = s.validationError || s.uploadError;
             return (
               <FileRow key={`${s.file.name}:${s.file.size}:${idx}`} $hasError={!!err}>
-                <FileTextOutlined style={{ color: 'var(--blue-5)' }} />
+                {iconFor(s.file.name)}
                 <FileMeta>
                   <FileName title={s.file.name}>{s.file.name}</FileName>
                   <FileSubline>{humanSize(s.file.size)}</FileSubline>

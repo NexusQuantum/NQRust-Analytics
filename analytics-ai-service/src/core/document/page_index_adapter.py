@@ -25,13 +25,23 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .pageindex import page_index_main
+from .converter import ConversionError, docx_to_markdown, pptx_to_markdown
+from .pageindex import md_to_tree, page_index_main
 from .pageindex.utils import (
     ConfigLoader,
     create_node_mapping,
     extract_json,
     llm_acompletion,
 )
+
+# Extensions that go through the markdown engine. Office formats are first
+# converted to Markdown by the helpers in converter.py; .md/.markdown go
+# straight in. Everything outside this set + .pdf is rejected upstream.
+_MARKDOWN_LIKE_EXTS = {".md", ".markdown", ".docx", ".pptx"}
+
+
+class UnsupportedFormatError(Exception):
+    """Raised when build_index is asked to index an unsupported file type."""
 
 logger = logging.getLogger("analytics-service")
 
@@ -84,23 +94,54 @@ class PageIndexAdapter:
         """
         file_path = Path(file_path)
         if not file_path.is_file():
-            raise FileNotFoundError(f"PDF not found: {file_path}")
+            raise FileNotFoundError(f"File not found: {file_path}")
 
-        logger.info(f"Building PageIndex tree locally for {file_path.name}")
+        ext = file_path.suffix.lower()
+        logger.info(
+            f"Building PageIndex tree locally for {file_path.name} (ext={ext})"
+        )
         opt = ConfigLoader().load(
             {k: v for k, v in {"model": self._indexing_model}.items() if v}
         )
 
-        # `page_index_main` is synchronous and internally spins its own
-        # event loop via asyncio.run. Running it inside an already-running
-        # loop would deadlock, so callers from async contexts should
-        # off-load via run_in_executor.
-        result = page_index_main(str(file_path), opt)
-        tree: list[dict] | dict = result.get("structure", []) if isinstance(result, dict) else result
+        if ext == ".pdf":
+            # `page_index_main` is synchronous and internally spins its own
+            # event loop via asyncio.run. Running it inside an already-running
+            # loop would deadlock, so callers from async contexts should
+            # off-load via run_in_executor.
+            result = page_index_main(str(file_path), opt)
+        elif ext in _MARKDOWN_LIKE_EXTS:
+            md_path = self._ensure_markdown(file_path, doc_id)
+            # md_to_tree is async; we're running inside a worker thread
+            # (caller off-loads via run_in_executor) so a fresh event loop
+            # via asyncio.run is safe and matches the PDF path's pattern.
+            result = asyncio.run(
+                md_to_tree(
+                    str(md_path),
+                    if_add_node_summary="yes",
+                    summary_token_threshold=200,
+                    # Generate a doc-level description so the service layer
+                    # has something to show when the user has many docs
+                    # selected and we need to pick which one to retrieve
+                    # from first (multi-doc routing). Costs one extra LLM
+                    # call at index time, no cost at query time.
+                    if_add_doc_description="yes",
+                    model=self._indexing_model,
+                )
+            )
+        else:
+            raise UnsupportedFormatError(
+                f"Unsupported document format: {ext}. "
+                f"Supported: .pdf, .md, .markdown, .docx, .pptx"
+            )
+
+        tree: list[dict] | dict = (
+            result.get("structure", []) if isinstance(result, dict) else result
+        )
 
         # Normalise the tree shape we hand back to the service layer:
         #   structure: list of root nodes (each with `title`, `nodes`, `text`, ...)
-        #   doc_name:  PDF filename
+        #   doc_name:  PDF / markdown filename
         # We also embed the application doc_id so the retrieval side can
         # report it back even after a process restart.
         wrapped = {
@@ -125,6 +166,34 @@ class PageIndexAdapter:
             "tree": wrapped,
             "page_count": page_count,
         }
+
+    def _ensure_markdown(self, src: Path, doc_id: str | None) -> Path:
+        """Return a path to a Markdown version of `src`.
+
+        For .md / .markdown the source is used as-is. For .docx / .pptx
+        we run the appropriate converter and cache the output under the
+        workspace's `converted/` directory, keyed by doc_id so concurrent
+        uploads of different files don't collide.
+        """
+        ext = src.suffix.lower()
+        if ext in {".md", ".markdown"}:
+            return src
+
+        converted_dir = self._workspace / "converted"
+        out_path = converted_dir / f"{doc_id or src.stem}.md"
+        try:
+            if ext == ".docx":
+                return docx_to_markdown(src, out_path)
+            if ext == ".pptx":
+                return pptx_to_markdown(src, out_path)
+        except ConversionError as e:
+            # Re-raise with the same message but as the format error type
+            # so the caller can present a user-readable failure status.
+            raise UnsupportedFormatError(str(e)) from e
+
+        raise UnsupportedFormatError(
+            f"No markdown converter registered for {ext}"
+        )
 
     # ── retrieval ───────────────────────────────────────────────────────────
 
@@ -215,7 +284,11 @@ class PageIndexAdapter:
 
 
 def _count_pages_from_tree(structure: list[dict]) -> int:
-    """Highest `end_index` (1-indexed page) seen across the tree, or 0."""
+    """Highest `end_index` (1-indexed page) seen across the tree, or 0.
+
+    Returns 0 for markdown-derived trees (nodes only have `line_num`,
+    not page indices). The UI hides the page count when it's falsy.
+    """
     max_page = 0
 
     def _walk(nodes: list[dict]) -> None:
@@ -233,12 +306,21 @@ def _count_pages_from_tree(structure: list[dict]) -> int:
 
 
 def _first_page_of_node(node: dict) -> int:
-    """Pick the most useful page citation for a node."""
+    """Pick the most useful page citation for a node.
+
+    PDF nodes carry `start_index` / `physical_index` / `end_index`
+    (1-indexed page numbers). Markdown-derived nodes carry `line_num`
+    instead — there's no real "page" to cite, so we return 0 to signal
+    "no page citation" and let the UI decide how to render that.
+    """
     for key in ("start_index", "physical_index", "end_index"):
         value = node.get(key)
         if isinstance(value, int) and value > 0:
             return value
-    # Fall back to walking into children
+    if isinstance(node.get("line_num"), int):
+        # Markdown node — no meaningful page number exists.
+        return 0
+    # Fall back to walking into children for nodes with neither index
     children = node.get("nodes") or []
     if children:
         return _first_page_of_node(children[0])
