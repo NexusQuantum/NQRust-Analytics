@@ -30,6 +30,11 @@ const ALLOWED_MIME_TYPES = [
 ];
 const ALLOWED_EXTS = ['.pdf', '.md', '.markdown', '.docx', '.pptx'];
 const MAX_FILENAME_LENGTH = 255;
+// Soft cap on total documents per install. Beyond this, indexing/listing
+// performance starts to suffer and storage can balloon unnoticed. Counts
+// every document regardless of status — failed/pending rows still take
+// DB rows and (sometimes) on-disk bytes.
+const MAX_TOTAL_DOCUMENTS = 100;
 
 export class DocumentService {
   private readonly documentRepository: DocumentRepository;
@@ -77,11 +82,23 @@ export class DocumentService {
     // Save to disk (content-addressable; dedupes identical files)
     const saved = saveFile(fileBuffer, originalFilename, this.storageDir);
 
-    // Check if already indexed (by hash)
+    // Check if already indexed (by hash) — re-upload of an existing file
+    // doesn't count against the total cap, so do this BEFORE the cap check.
     const existing = await this.documentRepository.findByHash(saved.hash);
     if (existing && existing.status === 'indexed') {
       logger.info(`Document with hash ${saved.hash} already indexed, reusing`);
       return existing;
+    }
+
+    // Enforce total-document cap. Listing/select performance and storage
+    // start to suffer beyond a few hundred docs; the cap forces the user
+    // to clean up before adding more.
+    const all = await this.documentRepository.findAll();
+    if (all.length >= MAX_TOTAL_DOCUMENTS) {
+      throw new Error(
+        `Maximum ${MAX_TOTAL_DOCUMENTS} documents reached (currently ${all.length}). ` +
+          `Delete some documents before uploading more.`,
+      );
     }
 
     // Create DB record

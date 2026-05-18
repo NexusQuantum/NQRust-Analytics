@@ -83,7 +83,7 @@ const defaultConfig = {
 
   // document storage
   documentStorageDir: `${process.cwd()}/storage/documents`,
-  documentMaxSizeMb: 20,
+  documentMaxSizeMb: 50,
   documentMaxPages: 100,
 
   // analytics engine

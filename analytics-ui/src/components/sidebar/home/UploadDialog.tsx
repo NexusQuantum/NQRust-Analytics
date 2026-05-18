@@ -114,7 +114,7 @@ const Footer = styled.div`
   margin-top: 16px;
 `;
 
-const MAX_SIZE_MB = 20;
+const MAX_SIZE_MB = 50;
 
 // Keep these in sync with documentService.ts + upload.ts on the server.
 const ACCEPTED_EXTS = ['.pdf', '.md', '.markdown', '.docx', '.pptx'];

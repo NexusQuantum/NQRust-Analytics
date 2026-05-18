@@ -42,7 +42,7 @@ export default async function handler(
   }
 
   const form = formidable({
-    maxFileSize: 20 * 1024 * 1024, // 20MB
+    maxFileSize: 50 * 1024 * 1024, // 50MB — keep in sync with documentService and UploadDialog
     filter: ({ mimetype, originalFilename }) => isAllowed(mimetype, originalFilename),
   });
 
