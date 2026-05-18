@@ -241,6 +241,15 @@ export default function useAskPrompt(threadId?: number) {
     const isFinished = getIsFinished(askingTask?.status);
     if (isFinished) askingTaskResult.stopPolling();
 
+    // Also stop polling when the GraphQL poll request itself errors
+    // (e.g. a bad/missing taskId). Without this, a stale lazy-query
+    // session keeps spamming the server every 1s with the same broken
+    // variables — visible as a never-ending stream of red /api/graphql
+    // requests in the Network panel.
+    if (askingTaskResult.error) {
+      askingTaskResult.stopPolling();
+    }
+
     // handle update cache for preparing component
     if (isNeedPreparing(askingTask)) {
       if (threadId) {
@@ -249,7 +258,7 @@ export default function useAskPrompt(threadId?: number) {
       }
     }
 
-  }, [askingTask?.status, threadId, checkFetchAskingStreamTask]);
+  }, [askingTask?.status, askingTaskResult.error, threadId, checkFetchAskingStreamTask]);
 
   useEffect(() => {
     // handle instant recommended questions
