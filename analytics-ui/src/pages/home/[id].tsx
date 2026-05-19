@@ -118,19 +118,16 @@ export default function HomeThread() {
     onCompleted: () => message.success('Successfully created view.'),
   });
 
-  const {
-    data,
-    updateQuery: updateThreadQuery,
-    startPolling: startThreadPolling,
-    stopPolling: stopThreadPolling,
-  } = useThreadQuery({
+  // No pollInterval here — matches upstream WrenAI (legacy/v1) behaviour.
+  // Live updates while a turn is in flight are driven by the per-response
+  // useThreadResponseLazyQuery poll below, which writes new response data
+  // into this query's cache via onCompleted → updateThreadQuery. Polling
+  // the entire thread payload at 1Hz on top of that is pure waste — the
+  // payload runs 30-50 KB per response — and was added unintentionally
+  // by a downstream feature commit.
+  const { data, updateQuery: updateThreadQuery } = useThreadQuery({
     variables: { threadId },
     fetchPolicy: 'cache-and-network',
-    // Poll at 1Hz while the thread has unfinished work, then stop in a
-    // useEffect below once every response is in a terminal state. Without
-    // the stop, idle tabs keep refetching the whole thread payload
-    // (30-50 KB each) every second forever.
-    pollInterval: 1000,
     skip: threadId === null,
     onError: (error) => {
       const isNotFound = error.graphQLErrors?.some(
@@ -373,21 +370,6 @@ export default function HomeThread() {
     }
   }, [recommendedQuestions]);
 
-  // Stop the 1Hz Thread refetch loop once every response in this thread
-  // is in a terminal state. Without this, an idle thread page keeps
-  // pulling the full thread payload (~30-50 KB per response) every
-  // second forever — wasted bandwidth, memory pressure, battery drain.
-  // Re-start when something becomes non-terminal again (new turn,
-  // re-run, etc.).
-  useEffect(() => {
-    if (responses.length === 0) return;
-    const allFinished = responses.every(getThreadResponseIsFinished);
-    if (allFinished) {
-      stopThreadPolling();
-    } else {
-      startThreadPolling(1000);
-    }
-  }, [responses, startThreadPolling, stopThreadPolling]);
 
   const onCreateResponse = async (payload: CreateThreadResponseInput) => {
     try {
