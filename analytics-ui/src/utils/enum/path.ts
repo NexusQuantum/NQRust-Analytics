@@ -10,6 +10,7 @@ export enum Path {
   Knowledge = '/knowledge',
   KnowledgeQuestionSQLPairs = '/knowledge/question-sql-pairs',
   KnowledgeInstructions = '/knowledge/instructions',
+  DocumentLibrary = '/document-library',
   APIManagement = '/api-management',
   APIManagementHistory = '/api-management/history',
 }

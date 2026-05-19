@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import LogoBar from '@/components/LogoBar';
 import { Path } from '@/utils/enum';
 import Deploy from '@/components/deploy/Deploy';
-import { BookOpen, Database, SquarePen } from 'lucide-react';
+import { BookOpen, Database, Library, SquarePen } from 'lucide-react';
 
 const { Header } = Layout;
 
@@ -57,7 +57,7 @@ export default function HeaderBar() {
                     className="text-sm"
                     style={{ color: 'var(--gray-6)', margin: 0 }}
                   >
-                    v1.0.0
+                    v1.5.0
                   </p>
                 </div>
               </Space>
@@ -87,6 +87,15 @@ export default function HeaderBar() {
               >
                 <BookOpen size={16} className="mr-1" />
                 Knowledge
+              </StyledButton>
+              <StyledButton
+                type="text"
+                $isHighlight={pathname.startsWith(Path.DocumentLibrary)}
+                onClick={() => router.push(Path.DocumentLibrary)}
+                block
+              >
+                <Library size={16} className="mr-1" />
+                Document Library
               </StyledButton>
             </Space>
           )}

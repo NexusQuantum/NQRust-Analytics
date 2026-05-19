@@ -11,7 +11,6 @@ import SidebarTree, {
 } from './SidebarTree';
 import ThreadTree, { ThreadData } from './home/ThreadTree';
 import DashboardTree, { DashboardData } from './home/DashboardTree';
-import SourcesPanel from './home/SourcesPanel';
 import DashboardModal from '@/components/modals/DashboardModal';
 import ShareDashboardModal from '@/components/modals/ShareDashboardModal';
 import ShareThreadModal from '@/components/modals/ShareThreadModal';
@@ -155,7 +154,6 @@ export default function Home(props: Props) {
   const dashboardModal = useModalAction();
   const shareModal = useModalAction();
   const shareThreadModal = useModalAction();
-  const [uploadOpen, setUploadOpen] = useState(false);
 
   useEffect(() => {
     params?.id && setTreeSelectedKeys([params.id] as string[]);
@@ -272,26 +270,6 @@ export default function Home(props: Props) {
           </ScrollContent>
         </Section>
 
-        {/* Sources */}
-        <Section $flex={1}>
-          <SectionHeader>
-            <SectionTitle>Sources</SectionTitle>
-            <HeaderActionButton
-              type="text"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={() => setUploadOpen(true)}
-            >
-              Add
-            </HeaderActionButton>
-          </SectionHeader>
-          <ScrollContent>
-            <SourcesPanel
-              uploadOpen={uploadOpen}
-              onUploadClose={() => setUploadOpen(false)}
-            />
-          </ScrollContent>
-        </Section>
       </HomeContainer>
 
       {/* Modals */}
