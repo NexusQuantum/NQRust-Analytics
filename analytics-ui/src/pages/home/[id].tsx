@@ -118,16 +118,26 @@ export default function HomeThread() {
     onCompleted: () => message.success('Successfully created view.'),
   });
 
-  // No pollInterval here — matches upstream WrenAI (legacy/v1) behaviour.
-  // Live updates while a turn is in flight are driven by the per-response
-  // useThreadResponseLazyQuery poll below, which writes new response data
-  // into this query's cache via onCompleted → updateThreadQuery. Polling
-  // the entire thread payload at 1Hz on top of that is pure waste — the
-  // payload runs 30-50 KB per response — and was added unintentionally
-  // by a downstream feature commit.
-  const { data, updateQuery: updateThreadQuery } = useThreadQuery({
+  // Poll the thread at 1Hz while it has unfinished work, then stop in
+  // the effect below once every response is in a terminal state.
+  // Reasoning: in pure upstream WrenAI we'd skip this — the per-response
+  // useThreadResponseLazyQuery poll feeds cache updates via onCompleted,
+  // which should be enough. In practice it isn't: if that lazy query's
+  // poll loop stops prematurely (transient error, a stop guard firing on
+  // edge-case state) the thread freezes with no recovery path. A 1Hz
+  // refetch of the whole thread acts as a safety net — when the per-
+  // response chain falters, the next Thread refresh pulls latest state
+  // and re-runs handleUnfinishedTasks, re-starting any needed polling.
+  // The stop-when-finished effect keeps idle pages quiet.
+  const {
+    data,
+    updateQuery: updateThreadQuery,
+    startPolling: startThreadPolling,
+    stopPolling: stopThreadPolling,
+  } = useThreadQuery({
     variables: { threadId },
     fetchPolicy: 'cache-and-network',
+    pollInterval: 1000,
     skip: threadId === null,
     onError: (error) => {
       const isNotFound = error.graphQLErrors?.some(
@@ -369,6 +379,20 @@ export default function HomeThread() {
       threadRecommendationQuestionsResult.stopPolling();
     }
   }, [recommendedQuestions]);
+
+  // Stop the 1Hz Thread refetch once every response is in a terminal
+  // state. Keeps the pollInterval safety net active while turns are in
+  // flight but goes quiet on idle pages so the network panel and battery
+  // aren't burning ~50 KB/s on nothing.
+  useEffect(() => {
+    if (responses.length === 0) return;
+    const allFinished = responses.every(getThreadResponseIsFinished);
+    if (allFinished) {
+      stopThreadPolling();
+    } else {
+      startThreadPolling(1000);
+    }
+  }, [responses, startThreadPolling, stopThreadPolling]);
 
 
   const onCreateResponse = async (payload: CreateThreadResponseInput) => {
