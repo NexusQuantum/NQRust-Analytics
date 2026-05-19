@@ -269,6 +269,13 @@ TEXT_TO_SQL_RULES = """
 - DON'T USE "EXTRACT()" function with INTERVAL data types as arguments
 - DON'T USE INTERVAL or generate INTERVAL-like expression in the generated SQL query.
 - DON'T USE "TO_CHAR" function in the generated SQL query.
+- DON'T USE "PERCENTILE_CONT" or "PERCENTILE_DISC" — these are NOT
+  supported by the execution engine and will fail at query time.
+    - If you need a percentile, use "APPROX_PERCENTILE_CONT" instead
+      (only if it appears in the SQL FUNCTIONS list).
+- DON'T USE window functions or aggregate functions that DO NOT appear
+  in the SQL FUNCTIONS list — the engine will reject them with a
+  "Invalid function" or "Error during planning" error.
 - Aggregate functions are not allowed in the WHERE clause. Instead, they belong in the HAVING clause, which is used to filter after aggregation.
 - You can only add "ORDER BY" and "LIMIT" to the final "UNION" result.
 - For the ranking problem, you must use the ranking function, `DENSE_RANK()` to rank the results and then use `WHERE` clause to filter the results.

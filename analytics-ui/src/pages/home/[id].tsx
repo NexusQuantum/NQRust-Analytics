@@ -51,8 +51,14 @@ import {
 import { useCreateSqlPairMutation } from '@/apollo/client/graphql/sqlPairs.generated';
 
 const getThreadResponseIsFinished = (threadResponse: ThreadResponse) => {
+  // Null / missing response — treat as finished. Otherwise a deleted or
+  // never-existing row keeps the polling loop alive forever (the poll
+  // resolves to null, none of the *Detail branches below ever flip to
+  // "finished", and Apollo retries at 1Hz until the page is closed).
+  if (!threadResponse) return true;
+
   const { answerDetail, breakdownDetail, chartDetail, documentAnswerDetail, askingTask } =
-    threadResponse || {};
+    threadResponse;
 
   // Document RAG (DOCUMENT_BASED) responses don't use answerDetail /
   // chartDetail at all — the answer lives in documentAnswerDetail and
@@ -162,9 +168,30 @@ export default function HomeThread() {
           },
         }));
       },
+      // Stop the 1s poll loop on errors (e.g. a stale variables payload
+      // producing "Variable \"$responseId\" required"). Otherwise Apollo
+      // keeps spamming the server every second until the page unmounts.
+      onError: (error) => {
+        console.error(
+          'threadResponse poll error, stopping:',
+          error.message,
+        );
+        threadResponseResult?.stopPolling?.();
+      },
     });
-  // Wrap to start polling only after a valid fetch with responseId
+  // Wrap to start polling only after a valid fetch with responseId.
+  // Refuse to start at all if the responseId is missing — the same pattern
+  // we use for askingTask lazy queries — so a programming slip doesn't
+  // turn into an infinite-poll loop with bad variables.
   const fetchThreadResponse: typeof fetchThreadResponseRaw = async (options) => {
+    const responseId = options?.variables?.responseId;
+    if (responseId == null) {
+      console.warn(
+        'fetchThreadResponse called without a responseId, skipping poll',
+        options,
+      );
+      return undefined as any;
+    }
     try {
       const result = await fetchThreadResponseRaw(options);
       // Only start polling if the initial fetch succeeded
