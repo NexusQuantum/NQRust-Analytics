@@ -494,6 +494,33 @@ export class LicenseService implements ILicenseService {
   }
 
   public async checkLicense(): Promise<LicenseState> {
+    // Dev-only escape hatch: when BYPASS_LICENSE_CHECK=true is set in the
+    // environment, short-circuit the whole verification flow and report
+    // the install as licensed. Intended for local development when the
+    // licensing server (billing.nexusquantum.id) is down or unreachable.
+    // Should NEVER be set in production.
+    if (process.env.BYPASS_LICENSE_CHECK === 'true') {
+      logger.warn(
+        'BYPASS_LICENSE_CHECK=true — skipping license verification ' +
+          '(dev only; do not use in production)',
+      );
+      this.cachedState = {
+        isLicensed: true,
+        status: 'active',
+        product: 'Dev Bypass',
+        customerName: 'Local Developer',
+        expiresAt: null,
+        isGracePeriod: false,
+        graceDaysRemaining: null,
+        verifiedAt: new Date().toISOString(),
+        licenseKey: 'BYPASS-****-****-DEV',
+        errorMessage: null,
+        lastCheckResult: 'valid',
+      };
+      this.lastCheckTime = Date.now();
+      return this.cachedState;
+    }
+
     let licenseKey = this.config.licenseKey;
 
     if (!licenseKey) {

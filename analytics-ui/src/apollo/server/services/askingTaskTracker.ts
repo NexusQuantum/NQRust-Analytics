@@ -207,9 +207,37 @@ export class AskingTaskTracker implements IAskingTaskTracker {
     threadId: number,
     threadResponseId: number,
   ): Promise<void> {
-    const task = this.trackedTasks.get(queryId);
+    let task = this.trackedTasks.get(queryId);
+
+    // Memory cache evicts tasks after memoryRetentionTime since last poll.
+    // For long flows (e.g. complex recommended question → follow-up), the
+    // in-memory task may already be gone by the time the UI binds the
+    // thread response. Reconstruct from the persisted asking_task row so
+    // we can still update the DB and (best-effort) trigger downstream work.
     if (!task) {
-      throw new Error(`Task ${queryId} not found`);
+      const dbRecord = await this.askingTaskRepository.findOneBy({
+        queryId,
+      } as Partial<AskingTask>);
+      if (!dbRecord) {
+        throw new Error(`Task ${queryId} not found`);
+      }
+      const detail = (dbRecord.detail as AskResult | undefined) ?? undefined;
+      task = {
+        queryId,
+        taskId: dbRecord.id,
+        lastPolled: Date.now(),
+        question: dbRecord.question ?? undefined,
+        result: detail,
+        isFinalized:
+          detail?.status === AskResultStatus.FINISHED ||
+          detail?.status === AskResultStatus.FAILED ||
+          detail?.status === AskResultStatus.STOPPED,
+        threadResponseId,
+      };
+      this.trackedTasks.set(queryId, task);
+      logger.info(
+        `Reconstructed evicted task ${queryId} from DB so bindThreadResponse can proceed`,
+      );
     }
 
     task.threadResponseId = threadResponseId;
