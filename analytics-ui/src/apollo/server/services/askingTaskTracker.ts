@@ -208,6 +208,7 @@ export class AskingTaskTracker implements IAskingTaskTracker {
     threadResponseId: number,
   ): Promise<void> {
     let task = this.trackedTasks.get(queryId);
+    let reconstructed = false;
 
     // Memory cache evicts tasks after memoryRetentionTime since last poll.
     // For long flows (e.g. complex recommended question → follow-up), the
@@ -215,9 +216,7 @@ export class AskingTaskTracker implements IAskingTaskTracker {
     // thread response. Reconstruct from the persisted asking_task row so
     // we can still update the DB and (best-effort) trigger downstream work.
     if (!task) {
-      const dbRecord = await this.askingTaskRepository.findOneBy({
-        queryId,
-      } as Partial<AskingTask>);
+      const dbRecord = await this.askingTaskRepository.findByQueryId(queryId);
       if (!dbRecord) {
         throw new Error(`Task ${queryId} not found`);
       }
@@ -228,13 +227,15 @@ export class AskingTaskTracker implements IAskingTaskTracker {
         lastPolled: Date.now(),
         question: dbRecord.question ?? undefined,
         result: detail,
-        isFinalized:
-          detail?.status === AskResultStatus.FINISHED ||
-          detail?.status === AskResultStatus.FAILED ||
-          detail?.status === AskResultStatus.STOPPED,
+        // Force finalized regardless of stored status: there's no point
+        // polling the AI service again for a task we're binding right now,
+        // and the bind itself is the terminal action from the tracker's
+        // perspective.
+        isFinalized: true,
         threadResponseId,
       };
       this.trackedTasks.set(queryId, task);
+      reconstructed = true;
       logger.info(
         `Reconstructed evicted task ${queryId} from DB so bindThreadResponse can proceed`,
       );
@@ -263,6 +264,15 @@ export class AskingTaskTracker implements IAskingTaskTracker {
           ),
         );
       }
+    }
+
+    // Reconstructed tasks should not linger in the in-memory tracker:
+    // the AI service has likely forgotten the queryId, so the next poll
+    // cycle would just error out forever. Drop it now that we've done
+    // everything we need for this bind operation.
+    if (reconstructed) {
+      this.trackedTasks.delete(queryId);
+      this.trackedTasksById.delete(id);
     }
   }
 

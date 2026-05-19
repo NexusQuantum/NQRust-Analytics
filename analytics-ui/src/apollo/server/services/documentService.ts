@@ -9,6 +9,7 @@ import {
   Document,
 } from '@server/repositories';
 import { IAnalyticsAIAdaptor } from '@server/adaptors';
+import { isAllowedDocument } from '@/utils/documentFormats';
 
 const logger = getLogger('DocumentService');
 
@@ -19,16 +20,8 @@ const logger = getLogger('DocumentService');
 //   .pptx  → python-pptx → md_to_tree
 // Legacy formats (.doc, .ppt) and tabular data (.xls/.xlsx) are NOT
 // supported on purpose — the engine can't index them well.
-const ALLOWED_MIME_TYPES = [
-  'application/pdf',
-  'text/markdown',
-  'text/x-markdown',
-  // Some browsers / OSes send .md files as text/plain or octet-stream;
-  // we fall back to the extension check below for those.
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
-];
-const ALLOWED_EXTS = ['.pdf', '.md', '.markdown', '.docx', '.pptx'];
+// The actual lists live in @/utils/documentFormats (shared with UI).
+
 const MAX_FILENAME_LENGTH = 255;
 // Soft cap on total documents per install. Beyond this, indexing/listing
 // performance starts to suffer and storage can balloon unnoticed. Counts
@@ -214,21 +207,23 @@ export class DocumentService {
     }
   }
 
-  private validateFile(buffer: Buffer, filename: string, mimeType: string): void {
+  private validateFile(
+    buffer: Buffer,
+    filename: string,
+    mimeType: string | null,
+  ): void {
     const sizeMb = buffer.length / (1024 * 1024);
     if (sizeMb > this.maxSizeMb) {
       throw new Error(`File too large: ${sizeMb.toFixed(1)}MB (max ${this.maxSizeMb}MB)`);
     }
 
-    // Accept by mime OR extension — browsers are unreliable about the
-    // mime they send for .md (often text/plain or octet-stream) and
-    // sometimes mis-detect .docx/.pptx as octet-stream too.
-    const ext = filename.toLowerCase().slice(filename.lastIndexOf('.'));
-    const mimeOk = ALLOWED_MIME_TYPES.includes(mimeType);
-    const extOk = ALLOWED_EXTS.includes(ext);
-    if (!mimeOk && !extOk) {
+    // mime OR extension — browsers are unreliable about the mime they
+    // send for .md (often text/plain or octet-stream) and sometimes
+    // mis-detect .docx/.pptx as octet-stream too. Shared with the UI and
+    // the upload endpoint via @/utils/documentFormats.
+    if (!isAllowedDocument(mimeType, filename)) {
       throw new Error(
-        `Unsupported file type: ${mimeType || ext || 'unknown'}. ` +
+        `Unsupported file type: ${mimeType || filename || 'unknown'}. ` +
           `Supported: PDF, Markdown, Word (.docx), PowerPoint (.pptx).`,
       );
     }

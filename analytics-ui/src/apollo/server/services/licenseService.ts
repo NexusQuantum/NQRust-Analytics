@@ -495,26 +495,33 @@ export class LicenseService implements ILicenseService {
 
   public async checkLicense(): Promise<LicenseState> {
     // Dev-only escape hatch: when BYPASS_LICENSE_CHECK=true is set in the
-    // environment, short-circuit the whole verification flow and report
-    // the install as licensed. Intended for local development when the
-    // licensing server (billing.nexusquantum.id) is down or unreachable.
-    // Should NEVER be set in production.
-    if (process.env.BYPASS_LICENSE_CHECK === 'true') {
+    // environment AND we are not in production, short-circuit the whole
+    // verification flow and report the install as licensed. Intended for
+    // local development when the licensing server (billing.nexusquantum.id)
+    // is down or unreachable. The NODE_ENV guard prevents a misconfigured
+    // Docker compose file in prod from silently disabling licensing.
+    if (
+      process.env.BYPASS_LICENSE_CHECK === 'true' &&
+      process.env.NODE_ENV !== 'production'
+    ) {
       logger.warn(
-        'BYPASS_LICENSE_CHECK=true — skipping license verification ' +
-          '(dev only; do not use in production)',
+        '[license_bypass] BYPASS_LICENSE_CHECK=true (NODE_ENV=' +
+          (process.env.NODE_ENV || 'undefined') +
+          ') — skipping license verification. DEV ONLY; this must never ' +
+          'be set in production.',
       );
+      // Spread UNLICENSED_STATE first so we satisfy every field of the
+      // LicenseState interface (features, activations, maxActivations, etc.)
+      // and don't crash downstream code that reads them.
       this.cachedState = {
+        ...UNLICENSED_STATE,
         isLicensed: true,
         status: 'active',
         product: 'Dev Bypass',
         customerName: 'Local Developer',
-        expiresAt: null,
-        isGracePeriod: false,
-        graceDaysRemaining: null,
+        features: ['*'],
         verifiedAt: new Date().toISOString(),
         licenseKey: 'BYPASS-****-****-DEV',
-        errorMessage: null,
         lastCheckResult: 'valid',
       };
       this.lastCheckTime = Date.now();

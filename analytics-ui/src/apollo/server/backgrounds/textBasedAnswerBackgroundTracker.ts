@@ -95,88 +95,95 @@ export class TextBasedAnswerBackgroundTracker {
           }
           this.runningJobs.add(threadResponse.id);
 
-          // update the status to fetching data
-          await this.threadResponseRepository.updateOne(threadResponse.id, {
-            answerDetail: {
-              ...threadResponse.answerDetail,
-              status: ThreadResponseAnswerStatus.FETCHING_DATA,
-            },
-          });
-
-          // get sql data
-          const project = await this.projectService.getCurrentProject();
-          const deployment = await this.deployService.getLastDeployment(
-            project.id,
-          );
-          const mdl = deployment.manifest;
-          let data: PreviewDataResponse;
+          // Wrap the whole job in try/finally so cleanup (delete from
+          // tasks + runningJobs) always happens. Without this, a thrown
+          // error in the preview/AI flow left the task in both maps
+          // forever — the next tick saw it in runningJobs and skipped,
+          // so failed responses were never retried *or* cleared.
           try {
-            data = (await this.queryService.preview(threadResponse.sql, {
-              project,
-              manifest: mdl,
-              modelingOnly: false,
-              limit: 500,
-            })) as PreviewDataResponse;
-          } catch (error) {
-            logger.error(`Error when query sql data: ${error}`);
+            // update the status to fetching data
             await this.threadResponseRepository.updateOne(threadResponse.id, {
               answerDetail: {
                 ...threadResponse.answerDetail,
-                status: ThreadResponseAnswerStatus.FAILED,
-                error: normalizeAnswerError(error?.extensions || error),
+                status: ThreadResponseAnswerStatus.FETCHING_DATA,
               },
             });
-            throw error;
-          }
 
-          // request AI service
-          const response = await this.analyticsAIAdaptor.createTextBasedAnswer({
-            query: threadResponse.question,
-            sql: threadResponse.sql,
-            sqlData: data,
-            threadId: threadResponse.threadId.toString(),
-            configurations: {
-              language: AnalyticsAILanguage[project.language] || AnalyticsAILanguage.EN,
-            },
-          });
-
-          // update the status to preprocessing
-          await this.threadResponseRepository.updateOne(threadResponse.id, {
-            answerDetail: {
-              ...threadResponse.answerDetail,
-              status: ThreadResponseAnswerStatus.PREPROCESSING,
-            },
-          });
-
-          // polling query id to check the status
-          let result: TextBasedAnswerResult;
-          do {
-            result = await this.analyticsAIAdaptor.getTextBasedAnswerResult(
-              response.queryId,
+            // get sql data
+            const project = await this.projectService.getCurrentProject();
+            const deployment = await this.deployService.getLastDeployment(
+              project.id,
             );
-            if (result.status === TextBasedAnswerStatus.PREPROCESSING) {
-              await new Promise((resolve) => setTimeout(resolve, 500));
+            const mdl = deployment.manifest;
+            let data: PreviewDataResponse;
+            try {
+              data = (await this.queryService.preview(threadResponse.sql, {
+                project,
+                manifest: mdl,
+                modelingOnly: false,
+                limit: 500,
+              })) as PreviewDataResponse;
+            } catch (error) {
+              logger.error(`Error when query sql data: ${error}`);
+              await this.threadResponseRepository.updateOne(threadResponse.id, {
+                answerDetail: {
+                  ...threadResponse.answerDetail,
+                  status: ThreadResponseAnswerStatus.FAILED,
+                  error: normalizeAnswerError(error?.extensions || error),
+                },
+              });
+              throw error;
             }
-          } while (result.status === TextBasedAnswerStatus.PREPROCESSING);
 
-          // update the status to final
-          const updatedAnswerDetail = {
-            queryId: response.queryId,
-            status:
-              result.status === TextBasedAnswerStatus.SUCCEEDED
-                ? ThreadResponseAnswerStatus.STREAMING
-                : ThreadResponseAnswerStatus.FAILED,
-            numRowsUsedInLLM: result.numRowsUsedInLLM,
-            error: normalizeAnswerError(result.error),
-          };
-          await this.threadResponseRepository.updateOne(threadResponse.id, {
-            answerDetail: updatedAnswerDetail,
-          });
+            // request AI service
+            const response = await this.analyticsAIAdaptor.createTextBasedAnswer({
+              query: threadResponse.question,
+              sql: threadResponse.sql,
+              sqlData: data,
+              threadId: threadResponse.threadId.toString(),
+              configurations: {
+                language:
+                  AnalyticsAILanguage[project.language] ||
+                  AnalyticsAILanguage.EN,
+              },
+            });
 
-          delete this.tasks[threadResponse.id];
+            // update the status to preprocessing
+            await this.threadResponseRepository.updateOne(threadResponse.id, {
+              answerDetail: {
+                ...threadResponse.answerDetail,
+                status: ThreadResponseAnswerStatus.PREPROCESSING,
+              },
+            });
 
-          // Mark the job as finished
-          this.runningJobs.delete(threadResponse.id);
+            // polling query id to check the status
+            let result: TextBasedAnswerResult;
+            do {
+              result = await this.analyticsAIAdaptor.getTextBasedAnswerResult(
+                response.queryId,
+              );
+              if (result.status === TextBasedAnswerStatus.PREPROCESSING) {
+                await new Promise((resolve) => setTimeout(resolve, 500));
+              }
+            } while (result.status === TextBasedAnswerStatus.PREPROCESSING);
+
+            // update the status to final
+            const updatedAnswerDetail = {
+              queryId: response.queryId,
+              status:
+                result.status === TextBasedAnswerStatus.SUCCEEDED
+                  ? ThreadResponseAnswerStatus.STREAMING
+                  : ThreadResponseAnswerStatus.FAILED,
+              numRowsUsedInLLM: result.numRowsUsedInLLM,
+              error: normalizeAnswerError(result.error),
+            };
+            await this.threadResponseRepository.updateOne(threadResponse.id, {
+              answerDetail: updatedAnswerDetail,
+            });
+          } finally {
+            delete this.tasks[threadResponse.id];
+            this.runningJobs.delete(threadResponse.id);
+          }
         },
       );
 

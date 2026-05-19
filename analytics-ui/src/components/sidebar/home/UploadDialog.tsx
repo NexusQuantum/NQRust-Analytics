@@ -10,6 +10,12 @@ import {
   DeleteOutlined,
 } from '@ant-design/icons';
 import styled from 'styled-components';
+import {
+  DEFAULT_DOCUMENT_MAX_SIZE_MB,
+  DOCUMENT_ACCEPT_ATTR,
+  extensionOf,
+  isAllowedDocument,
+} from '@/utils/documentFormats';
 
 interface Props {
   visible: boolean;
@@ -114,22 +120,9 @@ const Footer = styled.div`
   margin-top: 16px;
 `;
 
-const MAX_SIZE_MB = 50;
-
-// Keep these in sync with documentService.ts + upload.ts on the server.
-const ACCEPTED_EXTS = ['.pdf', '.md', '.markdown', '.docx', '.pptx'];
-const ACCEPTED_MIMES = new Set([
-  'application/pdf',
-  'text/markdown',
-  'text/x-markdown',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-]);
-
-// The `accept` attribute on <input type="file">. Lists both extensions
-// (works on Windows / Linux where mime is often missing) and mime types
-// (works on macOS / mobile).
-const ACCEPT_ATTR = [...ACCEPTED_EXTS, ...ACCEPTED_MIMES].join(',');
+// Source-of-truth lists + helpers live in @/utils/documentFormats so
+// the upload endpoint, documentService, and this dialog all agree.
+const MAX_SIZE_MB = DEFAULT_DOCUMENT_MAX_SIZE_MB;
 
 function humanSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -137,16 +130,8 @@ function humanSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function extOf(name: string): string {
-  const i = name.lastIndexOf('.');
-  return i >= 0 ? name.slice(i).toLowerCase() : '';
-}
-
 function validate(file: File): string | undefined {
-  const ext = extOf(file.name);
-  // Browsers send unreliable mimes for .md / .docx / .pptx; accept by
-  // either mime OR extension, matching the server-side check.
-  if (!ACCEPTED_MIMES.has(file.type) && !ACCEPTED_EXTS.includes(ext)) {
+  if (!isAllowedDocument(file.type, file.name)) {
     return 'Unsupported format. Allowed: PDF, Markdown, Word (.docx), PowerPoint (.pptx).';
   }
   if (file.size > MAX_SIZE_MB * 1024 * 1024) {
@@ -156,7 +141,7 @@ function validate(file: File): string | undefined {
 }
 
 function iconFor(name: string): React.ReactNode {
-  switch (extOf(name)) {
+  switch (extensionOf(name)) {
     case '.pdf':
       return <FilePdfOutlined style={{ color: 'var(--red-5)' }} />;
     case '.docx':
@@ -312,7 +297,7 @@ export default function UploadDialog({
       <HiddenInput
         ref={inputRef}
         type="file"
-        accept={ACCEPT_ATTR}
+        accept={DOCUMENT_ACCEPT_ATTR}
         multiple
         onChange={handleChange}
       />

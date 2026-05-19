@@ -1,7 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import formidable from 'formidable';
-import fs from 'fs';
-import { components } from '@/common';
+import { promises as fsp } from 'fs';
+import { components, serverConfig } from '@/common';
+import {
+  DEFAULT_DOCUMENT_MAX_SIZE_MB,
+  isAllowedDocument,
+} from '@/utils/documentFormats';
 
 export const config = {
   api: {
@@ -11,27 +15,8 @@ export const config = {
 
 const { documentService } = components;
 
-// Keep this list in sync with documentService.ts and UploadDialog.tsx.
-// We accept by mime OR extension because browsers are unreliable about
-// the mime they send for .md / .docx / .pptx.
-const ALLOWED_MIME_TYPES = new Set([
-  'application/pdf',
-  'text/markdown',
-  'text/x-markdown',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-]);
-const ALLOWED_EXTS = new Set(['.pdf', '.md', '.markdown', '.docx', '.pptx']);
-
-function isAllowed(mimetype: string | null, originalFilename: string | null): boolean {
-  if (mimetype && ALLOWED_MIME_TYPES.has(mimetype)) return true;
-  if (originalFilename) {
-    const lower = originalFilename.toLowerCase();
-    const ext = lower.slice(lower.lastIndexOf('.'));
-    if (ALLOWED_EXTS.has(ext)) return true;
-  }
-  return false;
-}
+// Source of truth lives in @/utils/documentFormats. Reuse so the upload
+// endpoint, documentService, and the UI client can't drift from each other.
 
 export default async function handler(
   req: NextApiRequest,
@@ -41,11 +26,16 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const maxSizeMb =
+    serverConfig.documentMaxSizeMb || DEFAULT_DOCUMENT_MAX_SIZE_MB;
+
   const form = formidable({
-    maxFileSize: 50 * 1024 * 1024, // 50MB — keep in sync with documentService and UploadDialog
-    filter: ({ mimetype, originalFilename }) => isAllowed(mimetype, originalFilename),
+    maxFileSize: maxSizeMb * 1024 * 1024,
+    filter: ({ mimetype, originalFilename }) =>
+      isAllowedDocument(mimetype, originalFilename),
   });
 
+  let filepath: string | null = null;
   try {
     const [_fields, files] = await form.parse(req);
     const file = Array.isArray(files.file) ? files.file[0] : files.file;
@@ -53,17 +43,21 @@ export default async function handler(
     if (!file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
+    filepath = file.filepath;
 
-    const buffer = fs.readFileSync(file.filepath);
+    // Async read — at 50 MB a sync readFileSync would block Node's
+    // event loop long enough to stall other requests.
+    const buffer = await fsp.readFile(file.filepath);
     const originalFilename = file.originalFilename || 'document';
     // Trust the extension when no mime is provided (some browsers send
     // octet-stream for .md/.docx/.pptx).
     const mimeType = file.mimetype || 'application/octet-stream';
 
-    const doc = await documentService.uploadDocument(buffer, originalFilename, mimeType);
-
-    // Clean up temp file
-    fs.unlinkSync(file.filepath);
+    const doc = await documentService.uploadDocument(
+      buffer,
+      originalFilename,
+      mimeType,
+    );
 
     return res.status(201).json({
       id: doc.id,
@@ -73,5 +67,12 @@ export default async function handler(
     });
   } catch (err: any) {
     return res.status(400).json({ error: err.message || 'Upload failed' });
+  } finally {
+    // Always clean up the temp file, even when uploadDocument threw.
+    if (filepath) {
+      await fsp.unlink(filepath).catch(() => {
+        // Best-effort cleanup; formidable will re-use the temp dir.
+      });
+    }
   }
 }

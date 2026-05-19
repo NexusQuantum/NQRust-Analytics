@@ -298,13 +298,11 @@ export default function HomeThread() {
   const handleUnfinishedTasks = useCallback(
     (responses: ThreadResponse[]) => {
       // unfinished asking task
-      console.log('[handleUnfinishedTasks]', responses?.map(r => ({ id: r.id, askStatus: r.askingTask?.status, type: r.askingTask?.type, hasAnswer: !!r.answerDetail?.status, hasSql: !!r.sql })));
       const unfinishedAskingResponse = (responses || []).find(
         (response) =>
           response?.askingTask && !getIsFinished(response?.askingTask?.status),
       );
       if (unfinishedAskingResponse) {
-        console.log('[handleUnfinishedTasks] → onFetching askingTask', unfinishedAskingResponse.askingTask?.queryId);
         askPrompt.onFetching(unfinishedAskingResponse?.askingTask?.queryId);
         return;
       }
@@ -318,12 +316,9 @@ export default function HomeThread() {
         canFetchThreadResponse(unfinishedThreadResponse?.askingTask) &&
         unfinishedThreadResponse
       ) {
-        console.log('[handleUnfinishedTasks] → fetchThreadResponse for', unfinishedThreadResponse.id);
         fetchThreadResponse({
           variables: { responseId: unfinishedThreadResponse.id },
         });
-      } else {
-        console.log('[handleUnfinishedTasks] no action: hasResponse=', !!unfinishedThreadResponse, 'canFetch=', canFetchThreadResponse(unfinishedThreadResponse?.askingTask));
       }
     },
     [askPrompt, fetchThreadResponse],

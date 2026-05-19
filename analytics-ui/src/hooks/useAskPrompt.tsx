@@ -262,15 +262,23 @@ export default function useAskPrompt(threadId?: number) {
         checkFetchAskingStreamTask(askingTask);
       }
     }
-
-  }, [askingTask?.status, askingTaskResult.error, threadId, checkFetchAskingStreamTask]);
+    // Deps cover everything we actually branch on. `askingTaskResult` is
+    // intentionally referenced as a whole (its `.client` is stable across
+    // renders) but only depended on via `.error` so we don't re-fire on
+    // every poll tick.
+  }, [
+    askingTask,
+    askingTaskResult.error,
+    threadId,
+    checkFetchAskingStreamTask,
+  ]);
 
   useEffect(() => {
     // handle instant recommended questions
     if (isNeedRecommendedQuestions(askingTask)) {
       startRecommendedQuestions();
     }
-  }, [askingTask?.type]);
+  }, [askingTask, startRecommendedQuestions]);
 
   useEffect(() => {
     if (isRecommendedFinished(recommendedQuestions?.status))
@@ -281,14 +289,14 @@ export default function useAskPrompt(threadId?: number) {
     if (instantRecommendedQuestionsResult.error) {
       instantRecommendedQuestionsResult.stopPolling();
     }
-  }, [recommendedQuestions, instantRecommendedQuestionsResult.error]);
+  }, [recommendedQuestions, instantRecommendedQuestionsResult]);
 
   useEffect(() => {
     const taskId = createAskingTaskResult.data?.createAskingTask.id;
     if (taskId && askingTaskType === AskingTaskType.GENERAL) {
       fetchAskingStreamTask(taskId);
     }
-  }, [askingTaskType, createAskingTaskResult.data]);
+  }, [askingTaskType, createAskingTaskResult.data, fetchAskingStreamTask]);
 
   const onStop = async (queryId?: string) => {
     const taskId = queryId || createAskingTaskResult.data?.createAskingTask.id;
