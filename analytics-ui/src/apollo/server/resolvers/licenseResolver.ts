@@ -16,14 +16,16 @@ export class LicenseResolver {
     args: { data: { licenseKey: string } },
     ctx: IContext,
   ) => {
-    // Bootstrap exception: when the installation has no users yet (very
-    // first activation flow), allow license activation without auth. This
-    // avoids the chicken-and-egg problem where the user can't log in
-    // because there's no license, can't activate the license because
-    // they're not logged in, and has to re-enter the key after
-    // registration/login (poor UX). For all subsequent activations the
-    // standard admin check applies.
-    const isBootstrap = await this.isInstallationEmpty(ctx);
+    // Bootstrap exception: when the install has never activated a license
+    // before, allow activation without auth. This avoids the chicken-and-
+    // egg first-run flow — middleware redirects unlicensed installs to
+    // /setup/license, but requireAdmin needs a logged-in admin, which
+    // requires getting past the license gate first. Using "no users yet"
+    // as the bootstrap signal doesn't work because migrations seed a
+    // default admin@localhost row on every fresh install; we check the
+    // license record itself instead. Subsequent re-activations still go
+    // through requireAdmin.
+    const isBootstrap = await this.isFirstLicenseActivation(ctx);
     if (!isBootstrap) {
       this.requireAdmin(ctx);
     }
@@ -43,15 +45,8 @@ export class LicenseResolver {
     return state;
   };
 
-  private async isInstallationEmpty(ctx: IContext): Promise<boolean> {
-    try {
-      const users = await ctx.userRepository.findAll({ limit: 1 });
-      return !users || users.length === 0;
-    } catch {
-      // Fail closed — if the lookup itself errors, require admin so we
-      // don't accidentally open activation to unauthenticated requests.
-      return false;
-    }
+  private async isFirstLicenseActivation(ctx: IContext): Promise<boolean> {
+    return ctx.licenseService.hasNeverActivated();
   }
 
   private requireAdmin(ctx: IContext) {

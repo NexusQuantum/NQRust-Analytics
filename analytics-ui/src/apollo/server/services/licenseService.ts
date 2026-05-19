@@ -70,6 +70,12 @@ export interface ILicenseService {
   activateOfflineFile(filePath: string): Promise<LicenseState>;
   getLicenseState(): LicenseState;
   getFeatures(): string[];
+  /**
+   * True when no license key has ever been persisted for this install.
+   * Used by the resolver to allow the very first activation without auth
+   * (the chicken-and-egg first-run flow).
+   */
+  hasNeverActivated(): Promise<boolean>;
 }
 
 const UNLICENSED_STATE: LicenseState = {
@@ -734,5 +740,18 @@ export class LicenseService implements ILicenseService {
 
   public getFeatures(): string[] {
     return this.cachedState?.features || [];
+  }
+
+  public async hasNeverActivated(): Promise<boolean> {
+    try {
+      const existing = await this.licenseRepository.getLatest();
+      return !existing || !existing.licenseKey;
+    } catch (err) {
+      // Fail closed — if the DB lookup itself errors we'd rather refuse
+      // the bootstrap exemption than risk exposing license activation
+      // to unauthenticated callers.
+      logger.warn('hasNeverActivated lookup failed:', err);
+      return false;
+    }
   }
 }
