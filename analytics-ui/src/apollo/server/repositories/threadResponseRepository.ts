@@ -121,7 +121,16 @@ export class ThreadResponseRepository
       .leftJoin('thread', 'thread.id', 'thread_response.thread_id');
 
     if (limit) {
+      // For "latest N" lookups the caller wants newest-first.
       query.orderBy('created_at', 'desc').limit(limit);
+    } else {
+      // For the full-thread fetch the UI iterates in array order to render
+      // the chat history. Without an explicit ORDER BY, Postgres returns
+      // rows in physical/insert order which is undefined enough that a
+      // followup response could land mid-list and visibly jump position
+      // when streaming completes. Sort by id (monotonic insert sequence)
+      // so new turns always render at the bottom.
+      query.orderBy('thread_response.id', 'asc');
     }
 
     return (await query)
