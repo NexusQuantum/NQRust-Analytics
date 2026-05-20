@@ -86,8 +86,15 @@ class DocumentIndexing(BasicPipeline):
             if callback_url:
                 await self._post_callback(callback_url, document_id, tree, page_count)
 
-            logger.info(f"Document {document_id} indexed successfully ({page_count} pages)")
-            return {"status": "ok", "document_id": document_id, "page_count": page_count, "tree": tree}
+            logger.info(
+                f"Document {document_id} indexed successfully ({page_count} pages)"
+            )
+            return {
+                "status": "ok",
+                "document_id": document_id,
+                "page_count": page_count,
+                "tree": tree,
+            }
 
         except Exception as e:
             logger.error(f"Document indexing failed for {document_id}: {e}")
@@ -97,7 +104,9 @@ class DocumentIndexing(BasicPipeline):
                 except Exception:
                     pass
             if callback_url:
-                await self._post_callback(callback_url, document_id, {}, 0, error=str(e))
+                await self._post_callback(
+                    callback_url, document_id, {}, 0, error=str(e)
+                )
             raise
 
     async def _post_callback(
@@ -109,6 +118,7 @@ class DocumentIndexing(BasicPipeline):
         error: str | None = None,
     ) -> None:
         import json
+
         import aiohttp
 
         payload: dict = {
@@ -165,10 +175,12 @@ class DocumentIndexing(BasicPipeline):
             return tree["page_count"]
         # Walk tree to find max page_end
         max_page = 0
+
         def _walk(node):
             nonlocal max_page
             max_page = max(max_page, node.get("page_end", 0))
             for c in node.get("children", []):
                 _walk(c)
+
         _walk(tree)
         return max_page or 0

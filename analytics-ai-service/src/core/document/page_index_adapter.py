@@ -31,6 +31,7 @@ from .pageindex.utils import (
     ConfigLoader,
     create_node_mapping,
     extract_json,
+    get_page_tokens,
     llm_acompletion,
 )
 
@@ -42,6 +43,15 @@ _MARKDOWN_LIKE_EXTS = {".md", ".markdown", ".docx", ".pptx"}
 
 class UnsupportedFormatError(Exception):
     """Raised when build_index is asked to index an unsupported file type."""
+
+
+class ImageOnlyPdfError(Exception):
+    """Raised when a PDF has no machine-readable text on any page.
+
+    These documents need OCR before they can be indexed. The service
+    surfaces the message to the UI so the user understands why their
+    upload couldn't be processed."""
+
 
 logger = logging.getLogger("analytics-service")
 
@@ -81,9 +91,7 @@ class PageIndexAdapter:
 
     # ── indexing ────────────────────────────────────────────────────────────
 
-    def build_index(
-        self, file_path: str | Path, doc_id: str | None = None
-    ) -> dict:
+    def build_index(self, file_path: str | Path, doc_id: str | None = None) -> dict:
         """
         Build a hierarchical tree for the PDF at `file_path` and return:
             {"pi_doc_id": str, "tree": dict, "page_count": int}
@@ -97,9 +105,7 @@ class PageIndexAdapter:
             raise FileNotFoundError(f"File not found: {file_path}")
 
         ext = file_path.suffix.lower()
-        logger.info(
-            f"Building PageIndex tree locally for {file_path.name} (ext={ext})"
-        )
+        logger.info(f"Building PageIndex tree locally for {file_path.name} (ext={ext})")
         opt = ConfigLoader().load(
             {k: v for k, v in {"model": self._indexing_model}.items() if v}
         )
@@ -109,7 +115,20 @@ class PageIndexAdapter:
             # event loop via asyncio.run. Running it inside an already-running
             # loop would deadlock, so callers from async contexts should
             # off-load via run_in_executor.
-            result = page_index_main(str(file_path), opt)
+            try:
+                result = page_index_main(str(file_path), opt)
+            except Exception as e:
+                # PageIndex raises "Processing failed" when its TOC verifier
+                # decides the LLM-generated structure is too sparse (e.g.
+                # last heading lands before the document midpoint). The PDF
+                # is still useful for RAG — just without per-section
+                # citations — so fall back to a per-page flat tree instead
+                # of failing the upload entirely.
+                logger.warning(
+                    f"PageIndex tree generation failed for {file_path.name}: "
+                    f"{e!r} — falling back to flat per-page structure"
+                )
+                result = self._build_flat_pdf_tree(file_path, opt)
         elif ext in _MARKDOWN_LIKE_EXTS:
             md_path = self._ensure_markdown(file_path, doc_id)
             # md_to_tree is async; we're running inside a worker thread
@@ -147,16 +166,18 @@ class PageIndexAdapter:
         wrapped = {
             "doc_id": doc_id or file_path.stem,
             "doc_name": (
-                result.get("doc_name")
-                if isinstance(result, dict)
-                else file_path.name
+                result.get("doc_name") if isinstance(result, dict) else file_path.name
             ),
             "doc_description": (
-                result.get("doc_description")
-                if isinstance(result, dict)
-                else None
+                result.get("doc_description") if isinstance(result, dict) else None
             ),
             "structure": tree if isinstance(tree, list) else [],
+            # True when we couldn't build a real TOC and fell back to a
+            # per-page flat tree. Persisted to the documents table for
+            # diagnostics; not currently surfaced in the UI.
+            "fallback_used": bool(
+                isinstance(result, dict) and result.get("fallback_used")
+            ),
         }
 
         page_count = _count_pages_from_tree(wrapped["structure"])
@@ -165,6 +186,61 @@ class PageIndexAdapter:
             "pi_doc_id": wrapped["doc_id"],
             "tree": wrapped,
             "page_count": page_count,
+        }
+
+    def _build_flat_pdf_tree(self, file_path: Path, opt: Any) -> dict:
+        """Fallback when PageIndex's LLM-driven TOC generation fails.
+
+        Reads each page via PyPDF2 and emits one tree node per page so
+        the document is still retrievable end-to-end — just without the
+        hierarchical section structure PageIndex normally produces.
+        Citations land on page numbers, which is the minimum useful unit.
+
+        Raises ImageOnlyPdfError if no page yields any text — the PDF is
+        almost certainly a scan/image-only export, and indexing it as
+        "Ready" would mislead the user into thinking it's queryable.
+        """
+        page_list = get_page_tokens(str(file_path), model=opt.model)
+        total_pages = len(page_list)
+        structure: list[dict] = []
+        for idx, (page_text, _tokens) in enumerate(page_list, start=1):
+            text = (page_text or "").strip()
+            if not text:
+                # Skip empty / image-only pages — they contribute nothing
+                # to text RAG. (OCR would help here; not in scope yet.)
+                continue
+            first_line = next(
+                (ln.strip() for ln in text.splitlines() if ln.strip()),
+                "",
+            )
+            title = first_line[:80] if first_line else f"Page {idx}"
+            structure.append(
+                {
+                    "title": title,
+                    "node_id": f"page_{idx:04d}",
+                    "start_index": idx,
+                    "end_index": idx,
+                    "text": text,
+                    "summary": text[:200],
+                    "nodes": [],
+                }
+            )
+
+        if not structure:
+            raise ImageOnlyPdfError(
+                f"No extractable text in any of {total_pages} pages — "
+                f"the PDF appears to be image-only (scanned). "
+                f"OCR is required to index documents like this."
+            )
+
+        return {
+            "doc_name": file_path.name,
+            "doc_description": (
+                "Document indexed in fallback mode — per-page only, "
+                "no hierarchical structure available."
+            ),
+            "structure": structure,
+            "fallback_used": True,
         }
 
     def _ensure_markdown(self, src: Path, doc_id: str | None) -> Path:
@@ -191,9 +267,7 @@ class PageIndexAdapter:
             # so the caller can present a user-readable failure status.
             raise UnsupportedFormatError(str(e)) from e
 
-        raise UnsupportedFormatError(
-            f"No markdown converter registered for {ext}"
-        )
+        raise UnsupportedFormatError(f"No markdown converter registered for {ext}")
 
     # ── retrieval ───────────────────────────────────────────────────────────
 

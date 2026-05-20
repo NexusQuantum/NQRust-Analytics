@@ -47,6 +47,14 @@ export const DOCUMENT_ACCEPT_ATTR: string = [
  */
 export const DEFAULT_DOCUMENT_MAX_SIZE_MB = 50;
 
+/**
+ * Maximum documents a user can mark as "selected for chat" at once.
+ * Mirrored on the server in `documentService.setDocumentSelection` —
+ * the server is authoritative; this constant exists so the UI can show
+ * the cap in copy and disable controls before the user hits the limit.
+ */
+export const MAX_DOCUMENT_SELECTION = 5;
+
 /** Lowercase, dot-prefixed extension; empty string when there is no dot. */
 export function extensionOf(filename: string): string {
   if (!filename) return '';

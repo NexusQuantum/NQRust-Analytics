@@ -9,7 +9,10 @@ import {
   Document,
 } from '@server/repositories';
 import { IAnalyticsAIAdaptor } from '@server/adaptors';
-import { isAllowedDocument } from '@/utils/documentFormats';
+import {
+  isAllowedDocument,
+  MAX_DOCUMENT_SELECTION,
+} from '@/utils/documentFormats';
 
 const logger = getLogger('DocumentService');
 
@@ -171,9 +174,20 @@ export class DocumentService {
       modelUsed,
       buildTimeMs,
     );
+    // Sniff fallback_used out of the tree JSON so the UI can show a
+    // "limited structure" badge. Parse defensively — a malformed tree
+    // should not block marking the doc as indexed.
+    let fallbackUsed = false;
+    try {
+      const parsed = JSON.parse(treeJson);
+      fallbackUsed = parsed && parsed.fallback_used === true;
+    } catch {
+      fallbackUsed = false;
+    }
     await this.documentRepository.updateStatus(documentId, 'indexed', {
       pageCount,
       indexedAt: new Date(),
+      fallbackUsed,
     } as Partial<Document>);
   }
 
@@ -191,8 +205,10 @@ export class DocumentService {
   }
 
   public async setDocumentSelection(documentIds: string[]): Promise<void> {
-    if (documentIds.length > 5) {
-      throw new Error('Maximum 5 documents can be selected at once');
+    if (documentIds.length > MAX_DOCUMENT_SELECTION) {
+      throw new Error(
+        `Maximum ${MAX_DOCUMENT_SELECTION} documents can be selected at once`,
+      );
     }
     await this.documentSelectionRepository.setSelection(documentIds);
   }

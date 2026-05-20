@@ -340,8 +340,8 @@ export default function useAskPrompt(threadId?: number) {
     askingStreamTaskResult.reset();
     setOriginalQuestion(value);
     try {
-      // Fetch fresh selection from server — local state may be stale if another
-      // component (SourcesPanel) updated the selection without our knowledge.
+      // Fetch fresh selection from server — local state may be stale if the
+      // Document Library page changed the selection without our knowledge.
       let freshDocumentIds: string[] = indexedSelectedIds;
       try {
         const [selRes, docsRes] = await Promise.all([

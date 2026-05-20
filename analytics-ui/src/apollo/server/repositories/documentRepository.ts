@@ -13,6 +13,7 @@ export interface Document {
   status: 'pending' | 'indexing' | 'indexed' | 'failed';
   errorMessage: string | null;
   indexedAt: Date | null;
+  fallbackUsed: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

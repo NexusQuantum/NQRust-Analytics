@@ -3,38 +3,23 @@ import Link from 'next/link';
 import {
   Alert,
   Button,
-  Checkbox,
+  Empty,
   Modal as AntModal,
-  Table,
-  TableColumnsType,
-  Tag,
-  Tooltip,
+  Skeleton,
   Typography,
   message,
 } from 'antd';
-import {
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  DeleteOutlined,
-  FileMarkdownOutlined,
-  FilePdfOutlined,
-  FilePptOutlined,
-  FileTextOutlined,
-  FileWordOutlined,
-  LoadingOutlined,
-  PlusOutlined,
-  WarningOutlined,
-} from '@ant-design/icons';
+import { PlusOutlined, InboxOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import SiderLayout from '@/components/layouts/SiderLayout';
 import PageLayout from '@/components/layouts/PageLayout';
 import UploadDialog from '@/components/sidebar/home/UploadDialog';
+import DocumentCard from '@/components/pages/documentLibrary/DocumentCard';
 import { useDocuments, DocumentItem } from '@/hooks/useDocuments';
-import { getCompactTime } from '@/utils/time';
+import { MAX_DOCUMENT_SELECTION } from '@/utils/documentFormats';
 
 const { Text } = Typography;
 
-const MAX_SELECTION = 5;
 const POLL_INTERVAL_MS = 3000;
 
 const SelectionBadge = styled.div`
@@ -50,75 +35,54 @@ const SelectionBadge = styled.div`
   margin-right: 12px;
 `;
 
-const FileNameCell = styled.div`
+const Grid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+`;
+
+const SkeletonCard = styled.div`
   display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--gray-3);
+  border-radius: 10px;
+  background: var(--gray-1);
 `;
 
-const FileNameText = styled.span`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+const SkeletonThumb = styled.div`
+  align-self: center;
+  width: 180px;
+  height: ${Math.round(180 * (11 / 8.5))}px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--gray-2) 0%,
+    var(--gray-3) 50%,
+    var(--gray-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
 `;
 
-function fileTypeIcon(filename: string, mimeType: string): React.ReactNode {
-  const lower = (filename || '').toLowerCase();
-  if (lower.endsWith('.pdf') || mimeType === 'application/pdf') {
-    return <FilePdfOutlined style={{ color: 'var(--red-5)', fontSize: 16 }} />;
-  }
-  if (lower.endsWith('.docx') || mimeType.includes('wordprocessingml')) {
-    return <FileWordOutlined style={{ color: 'var(--blue-6)', fontSize: 16 }} />;
-  }
-  if (lower.endsWith('.pptx') || mimeType.includes('presentationml')) {
-    return <FilePptOutlined style={{ color: 'var(--orange-6)', fontSize: 16 }} />;
-  }
-  if (
-    lower.endsWith('.md') ||
-    lower.endsWith('.markdown') ||
-    mimeType.includes('markdown')
-  ) {
-    return <FileMarkdownOutlined style={{ color: 'var(--gray-7)', fontSize: 16 }} />;
-  }
-  return <FileTextOutlined style={{ color: 'var(--gray-6)', fontSize: 16 }} />;
-}
-
-function statusTag(status: DocumentItem['status']) {
-  switch (status) {
-    case 'indexed':
-      return (
-        <Tag icon={<CheckCircleOutlined />} color="success">
-          Ready
-        </Tag>
-      );
-    case 'indexing':
-      return (
-        <Tag icon={<LoadingOutlined spin />} color="processing">
-          Indexing
-        </Tag>
-      );
-    case 'failed':
-      return (
-        <Tag icon={<WarningOutlined />} color="error">
-          Failed
-        </Tag>
-      );
-    default:
-      return (
-        <Tag icon={<ClockCircleOutlined />} color="default">
-          Pending
-        </Tag>
-      );
-  }
-}
-
-function humanSize(bytes: number): string {
-  if (!bytes) return '—';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+const EmptyState = styled.div`
+  padding: 64px 24px;
+  border: 1px dashed var(--gray-4);
+  border-radius: 12px;
+  background: var(--gray-1);
+  text-align: center;
+`;
 
 export default function DocumentLibraryPage() {
   const {
@@ -182,102 +146,8 @@ export default function DocumentLibraryPage() {
   };
 
   const selectionCount = selectedIds.length;
-
-  const columns: TableColumnsType<DocumentItem> = [
-    {
-      title: 'Use as context',
-      key: 'selection',
-      width: 130,
-      align: 'center',
-      render: (_, doc) => {
-        const isSelected = selectedIds.includes(doc.id);
-        const disabled =
-          doc.status !== 'indexed' ||
-          (!isSelected && selectionCount >= MAX_SELECTION);
-        const reason =
-          doc.status !== 'indexed'
-            ? 'Document must finish indexing before it can be selected'
-            : !isSelected && selectionCount >= MAX_SELECTION
-              ? `Maximum ${MAX_SELECTION} documents can be selected`
-              : undefined;
-        return (
-          <Tooltip title={reason}>
-            <Checkbox
-              checked={isSelected}
-              disabled={disabled}
-              onChange={() => toggleSelection(doc.id)}
-            />
-          </Tooltip>
-        );
-      },
-    },
-    {
-      title: 'File',
-      dataIndex: 'originalFilename',
-      render: (_, doc) => {
-        const name = doc.originalFilename || doc.filename;
-        return (
-          <FileNameCell>
-            {fileTypeIcon(name, doc.mimeType)}
-            <Tooltip title={name}>
-              <FileNameText>{name}</FileNameText>
-            </Tooltip>
-          </FileNameCell>
-        );
-      },
-    },
-    {
-      title: 'Size',
-      dataIndex: 'size',
-      width: 100,
-      render: (size: number) => (
-        <Text className="gray-7">{humanSize(size)}</Text>
-      ),
-    },
-    {
-      title: 'Pages',
-      dataIndex: 'pageCount',
-      width: 80,
-      align: 'center',
-      render: (pageCount: number | null) => (
-        <Text className="gray-7">{pageCount ? pageCount : '—'}</Text>
-      ),
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      width: 140,
-      render: (status: DocumentItem['status'], doc) => (
-        <Tooltip title={doc.errorMessage || undefined}>
-          {statusTag(status)}
-        </Tooltip>
-      ),
-    },
-    {
-      title: 'Added',
-      dataIndex: 'createdAt',
-      width: 130,
-      render: (time: string) => (
-        <Text className="gray-7">{getCompactTime(time)}</Text>
-      ),
-    },
-    {
-      key: 'action',
-      width: 56,
-      align: 'center',
-      fixed: 'right',
-      render: (_, doc) => (
-        <Tooltip title="Remove document">
-          <Button
-            type="text"
-            size="small"
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(doc)}
-          />
-        </Tooltip>
-      ),
-    },
-  ];
+  const selectionAtMax = selectionCount >= MAX_DOCUMENT_SELECTION;
+  const initialLoading = loading && documents.length === 0;
 
   return (
     <SiderLayout loading={false}>
@@ -287,7 +157,7 @@ export default function DocumentLibraryPage() {
           <div className="d-flex align-center">
             <SelectionBadge>
               <span>
-                <strong>{selectionCount}</strong>/{MAX_SELECTION}
+                <strong>{selectionCount}</strong>/{MAX_DOCUMENT_SELECTION}
               </span>
               <span style={{ color: 'var(--gray-6)' }}>selected for chat</span>
             </SelectionBadge>
@@ -304,7 +174,7 @@ export default function DocumentLibraryPage() {
           <>
             Manage documents used as a knowledge base for chat. Upload PDFs,
             Markdown, Word (.docx), or PowerPoint (.pptx) files; pick up to{' '}
-            {MAX_SELECTION} to include as context in new chat turns. Selection
+            {MAX_DOCUMENT_SELECTION} to include as context in new chat turns. Selection
             is global — every chat thread sees the same set.{' '}
             <Link
               className="gray-8 underline"
@@ -325,24 +195,69 @@ export default function DocumentLibraryPage() {
             style={{ marginBottom: 12 }}
           />
         )}
-        <Table
-          className="ant-table-has-header"
-          dataSource={documents}
-          loading={loading && documents.length === 0}
-          columns={columns}
-          rowKey="id"
-          pagination={{
-            hideOnSinglePage: true,
-            pageSize: 20,
-            size: 'small',
-          }}
-          scroll={{ x: 900 }}
-          locale={{
-            emptyText: loading
-              ? 'Loading…'
-              : 'No documents yet. Click "Upload documents" to add one.',
-          }}
-        />
+
+        {initialLoading ? (
+          <Grid>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonCard key={i}>
+                <SkeletonThumb />
+                <Skeleton active title={false} paragraph={{ rows: 2, width: ['80%', '40%'] }} />
+              </SkeletonCard>
+            ))}
+          </Grid>
+        ) : documents.length === 0 ? (
+          <EmptyState>
+            <Empty
+              image={
+                <InboxOutlined
+                  style={{ fontSize: 64, color: 'var(--gray-5)' }}
+                />
+              }
+              imageStyle={{ height: 80 }}
+              description={
+                <div>
+                  <div
+                    style={{
+                      fontSize: 16,
+                      color: 'var(--gray-8)',
+                      marginBottom: 4,
+                    }}
+                  >
+                    No documents yet
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--gray-6)' }}>
+                    Upload PDFs, Markdown, Word, or PowerPoint files to start
+                    building your knowledge base.
+                  </div>
+                </div>
+              }
+            >
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setUploadOpen(true)}
+              >
+                Upload your first document
+              </Button>
+            </Empty>
+          </EmptyState>
+        ) : (
+          <Grid>
+            {documents.map((doc) => {
+              const isSelected = selectedIds.includes(doc.id);
+              return (
+                <DocumentCard
+                  key={doc.id}
+                  doc={doc}
+                  isSelected={isSelected}
+                  selectionDisabled={selectionAtMax}
+                  onToggle={toggleSelection}
+                  onDelete={handleDelete}
+                />
+              );
+            })}
+          </Grid>
+        )}
 
         <UploadDialog
           visible={uploadOpen}

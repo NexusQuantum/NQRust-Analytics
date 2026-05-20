@@ -12,7 +12,8 @@
     "check-types": "tsc --noEmit",
     "migrate": "yarn knex migrate:latest",
     "rollback": "yarn knex migrate:rollback",
-    "generate-gql": "yarn graphql-codegen --config codegen.yaml"
+    "generate-gql": "yarn graphql-codegen --config codegen.yaml",
+    "postinstall": "node -e \"const fs=require('fs');const src='node_modules/pdfjs-dist/build/pdf.worker.min.mjs';const dst='public/pdf.worker.min.mjs';if(fs.existsSync(src)){fs.mkdirSync('public',{recursive:true});fs.copyFileSync(src,dst);}\""
   },
   "dependencies": {
     "@google-cloud/bigquery": "^6.0.3",
@@ -33,6 +34,7 @@
     "micro-cors": "^0.1.1",
     "next": "14.2.32",
     "next-auth": "^4.24.13",
+    "pdfjs-dist": "^5.7.284",
     "pg": "^8.8.0",
     "pg-cursor": "^2.7.4",
     "posthog-node": "^4.3.2",

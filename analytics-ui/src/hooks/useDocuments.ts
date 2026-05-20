@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { MAX_DOCUMENT_SELECTION } from '@/utils/documentFormats';
 
 export interface DocumentItem {
   id: string;
@@ -10,6 +11,10 @@ export interface DocumentItem {
   status: 'pending' | 'indexing' | 'indexed' | 'failed';
   errorMessage: string | null;
   indexedAt: string | null;
+  /** True when the indexing engine couldn't build a hierarchical TOC
+   *  and fell back to a per-page flat tree. Persisted for diagnostics;
+   *  not currently surfaced in the UI. */
+  fallbackUsed?: boolean;
   createdAt: string;
 }
 
@@ -141,8 +146,8 @@ export function useDocuments(): UseDocumentsReturn {
   const toggleSelection = useCallback(async (id: string) => {
     const newIds = selectedIds.includes(id)
       ? selectedIds.filter((x) => x !== id)
-      : selectedIds.length >= 5
-        ? selectedIds // max 5
+      : selectedIds.length >= MAX_DOCUMENT_SELECTION
+        ? selectedIds // server enforces the same cap
         : [...selectedIds, id];
 
     try {
