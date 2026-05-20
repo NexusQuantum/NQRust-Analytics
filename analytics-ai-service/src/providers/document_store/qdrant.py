@@ -30,6 +30,21 @@ from src.providers.loader import provider
 logger = logging.getLogger("analytics-service")
 
 
+# Truthy env values. Used in place of `bool(os.getenv(...))`, which has
+# the surprising behaviour that bool("0") is True (any non-empty string
+# is truthy in Python). The old usage meant "SHOULD_FORCE_DEPLOY=0" still
+# triggered a recreate, which combined with multi-worker gunicorn startup
+# produced a 409 Conflict race that crashed all workers but the first.
+_TRUTHY_ENV_VALUES = {"1", "true", "yes", "on", "y", "t"}
+
+
+def _env_truthy(name: str) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return False
+    return raw.strip().lower() in _TRUTHY_ENV_VALUES
+
+
 def convert_haystack_documents_to_qdrant_points(
     documents: List[Document],
     *,
@@ -378,11 +393,7 @@ class QdrantProvider(DocumentStoreProvider):
             if os.getenv("EMBEDDING_MODEL_DIMENSION")
             else 0
         ),
-        recreate_index: bool = (
-            bool(os.getenv("SHOULD_FORCE_DEPLOY"))
-            if os.getenv("SHOULD_FORCE_DEPLOY")
-            else False
-        ),
+        recreate_index: bool = _env_truthy("SHOULD_FORCE_DEPLOY"),
         **_,
     ):
         self._location = location
@@ -404,30 +415,54 @@ class QdrantProvider(DocumentStoreProvider):
         dataset_name: Optional[str] = None,
         recreate_index: bool = False,
     ):
-        return AsyncQdrantDocumentStore(
-            location=self._location,
-            api_key=self._api_key,
-            embedding_dim=self._embedding_model_dim,
-            index=dataset_name or "Document",
-            recreate_index=recreate_index,
-            on_disk=True,
-            timeout=self._timeout,
-            quantization_config=(
-                rest.BinaryQuantization(
-                    binary=rest.BinaryQuantizationConfig(
-                        always_ram=True,
+        index_name = dataset_name or "Document"
+
+        def _construct(do_recreate: bool) -> "AsyncQdrantDocumentStore":
+            return AsyncQdrantDocumentStore(
+                location=self._location,
+                api_key=self._api_key,
+                embedding_dim=self._embedding_model_dim,
+                index=index_name,
+                recreate_index=do_recreate,
+                on_disk=True,
+                timeout=self._timeout,
+                quantization_config=(
+                    rest.BinaryQuantization(
+                        binary=rest.BinaryQuantizationConfig(
+                            always_ram=True,
+                        )
                     )
+                    if self._embedding_model_dim >= 1024
+                    else None
+                ),
+                # to improve the indexing performance, we disable building global index for the whole collection
+                # see https://qdrant.tech/documentation/guides/multiple-partitions/?q=mul#calibrate-performance
+                hnsw_config=rest.HnswConfigDiff(
+                    payload_m=16,
+                    m=0,
+                ),
+            )
+
+        if not recreate_index:
+            return _construct(do_recreate=False)
+
+        # Multi-worker gunicorn races on this exact line at startup: each
+        # worker reaches recreate_collection() and exactly one wins; the
+        # losers get 409 Conflict ("Collection already exists") and crash
+        # the worker. The collection is already correctly created by the
+        # winner, so the losers just need to attach instead of recreate.
+        # Catch the conflict and fall back to recreate_index=False.
+        try:
+            return _construct(do_recreate=True)
+        except Exception as err:
+            msg = str(err).lower()
+            if "already exists" in msg or "conflict" in msg or "409" in msg:
+                logger.info(
+                    f"Qdrant collection '{index_name}' already exists "
+                    f"(another worker created it); attaching without recreate."
                 )
-                if self._embedding_model_dim >= 1024
-                else None
-            ),
-            # to improve the indexing performance, we disable building global index for the whole collection
-            # see https://qdrant.tech/documentation/guides/multiple-partitions/?q=mul#calibrate-performance
-            hnsw_config=rest.HnswConfigDiff(
-                payload_m=16,
-                m=0,
-            ),
-        )
+                return _construct(do_recreate=False)
+            raise
 
     def get_retriever(
         self,
