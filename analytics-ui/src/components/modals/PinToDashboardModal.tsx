@@ -21,6 +21,10 @@ export default function PinToDashboardModal(props: Props) {
   const [showCreateNew, setShowCreateNew] = useState(false);
   const [newDashboardName, setNewDashboardName] = useState('');
   const [creating, setCreating] = useState(false);
+  // Controlled dropdown so we can close it programmatically when the user
+  // chooses "Create New Dashboard" — otherwise the open menu floats over the
+  // inline create form below and hides it.
+  const [selectOpen, setSelectOpen] = useState(false);
 
   // Fetch dashboards
   const { data: dashboardsData, refetch } = useQuery(LIST_DASHBOARDS, {
@@ -45,6 +49,7 @@ export default function PinToDashboardModal(props: Props) {
       }
       setShowCreateNew(false);
       setNewDashboardName('');
+      setSelectOpen(false);
     }
   }, [visible, dashboards]);
 
@@ -114,6 +119,8 @@ export default function PinToDashboardModal(props: Props) {
           value={selectedDashboardId}
           onChange={(value) => setSelectedDashboardId(value)}
           placeholder="Select a dashboard"
+          open={selectOpen}
+          onDropdownVisibleChange={setSelectOpen}
           dropdownRender={(menu) => (
             <>
               {menu}
@@ -121,7 +128,10 @@ export default function PinToDashboardModal(props: Props) {
               <div
                 className="d-flex align-center px-2 py-1 cursor-pointer"
                 style={{ color: 'var(--rust-orange-6)' }}
-                onClick={() => setShowCreateNew(true)}
+                onClick={() => {
+                  setShowCreateNew(true);
+                  setSelectOpen(false);
+                }}
               >
                 <PlusOutlined className="mr-2" />
                 Create New Dashboard

@@ -50,6 +50,10 @@ pypdf2 = "^3.0.0"
 # so no system dependency (LibreOffice/Java) is required.
 mammoth = "^1.8.0"      # .docx → Markdown (preserves Heading styles → # / ## / ###)
 python-pptx = "^1.0.2"  # .pptx → text-per-slide (we synthesize Markdown ourselves)
+# OCR fallback for image-only / scanned PDFs (e.g. SplitBill_Master_Plan).
+# `pytesseract` wraps the `tesseract` system binary — see Dockerfile for
+# the apt-get install. Pillow is pulled in transitively.
+pytesseract = "^0.3.13"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.7.1"

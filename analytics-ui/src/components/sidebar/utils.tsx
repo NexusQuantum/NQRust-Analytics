@@ -90,6 +90,10 @@ interface GroupSet {
   appendSlot?: React.ReactNode;
   children?: DataNode[];
   actions: ActionType[];
+  /** Override the auto-generated "No <groupname>" placeholder. Use when
+   *  the group name doesn't read naturally after "No " (e.g. "My Dashboards"
+   *  → the default would render "No my dashboards"). */
+  emptyMessage?: string;
 }
 
 export const createTreeGroupNode =
@@ -101,11 +105,12 @@ export const createTreeGroupNode =
       actions,
       children = [],
       appendSlot,
+      emptyMessage,
     } = assign(sourceData, updatedData);
 
     const emptyChildren = [
       {
-        title: `No ${lowerCase(groupName)}`,
+        title: emptyMessage ?? `No ${lowerCase(groupName)}`,
         key: `${groupKey}-empty`,
         selectable: false,
         className: 'adm-treeNode adm-treeNode--empty adm-treeNode--selectNode',

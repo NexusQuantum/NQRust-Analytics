@@ -15,8 +15,16 @@ ENV POETRY_NO_INTERACTION=1 \
     QDRANT_HOST=qdrant \
     ANALYTICS_AI_SERVICE_PORT=5555
 
-# Install netcat for the wait-for-qdrant check
-RUN apt-get update && apt-get install -y netcat-traditional && rm -rf /var/lib/apt/lists/*
+# System dependencies:
+#   - netcat-traditional: wait-for-qdrant check at startup
+#   - tesseract-ocr + ind/eng language packs: OCR fallback for image-only PDFs
+#     (pytesseract Python wrapper calls this binary directly)
+RUN apt-get update && apt-get install -y \
+      netcat-traditional \
+      tesseract-ocr \
+      tesseract-ocr-eng \
+      tesseract-ocr-ind \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

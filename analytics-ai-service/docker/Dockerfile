@@ -16,7 +16,12 @@ RUN poetry install --without dev,eval,test --no-root && rm -rf $POETRY_CACHE_DIR
 
 FROM python:3.12.0-slim-bookworm as runtime
 
-RUN apt-get update && apt install -y netcat-traditional && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+      netcat-traditional \
+      tesseract-ocr \
+      tesseract-ocr-eng \
+      tesseract-ocr-ind \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV VIRTUAL_ENV=/app/.venv \
     PATH="/app/.venv/bin:$PATH" \

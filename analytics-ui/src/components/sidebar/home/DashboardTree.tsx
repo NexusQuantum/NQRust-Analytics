@@ -206,6 +206,7 @@ export default function DashboardTree(props: Props) {
     const getOwnedGroupNode = createTreeGroupNode({
         groupName: 'My Dashboards',
         groupKey: 'owned-dashboards',
+        emptyMessage: 'No dashboards yet',
         actions: [
             {
                 key: 'new-dashboard',
@@ -225,6 +226,7 @@ export default function DashboardTree(props: Props) {
     const getSharedGroupNode = createTreeGroupNode({
         groupName: 'Shared with Me',
         groupKey: 'shared-dashboards',
+        emptyMessage: 'Nothing shared with you',
         actions: [],
     });
 

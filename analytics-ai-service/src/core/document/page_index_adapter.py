@@ -22,8 +22,13 @@ import json
 import logging
 import re
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 from typing import Any
+
+import pymupdf
+import pytesseract
+from PIL import Image
 
 from .converter import ConversionError, docx_to_markdown, pptx_to_markdown
 from .pageindex import md_to_tree, page_index_main
@@ -34,6 +39,12 @@ from .pageindex.utils import (
     get_page_tokens,
     llm_acompletion,
 )
+
+# OCR render resolution. 200 DPI is the sweet spot for Tesseract on
+# typical print-quality scans — accuracy plateaus above this and memory
+# scales quadratically (a 300 DPI A4 pixmap ≈ 25 MB raw, vs 11 MB at 200).
+_OCR_DPI = 200
+_OCR_LANGS = "ind+eng"
 
 # Extensions that go through the markdown engine. Office formats are first
 # converted to Markdown by the helpers in converter.py; .md/.markdown go
@@ -196,41 +207,79 @@ class PageIndexAdapter:
         hierarchical section structure PageIndex normally produces.
         Citations land on page numbers, which is the minimum useful unit.
 
-        Raises ImageOnlyPdfError if no page yields any text — the PDF is
-        almost certainly a scan/image-only export, and indexing it as
-        "Ready" would mislead the user into thinking it's queryable.
+        Empty pages (no embedded text layer) are passed through Tesseract
+        OCR before being skipped, so scanned/image-only PDFs still index
+        successfully. Only raises ImageOnlyPdfError if *every* page is
+        empty AND OCR couldn't recover any text either.
         """
         page_list = get_page_tokens(str(file_path), model=opt.model)
         total_pages = len(page_list)
         structure: list[dict] = []
-        for idx, (page_text, _tokens) in enumerate(page_list, start=1):
-            text = (page_text or "").strip()
-            if not text:
-                # Skip empty / image-only pages — they contribute nothing
-                # to text RAG. (OCR would help here; not in scope yet.)
-                continue
-            first_line = next(
-                (ln.strip() for ln in text.splitlines() if ln.strip()),
-                "",
-            )
-            title = first_line[:80] if first_line else f"Page {idx}"
-            structure.append(
-                {
-                    "title": title,
-                    "node_id": f"page_{idx:04d}",
-                    "start_index": idx,
-                    "end_index": idx,
-                    "text": text,
-                    "summary": text[:200],
-                    "nodes": [],
-                }
+        ocr_recovered_pages = 0
+
+        # Open the PDF once for the OCR pass (only if we'll actually need
+        # it — a fully text-native PDF skips the open entirely). Reusing
+        # the same `pymupdf.Document` across pages avoids the per-page
+        # xref-parse overhead that would otherwise dominate runtime for a
+        # 100+ page scanned doc.
+        needs_ocr = any(not (t or "").strip() for t, _ in page_list)
+        ocr_doc: pymupdf.Document | None = None
+        ocr_disabled = False  # flips True on first TesseractNotFoundError
+
+        if needs_ocr:
+            try:
+                ocr_doc = pymupdf.open(str(file_path))
+            except Exception as e:
+                logger.warning(
+                    f"OCR: failed to open {file_path.name} for rendering: {e!r}"
+                )
+                ocr_doc = None
+
+        try:
+            for idx, (page_text, _tokens) in enumerate(page_list, start=1):
+                text = (page_text or "").strip()
+                if not text and ocr_doc is not None and not ocr_disabled:
+                    # No embedded text — try OCR before giving up. Lets us
+                    # index scanned PDFs (receipts, photographed contracts,
+                    # SplitBill_Master_Plan-style image-only exports).
+                    text, ocr_disabled = self._ocr_pdf_page(
+                        ocr_doc, idx, file_path.name
+                    )
+                    if text:
+                        ocr_recovered_pages += 1
+                if not text:
+                    continue
+                first_line = next(
+                    (ln.strip() for ln in text.splitlines() if ln.strip()),
+                    "",
+                )
+                title = first_line[:80] if first_line else f"Page {idx}"
+                structure.append(
+                    {
+                        "title": title,
+                        "node_id": f"page_{idx:04d}",
+                        "start_index": idx,
+                        "end_index": idx,
+                        "text": text,
+                        "summary": text[:200],
+                        "nodes": [],
+                    }
+                )
+        finally:
+            if ocr_doc is not None:
+                ocr_doc.close()
+
+        if ocr_recovered_pages:
+            logger.info(
+                f"OCR recovered text from {ocr_recovered_pages}/{total_pages} "
+                f"pages of {file_path.name}"
             )
 
         if not structure:
             raise ImageOnlyPdfError(
-                f"No extractable text in any of {total_pages} pages — "
-                f"the PDF appears to be image-only (scanned). "
-                f"OCR is required to index documents like this."
+                f"No extractable text in any of {total_pages} pages, even "
+                f"after OCR — the PDF may be blank, too low-resolution, or "
+                f"contain only non-text imagery."
             )
 
         return {
@@ -242,6 +291,49 @@ class PageIndexAdapter:
             "structure": structure,
             "fallback_used": True,
         }
+
+    def _ocr_pdf_page(
+        self,
+        doc: pymupdf.Document,
+        page_idx: int,
+        doc_name: str,
+    ) -> tuple[str, bool]:
+        """Run Tesseract OCR on one page of an already-open PDF.
+
+        Returns `(text, ocr_disabled)`. `ocr_disabled` flips True only
+        when the Tesseract binary is missing — the caller uses it to
+        short-circuit subsequent pages instead of re-logging the same
+        error N times. Any other failure returns empty text with
+        `ocr_disabled=False` so we try the next page.
+
+        `page_idx` is 1-indexed to match the rest of the pipeline.
+        """
+        pix = None
+        img = None
+        try:
+            page = doc[page_idx - 1]
+            pix = page.get_pixmap(dpi=_OCR_DPI)
+            img = Image.open(BytesIO(pix.tobytes("png")))
+            text = pytesseract.image_to_string(img, lang=_OCR_LANGS)
+            return (text or "").strip(), False
+        except pytesseract.TesseractNotFoundError:
+            # Disable for the rest of this document so we don't spam logs
+            # once per empty page on a 100-page scan.
+            logger.error(
+                "tesseract binary not found on PATH; OCR fallback disabled "
+                "for the remainder of this document. Install with "
+                "`apt-get install tesseract-ocr` plus the language packs."
+            )
+            return "", True
+        except Exception as e:
+            logger.warning(f"OCR failed for page {page_idx} of {doc_name}: {e!r}")
+            return "", False
+        finally:
+            # Release the pixmap eagerly — under concurrent uploads the GC
+            # lag can let several hundred MB pile up between pages.
+            if img is not None:
+                img.close()
+            del pix
 
     def _ensure_markdown(self, src: Path, doc_id: str | None) -> Path:
         """Return a path to a Markdown version of `src`.
