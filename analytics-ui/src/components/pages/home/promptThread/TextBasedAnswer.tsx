@@ -43,6 +43,7 @@ export default function TextBasedAnswer(props: AnswerResultProps) {
     onOpenAdjustSQLModal,
     onOpenSaveToKnowledgeModal,
     onOpenSaveAsViewModal,
+    preparation,
   } = usePromptThreadStore();
   const { isLastThreadResponse, onInitPreviewDone, threadResponse } = props;
   const { id, question, sql, view } = threadResponse;
@@ -50,7 +51,22 @@ export default function TextBasedAnswer(props: AnswerResultProps) {
     threadResponse?.answerDetail || {};
 
   const [textAnswer, setTextAnswer] = useState<string>('');
+  const [retryLoading, setRetryLoading] = useState<boolean>(false);
   const adjustResultsDropdown = useDropdown();
+
+  // Re-run the full asking task — regenerates SQL from scratch via the
+  // AI service. This is the right recovery for 422s where the LLM
+  // produced invalid SQL (bad alias, ambiguous column, etc.): the
+  // generation is stochastic, so a fresh attempt often succeeds.
+  const onRetry = async () => {
+    if (!preparation?.onReRunAskingTask) return;
+    setRetryLoading(true);
+    try {
+      await preparation.onReRunAskingTask(threadResponse);
+    } finally {
+      setRetryLoading(false);
+    }
+  };
 
   const [fetchAnswerStreamingTask, answerStreamTaskResult] =
     useTextBasedAnswerStreamTask();
@@ -197,6 +213,18 @@ export default function TextBasedAnswer(props: AnswerResultProps) {
             description={error.message}
             type="error"
             showIcon
+            action={
+              preparation?.onReRunAskingTask ? (
+                <Button
+                  size="small"
+                  icon={<RefreshCw size={14} />}
+                  onClick={onRetry}
+                  loading={retryLoading}
+                >
+                  Retry
+                </Button>
+              ) : null
+            }
           />
         </div>
       </>

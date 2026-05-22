@@ -54,6 +54,7 @@ function RecommendedQuestionsInstruction(props) {
     recommendedQuestions,
     showRetry,
     showRecommendedQuestionsPromptMode,
+    onRegenerate,
   } = useRecommendedQuestionsInstruction();
 
   return showRecommendedQuestionsPromptMode ? (
@@ -65,6 +66,8 @@ function RecommendedQuestionsInstruction(props) {
         recommendedQuestions={recommendedQuestions}
         onSelect={onSelect}
         loading={loading}
+        regenerating={generating}
+        onRegenerate={onRegenerate}
       />
       <div className="py-12" />
     </div>

@@ -160,5 +160,9 @@ export default function useRecommendedQuestionsInstruction() {
     showRetry,
     showRecommendedQuestionsPromptMode,
     buttonProps,
+    // Exposed so the prompt-mode UI (which doesn't render the big
+    // "What could I ask?" button) can still trigger a fresh generation
+    // via a smaller refresh affordance.
+    onRegenerate: onGetRecommendationQuestions,
   };
 }
