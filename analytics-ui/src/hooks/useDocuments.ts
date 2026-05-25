@@ -15,6 +15,7 @@ export interface DocumentItem {
    *  and fell back to a per-page flat tree. Persisted for diagnostics;
    *  not currently surfaced in the UI. */
   fallbackUsed?: boolean;
+  folderId: number | null;
   createdAt: string;
 }
 
@@ -32,7 +33,16 @@ interface UseDocumentsReturn {
   toggleSelection: (id: string) => Promise<void>;
 }
 
-export function useDocuments(): UseDocumentsReturn {
+/**
+ * `folderId`:
+ *   - `undefined` = fetch ALL documents (used by chat selection picker
+ *     which must show cross-folder docs)
+ *   - `null`      = root-level only (Document Library landing view)
+ *   - number      = inside that specific folder
+ */
+export function useDocuments(
+  folderId?: number | null,
+): UseDocumentsReturn {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -40,8 +50,12 @@ export function useDocuments(): UseDocumentsReturn {
 
   const fetchDocuments = useCallback(async () => {
     try {
+      const folderParam =
+        folderId === undefined
+          ? ''
+          : `?folderId=${folderId === null ? 'root' : folderId}`;
       const [docsRes, selRes] = await Promise.all([
-        fetch('/api/v1/documents'),
+        fetch(`/api/v1/documents${folderParam}`),
         fetch('/api/v1/documents/selection'),
       ]);
 
@@ -56,7 +70,7 @@ export function useDocuments(): UseDocumentsReturn {
     } catch (err: any) {
       setError(err.message);
     }
-  }, []);
+  }, [folderId]);
 
   useEffect(() => {
     fetchDocuments();
@@ -68,6 +82,9 @@ export function useDocuments(): UseDocumentsReturn {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      if (folderId != null) {
+        formData.append('folderId', String(folderId));
+      }
 
       const res = await fetch('/api/v1/documents/upload', {
         method: 'POST',
@@ -86,7 +103,7 @@ export function useDocuments(): UseDocumentsReturn {
     } finally {
       setLoading(false);
     }
-  }, [fetchDocuments]);
+  }, [fetchDocuments, folderId]);
 
   const uploadDocuments = useCallback(
     async (files: File[]): Promise<{ file: string; error: string }[]> => {
@@ -99,6 +116,9 @@ export function useDocuments(): UseDocumentsReturn {
           files.map(async (file) => {
             const formData = new FormData();
             formData.append('file', file);
+            if (folderId != null) {
+              formData.append('folderId', String(folderId));
+            }
             const res = await fetch('/api/v1/documents/upload', {
               method: 'POST',
               body: formData,
@@ -126,7 +146,7 @@ export function useDocuments(): UseDocumentsReturn {
         setLoading(false);
       }
     },
-    [fetchDocuments],
+    [fetchDocuments, folderId],
   );
 
   const deleteDocument = useCallback(async (id: string) => {

@@ -10,6 +10,7 @@ import {
   FilePptOutlined,
   FileWordOutlined,
   LoadingOutlined,
+  SwapOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
 import { DocumentItem } from '@/hooks/useDocuments';
@@ -26,6 +27,9 @@ interface Props {
   selectionDisabled: boolean;
   onToggle: (id: string) => void;
   onDelete: (doc: DocumentItem) => void;
+  /** Optional — when omitted, the "Move to..." action is hidden.
+   *  The parent page provides it once folders are loaded. */
+  onMove?: (doc: DocumentItem) => void;
 }
 
 const THUMB_WIDTH = 180;
@@ -160,6 +164,33 @@ const DeleteBtn = styled.button`
   }
 `;
 
+const MoveBtn = styled.button`
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: white;
+  color: var(--gray-7);
+  cursor: pointer;
+  opacity: 0.85;
+  transform: scale(0.95);
+  transition: opacity 0.15s, transform 0.15s, background 0.15s,
+    box-shadow 0.15s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  font-size: 14px;
+
+  &:hover {
+    background: var(--rust-orange-1);
+    color: var(--rust-orange-6);
+    opacity: 1;
+    transform: scale(1.05);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+  }
+`;
+
 const Body = styled.div`
   display: flex;
   flex-direction: column;
@@ -286,6 +317,7 @@ export default function DocumentCard({
   selectionDisabled,
   onToggle,
   onDelete,
+  onMove,
 }: Props) {
   const name = doc.originalFilename || doc.filename;
   const canSelect = doc.status === 'indexed';
@@ -302,6 +334,11 @@ export default function DocumentCard({
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     onDelete(doc);
+  };
+
+  const handleMove = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onMove?.(doc);
   };
 
   const tooltipContent = (
@@ -346,14 +383,26 @@ export default function DocumentCard({
               />
             </CheckboxWrap>
           </Tooltip>
-          <DeleteBtn
-            className="doc-card__delete"
-            onClick={handleDelete}
-            aria-label={`Remove ${name}`}
-            title="Remove document"
-          >
-            <DeleteOutlined style={{ fontSize: 16 }} />
-          </DeleteBtn>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {onMove && (
+              <MoveBtn
+                className="doc-card__move"
+                onClick={handleMove}
+                aria-label={`Move ${name}`}
+                title="Move to folder"
+              >
+                <SwapOutlined style={{ fontSize: 14 }} />
+              </MoveBtn>
+            )}
+            <DeleteBtn
+              className="doc-card__delete"
+              onClick={handleDelete}
+              aria-label={`Remove ${name}`}
+              title="Remove document"
+            >
+              <DeleteOutlined style={{ fontSize: 16 }} />
+            </DeleteBtn>
+          </div>
         </TopActions>
 
         <ThumbWrap>

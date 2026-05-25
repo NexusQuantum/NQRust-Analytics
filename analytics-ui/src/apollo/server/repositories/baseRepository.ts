@@ -142,7 +142,7 @@ export class BaseRepository<T> implements IBasicRepository<T> {
     return this.transformFromDBData(result);
   }
 
-  public async deleteOne(id: string, queryOptions?: IQueryOptions) {
+  public async deleteOne(id: string | number, queryOptions?: IQueryOptions) {
     const executer = queryOptions?.tx ? queryOptions.tx : this.knex;
     const builder = executer.from(this.tableName).where({ id }).delete();
     return await builder;

@@ -37,13 +37,28 @@ export default async function handler(
 
   let filepath: string | null = null;
   try {
-    const [_fields, files] = await form.parse(req);
+    const [fields, files] = await form.parse(req);
     const file = Array.isArray(files.file) ? files.file[0] : files.file;
 
     if (!file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
     filepath = file.filepath;
+
+    // Optional folder placement. Empty / missing = upload to root.
+    // Anything non-numeric is rejected — we don't want a typo'd value to
+    // silently create an orphaned document.
+    const rawFolderId = Array.isArray(fields.folderId)
+      ? fields.folderId[0]
+      : fields.folderId;
+    let folderId: number | null = null;
+    if (rawFolderId != null && rawFolderId !== '') {
+      const parsed = Number.parseInt(String(rawFolderId), 10);
+      if (!Number.isInteger(parsed)) {
+        return res.status(400).json({ error: 'Invalid folderId' });
+      }
+      folderId = parsed;
+    }
 
     // Async read — at 50 MB a sync readFileSync would block Node's
     // event loop long enough to stall other requests.
@@ -57,6 +72,7 @@ export default async function handler(
       buffer,
       originalFilename,
       mimeType,
+      folderId,
     );
 
     return res.status(201).json({

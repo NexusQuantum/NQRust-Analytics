@@ -71,6 +71,7 @@ export class DocumentService {
     fileBuffer: Buffer,
     originalFilename: string,
     mimeType: string,
+    folderId: number | null = null,
   ): Promise<Document> {
     // Validate
     this.validateFile(fileBuffer, originalFilename, mimeType);
@@ -83,6 +84,14 @@ export class DocumentService {
     const existing = await this.documentRepository.findByHash(saved.hash);
     if (existing && existing.status === 'indexed') {
       logger.info(`Document with hash ${saved.hash} already indexed, reusing`);
+      // Re-uploading the same file into a different folder still moves it —
+      // the user's intent in clicking upload-while-inside-folder is to put
+      // the document here, even though the bytes already exist.
+      if (folderId !== existing.folderId) {
+        return this.documentRepository.updateOne(existing.id, {
+          folderId,
+        } as Partial<Document>);
+      }
       return existing;
     }
 
@@ -108,6 +117,7 @@ export class DocumentService {
       size: saved.size,
       hash: saved.hash,
       status: 'pending',
+      folderId,
     } as Partial<Document>);
 
     // Trigger async indexing in AI service
@@ -159,6 +169,16 @@ export class DocumentService {
 
   public async getAllDocuments(): Promise<Document[]> {
     return this.documentRepository.findAll({ order: 'created_at' });
+  }
+
+  /** Documents scoped to a folder. `null` = root-level (no folder).
+   *  `undefined` = no filter (all documents — useful for selection picker
+   *  and search across folders). */
+  public async getDocumentsByFolder(
+    folderId: number | null | undefined,
+  ): Promise<Document[]> {
+    if (folderId === undefined) return this.getAllDocuments();
+    return this.documentRepository.findByFolder(folderId);
   }
 
   public async onIndexingComplete(

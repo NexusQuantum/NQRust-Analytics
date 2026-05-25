@@ -50,10 +50,12 @@ import {
 } from './apollo/server/backgrounds';
 import { SqlPairService } from './apollo/server/services/sqlPairService';
 import { DocumentService } from './apollo/server/services/documentService';
+import { DocumentFolderService } from './apollo/server/services/documentFolderService';
 import {
   DocumentRepository,
   DocumentTreeRepository,
   DocumentSelectionRepository,
+  DocumentFolderRepository,
 } from '@server/repositories';
 
 export const serverConfig = getConfig();
@@ -95,6 +97,7 @@ export const initComponents = () => {
   const documentRepository = new DocumentRepository({ knexPg: knex });
   const documentTreeRepository = new DocumentTreeRepository({ knexPg: knex });
   const documentSelectionRepository = new DocumentSelectionRepository({ knexPg: knex });
+  const documentFolderRepository = new DocumentFolderRepository({ knexPg: knex });
 
   // license service
   const licenseService = new LicenseService(serverConfig, licenseRepository);
@@ -203,6 +206,10 @@ export const initComponents = () => {
     config: serverConfig,
     callbackBaseUrl: explicitCallbackUrl || 'http://analytics-ui:3000',
   });
+  const documentFolderService = new DocumentFolderService({
+    documentFolderRepository,
+    documentRepository,
+  });
 
   // background trackers
   const projectRecommendQuestionBackgroundTracker =
@@ -257,6 +264,7 @@ export const initComponents = () => {
     documentRepository,
     documentTreeRepository,
     documentSelectionRepository,
+    documentFolderRepository,
 
     // adaptors
     analyticsEngineAdaptor,
@@ -274,6 +282,7 @@ export const initComponents = () => {
     sqlPairService,
     instructionService,
     documentService,
+    documentFolderService,
     askingTaskTracker,
     licenseService,
 

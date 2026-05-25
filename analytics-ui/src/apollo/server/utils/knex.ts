@@ -28,6 +28,10 @@ export const bootstrapKnex = (options: KnexOptions) => {
       pool: {
         afterCreate: (conn: any, cb: any) => {
           conn.pragma('journal_mode = WAL');
+          // SQLite has foreign_keys OFF by default per connection. The
+          // document folder schema relies on ON DELETE CASCADE / SET NULL
+          // — without this, deletes silently leave orphan rows.
+          conn.pragma('foreign_keys = ON');
           cb();
         },
       },

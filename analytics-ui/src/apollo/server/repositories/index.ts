@@ -27,3 +27,4 @@ export * from './licenseRepository';
 export * from './documentRepository';
 export * from './documentTreeRepository';
 export * from './documentSelectionRepository';
+export * from './documentFolderRepository';
