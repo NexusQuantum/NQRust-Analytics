@@ -5,6 +5,19 @@ import { getLogger } from '@server/utils';
 const logger = getLogger('DocumentTreeCallback');
 const { documentService } = components;
 
+// Next.js defaults the request body parser to 1 MB. PageIndex TOC trees
+// for large PDFs (hundreds of pages) routinely blow past that — without
+// the override, the AI service callback gets 413 and the document is
+// stuck at "indexing" in the UI even though Qdrant already has the data.
+// 10 MB is generous for trees up to ~1500 page documents.
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 /**
  * POST /api/v1/documents/[id]/tree
  *
