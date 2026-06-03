@@ -60,7 +60,7 @@ export default async function handler(
       folderId = parsed;
     }
 
-    // Async read — at 50 MB a sync readFileSync would block Node's
+    // Async read — at 100 MB a sync readFileSync would block Node's
     // event loop long enough to stall other requests.
     const buffer = await fsp.readFile(file.filepath);
     const originalFilename = file.originalFilename || 'document';

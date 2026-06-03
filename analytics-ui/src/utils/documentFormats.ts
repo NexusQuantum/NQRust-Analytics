@@ -45,7 +45,7 @@ export const DOCUMENT_ACCEPT_ATTR: string = [
  * Keep this in sync with the default in
  * `analytics-ui/src/apollo/server/config.ts`.
  */
-export const DEFAULT_DOCUMENT_MAX_SIZE_MB = 50;
+export const DEFAULT_DOCUMENT_MAX_SIZE_MB = 100;
 
 /**
  * Maximum documents a user can mark as "selected for chat" at once.

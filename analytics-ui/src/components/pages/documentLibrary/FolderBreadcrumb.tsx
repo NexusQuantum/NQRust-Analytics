@@ -1,5 +1,5 @@
 import React from 'react';
-import { Breadcrumb } from 'antd';
+import { Breadcrumb, Tooltip } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { DocumentFolder } from '@/hooks/useDocumentFolders';
@@ -43,7 +43,9 @@ export default function FolderBreadcrumb({ breadcrumb, onNavigate }: Props) {
     <Wrap>
       <Breadcrumb>
         <Breadcrumb.Item onClick={() => onNavigate(null)}>
-          <HomeOutlined /> <span>Document Library</span>
+          <Tooltip title="Document Library root" placement="bottom">
+            <HomeOutlined />
+          </Tooltip>
         </Breadcrumb.Item>
         {breadcrumb.map((folder, idx) => {
           const isLast = idx === breadcrumb.length - 1;

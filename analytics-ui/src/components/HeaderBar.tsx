@@ -86,7 +86,7 @@ export default function HeaderBar() {
                 block
               >
                 <BookOpen size={16} className="mr-1" />
-                Knowledge
+                SQL Knowledge
               </StyledButton>
               <StyledButton
                 type="text"
